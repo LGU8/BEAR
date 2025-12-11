@@ -26,7 +26,6 @@
             </a>
         </div>
 
-
         <div class="settings-navbar-right">
           <img src="{% static 'settings.png' %}" alt="settings logo" class="settings-logo">
         </div>
@@ -39,8 +38,8 @@
         <div class="bear-tab-box">
           <a class="bear-tab-text" href="#">리포트</a>
         </div>
-        <div class="bear-tab-box">
-          <a class="bear-tab-text" href="{% url 'record_app:record_index' %}">기록</a>
+        <div class="bear-tab-box active">
+          <a class="bear-tab-text" href="#">기록</a>
         </div>
         <div class="bear-tab-box">
           <a class="bear-tab-text" href="#">타임라인</a>
@@ -54,6 +53,11 @@
     <!-- 아래 실제 페이지 내용 -->
     <main class="bear-main">
       <!-- 페이지별 컨텐츠 -->
+       <div class = "container">
+        {% block main_area %}
+
+        {% endblock %}
+    </div>
     </main>
   </body>
 </html>
