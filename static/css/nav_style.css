@@ -1,0 +1,165 @@
+/* 전체 배경 & 기본 폰트 */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #FFF9F0;
+
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Noto Sans KR", system-ui, sans-serif;
+}
+
+/* ─────────────────────────────
+   1줄: 상단 로고 + 설정 아이콘
+   ───────────────────────────── */
+.bear-navbar {
+    background-color: #FFF9F0;
+    padding: 12px 0;
+}
+
+.bear-navbar-inner {
+    max-width: 960px;      /* 1줄 컨테이너 폭 */
+    margin: 0 auto;
+    padding: 0 16px;       /* 좌우 여백 → 2줄과 맞춤 */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.bear-navbar-left {
+    display: flex;
+    align-items: center;
+}
+
+/* 곰돌이 로고 */
+.bear-logo {
+    height: 64px;          /* 필요에 따라 조정 */
+    width: auto;
+    display: block;
+}
+
+/* 설정 아이콘 */
+.settings-navbar-right {
+    display: flex;
+    align-items: center;
+}
+
+.settings-logo {
+    height: 36px;
+    width: auto;
+    display: block;
+}
+
+/* ─────────────────────────────
+   2줄: 리포트 / 기록 / 타임라인 / 도감
+   ───────────────────────────── */
+
+/* 전체 바 (배경만 담당) */
+.bear-tabs-bar {
+    width: 100%;
+    background-color: #FFF9F0;
+    padding: 4px 0 16px;
+    box-sizing: border-box;
+}
+
+/* 1줄과 같은 폭/좌우 여백을 갖는 내부 컨테이너 */
+.bear-tabs-inner {
+    max-width: 960px;      /* 1줄과 동일 */
+    margin: 0 auto;
+    padding: 0 16px;       /* 1줄과 동일 */
+    display: flex;
+    box-sizing: border-box;
+}
+
+/* 각 칸: 화면폭 기준 4등분 (동일한 너비) */
+.bear-tab-box {
+    flex: 1 1 0;                      /* 🔸수정: 모든 칸을 균등 분배 */
+    display: flex;
+    justify-content: center;          /* 내부 버튼 중앙 정렬 */
+    align-items: center;
+    box-sizing: border-box;
+}
+
+/* 🔸수정: 박스 사이 간격 – 화면 폭 비율로 간격 유지
+   가로 393px일 때 23px 간격 ≒ 약 5.85% → 그 비율로 margin 적용 */
+.bear-tab-box + .bear-tab-box {
+    margin-left: 5.85%;
+}
+
+/* 둥근 사각형 버튼 (pill) */
+.bear-tab-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;                      /* 각 칸 안에서 가로를 꽉 채움 */
+    padding: 10px 0;                  /* 위아래 여백만 */
+    border-radius: 100px;             /* 모서리 반경 100 */
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    background-color: #FFE2B6;        /* 기본 버튼 색 (기록/타임라인/도감) */
+    color: #3C3C43;                   /* 기본 글자색 */
+}
+
+/* 활성 탭(리포트) 전용 스타일 */
+.bear-tab-box.active .bear-tab-text {
+    background-color: #F47900;        /* 주황색 */
+    color: #FFFFFF;                   /* 글자 흰색 */
+}
+
+/* 호버 효과 (선택) */
+.bear-tab-text:hover {
+    filter: brightness(0.97);
+}
+
+/* 메인 컨텐츠 영역 */
+.bear-main {
+    max-width: 960px;
+    margin: 16px auto;
+    padding: 0 16px;
+    box-sizing: border-box;
+}
+
+/* ─────────────────────────────
+   반응형 (태블릿 / 모바일)
+   ───────────────────────────── */
+@media (max-width: 768px) {
+    .bear-navbar-inner,
+    .bear-tabs-inner,
+    .bear-main {
+        max-width: 100%;
+        padding: 0 12px;
+    }
+
+    .bear-logo {
+        height: 52px;
+    }
+
+    .settings-logo {
+        height: 30px;
+    }
+
+    .bear-tab-text {
+        font-size: 0.9rem;
+        padding: 8px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .bear-navbar-inner,
+    .bear-tabs-inner,
+    .bear-main {
+        padding: 0 10px;
+    }
+
+    .bear-logo {
+        height: 46px;
+    }
+
+    .settings-logo {
+        height: 26px;
+    }
+
+    .bear-tab-text {
+        font-size: 0.85rem;
+        padding: 7px 0;
+    }
+}
