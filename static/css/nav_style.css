@@ -10,18 +10,19 @@ body {
 /* ─────────────────────────────
    1줄: 상단 로고 + 설정 아이콘
    ───────────────────────────── */
+/* 상단 네비 공통 */
 .bear-navbar {
     background-color: #FFF9F0;
     padding: 12px 0;
 }
 
 .bear-navbar-inner {
-    max-width: 960px;      /* 1줄 컨테이너 폭 */
+    max-width: 960px;
     margin: 0 auto;
-    padding: 0 16px;       /* 좌우 여백 → 2줄과 맞춤 */
+    padding: 0 16px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: space-between;   /* 왼쪽 로고 / 오른쪽 그룹 */
 }
 
 .bear-navbar-left {
@@ -29,25 +30,36 @@ body {
     align-items: center;
 }
 
-/* 곰돌이 로고 */
+/* 곰돌이 메인 로고 */
 .bear-logo {
-    height: 64px;          /* 필요에 따라 조정 */
+    height: 64px;
     width: auto;
     display: block;
 }
 
-/* 설정 아이콘 */
-.settings-navbar-right {
-    display: flex;
+/* 👉 오른쪽 곰돌이 + 톱니를 가로로 정렬 (강제 설정) */
+.settings-navbar-group {
+    display: flex !important;       /* 혹시 다른 CSS가 덮어써도 flex 유지 */
+    flex-direction: row !important; /* 무조건 가로 방향 */
     align-items: center;
+    justify-content: flex-end;
+    gap: 0px;                       /* 둘 사이 간격 (붙이고 싶으면 0으로) */
+    white-space: nowrap;            /* 줄바꿈 방지 */
 }
 
+/* 소개 곰돌이 */
+.settings-sub-logo {
+    height: 64px;
+    width: auto;
+    display: inline-block;          /* 세로가 아니라 인라인처럼 */
+}
+
+/* 톱니 아이콘 */
 .settings-logo {
     height: 36px;
     width: auto;
-    display: block;
+    display: inline-block;
 }
-
 /* ─────────────────────────────
    2줄: 리포트 / 기록 / 타임라인 / 도감
    ───────────────────────────── */

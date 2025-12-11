@@ -19,19 +19,22 @@
   <body>
     <!-- 1줄: 곰돌이 로고 + 설정 아이콘 -->
     <nav class="bear-navbar">
-      <div class="bear-navbar-inner">
+    <div class="bear-navbar-inner">
+        <!-- 왼쪽 BEAR 메인 로고 -->
         <div class="bear-navbar-left">
-            <a href="/">
-                <img src="{% static 'logo.png' %}" alt="BEAR logo" class="bear-logo">
-            </a>
+        <a href="/">
+            <img src="{% static 'logo.png' %}" alt="BEAR logo" class="bear-logo">
+        </a>
         </div>
-        
+
+        <!-- 오른쪽: 소개 곰돌이 + 톱니 아이콘 (가로 정렬) -->
         <div class="settings-navbar-group">
-            <a href="/settings">
-                <img src="{% static 'settings.png' %}" alt="settings logo" class="settings-logo">
-            </a>
+        <img src="{% static 'settings_introduce.png' %}" alt="settings sub logo" class="settings-sub-logo">
+        <a href="/settings">
+            <img src="{% static 'settings.png' %}" alt="settings logo" class="settings-logo">
+        </a>
         </div>
-      </div>
+    </div>
     </nav>
 
     <!-- 2줄: 리포트 / 기록 / 타임라인 / 도감 -->
@@ -40,7 +43,7 @@
         <div class="bear-tab-box">
           <a class="bear-tab-text" href="#">리포트</a>
         </div>
-        <div class="bear-tab-box active">
+        <div class="bear-tab-box">
           <a class="bear-tab-text" href="{% url 'record_app:record_index' %}">기록</a>
         </div>
         <div class="bear-tab-box">

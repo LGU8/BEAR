@@ -25,4 +25,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", index),
     path("record/", include("record.urls")),
+    path("settings/", include("settings.urls")),
+
 ]
