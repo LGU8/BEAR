@@ -65,6 +65,28 @@ body {
 /* ─────────────────────────────
    2줄: 리포트 / 기록 / 타임라인 / 도감
    ───────────────────────────── */
+/* 기본 상태 */
+.bear-tabs-bar .bear-tab-text {
+    color: #3C3C43;            /* 기본 글자색 */
+}
+
+/* 방문한 링크 */
+.bear-tabs-bar .bear-tab-text:visited {
+    color: #3C3C43;
+}
+
+/* hover / focus */
+.bear-tabs-bar .bear-tab-text:hover,
+.bear-tabs-bar .bear-tab-text:focus {
+    color: #FFB845;            /* ✅ 원하는 hover 색 */
+    filter: none;              /* 기존 brightness 효과 제거 */
+}
+
+/* 활성 탭은 hover해도 색 유지 */
+.bear-tab-box.active .bear-tab-text,
+.bear-tab-box.active .bear-tab-text:hover {
+    color: #FFFFFF;
+}
 
 /* 전체 바 (배경만 담당) */
 .bear-tabs-bar {
