@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <!-- (1) 주간 누적 막대 그래프 -->
+  <section class="timeline-section">
+    <h4>감정 변화 요약</h4>
+    <div class="timeline-date-range">
+      <!-- 나중에 date picker 붙일 자리 -->
+      <span>{{ week_start }} ~ {{ week_end }}</span>
+    </div>
+
+    <canvas id="weeklyEmotionChart"></canvas>
+  </section>
+
+  <!-- (2) ML 부정 감정 예측 결과 -->
+  <section class="timeline-section">
+    <h4>부정 감정 예측</h4>
+    <div class="prediction-box">
+      <p>
+        예측 결과:
+        <strong>{{ risk_label }}</strong>
+        (score: {{ risk_score }})
+      </p>
+    </div>
+  </section>
+
+  <!-- (3) LLM 멘트 -->
+  <section class="timeline-section">
+    <h4>행동 추천</h4>
+    <div class="llm-box">
+      <p>{{ llm_ment }}</p>
+    </div>
+  </section>
+
+  <!-- 차트 JS (Chart.js 쓸 거면) -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+  <!-- <script src="{% static 'js/timeline.js' %}"></script> -->
+
+{% endblock %}
