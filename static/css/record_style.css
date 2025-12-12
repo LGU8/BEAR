@@ -1,0 +1,236 @@
+/* static/css/record_style.css */
+
+/* ✅ Bootstrap 영향 최소화(버튼/테이블 기본값 덮어쓰기) */
+button, input, table { font-family: inherit; }
+button { border: none; background: none; cursor: pointer; }
+
+/* 페이지 전체 래퍼 */
+.record-wrap {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* 큰 카드(패널) */
+.panel {
+  background: #FFECCF;
+  border-radius: 18px;
+  padding: 18px;
+  margin: 14px 0;
+}
+
+.panel-title {
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* 식단기록 헤더(카메라 버튼) */
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.camera-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #FFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+/* 식사시간 4개 */
+.meal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.meal-item {
+  background: transparent;
+  border-radius: 14px;
+  padding: 8px 4px;
+}
+
+.meal-item.is-active {
+  background: rgba(255,255,255,0.5);
+}
+
+.meal-ico {
+  width: 26px;
+  height: 26px;
+  display: block;
+  margin: 0 auto 6px;
+}
+
+.meal-txt {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* 3개 카드 */
+.cards-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.meal-card {
+  background: #F7D9AA;
+  border-radius: 14px;
+  padding: 10px;
+  min-height: 120px;
+}
+
+.meal-card-img {
+  height: 56px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.45);
+}
+
+.meal-card-text {
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(0,0,0,0.55);
+  line-height: 1.25;
+}
+
+/* 레시피 버튼(초록 pill) */
+.recipe-row { display: flex; justify-content: flex-end; margin: 8px 0; }
+
+.recipe-pill {
+  background: #B7D88B;
+  color: #1f2a1a;
+  padding: 6px 12px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+/* 검색 줄 */
+.search-row {
+  display: grid;
+  grid-template-columns: 1fr 72px;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.search-input {
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.15);
+  padding: 0 10px;
+  background: #FFECCF;
+}
+
+.search-btn {
+  height: 34px;
+  border-radius: 8px;
+  background: #F8B45D;
+  font-weight: 900;
+}
+
+/* 테이블 */
+.table-wrap {
+  background: rgba(255,255,255,0.35);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.food-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.food-table th, .food-table td {
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  padding: 6px 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 추가하기 */
+.add-row { display: flex; justify-content: flex-end; margin-top: 10px; }
+
+.add-btn {
+  background: #F7D9AA;
+  border: 1px solid rgba(0,0,0,0.18);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+/* 하단 버튼 */
+.bottom-actions {
+  display: flex;
+  justify-content: space-between;
+  margin: 16px 0 22px;
+}
+
+.bottom-btn {
+  width: 92px;
+  height: 42px;
+  border-radius: 12px;
+  background: #F47900;
+  color: #fff;
+  font-weight: 900;
+}
+
+.bottom-btn.primary {
+  background: #F47900;
+}
+
+/* ─────────────────────────────
+   반응형 (태블릿 / 모바일)
+   ───────────────────────────── */
+@media (max-width: 768px) {
+    .bear-navbar-inner,
+    .bear-tabs-inner,
+    .bear-main {
+        max-width: 100%;
+        padding: 0 12px;
+    }
+
+    .bear-logo {
+        height: 52px;
+    }
+
+    .settings-logo {
+        height: 30px;
+    }
+
+    .bear-tab-text {
+        font-size: 0.9rem;
+        padding: 8px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .bear-navbar-inner,
+    .bear-tabs-inner,
+    .bear-main {
+        padding: 0 10px;
+    }
+
+    .bear-logo {
+        height: 46px;
+    }
+
+    .settings-logo {
+        height: 26px;
+    }
+
+    .bear-tab-text {
+        font-size: 0.85rem;
+        padding: 7px 0;
+    }
+}

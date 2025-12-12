@@ -1,0 +1,95 @@
+{% extends "record_base.html" %}
+{% load static %}
+
+{% block main_area %}
+
+<section class="record-wrap">
+
+  <!-- 식사 시간 카드 -->
+  <section class="panel">
+    <h2 class="panel-title">식사 시간</h2>
+
+    <!-- date는 감정 페이지에서 query로 받는 값 -->
+    <input id="record-date" type="hidden" value="">
+
+    <div class="meal-grid">
+      <button class="meal-item meal-btn" type="button" data-meal="breakfast">
+        <img class="meal-ico" src="{% static 'record_img/morning.png' %}" alt="아침">
+        <div class="meal-txt">아침</div>
+      </button>
+
+      <button class="meal-item meal-btn" type="button" data-meal="lunch">
+        <img class="meal-ico" src="{% static 'record_img/lunch.png' %}" alt="점심">
+        <div class="meal-txt">점심</div>
+      </button>
+
+      <button class="meal-item meal-btn" type="button" data-meal="dinner">
+        <img class="meal-ico" src="{% static 'record_img/dinner.png' %}" alt="저녁">
+        <div class="meal-txt">저녁</div>
+      </button>
+
+      <button class="meal-item meal-btn" type="button" data-meal="snack">
+        <img class="meal-ico" src="{% static 'record_img/snack.png' %}" alt="간식">
+        <div class="meal-txt">간식</div>
+      </button>
+    </div>
+  </section>
+
+  <!-- 식단 기록 카드 -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">식단 기록</h2>
+      <a id="btn-camera" class="camera-btn" href="#" aria-label="카메라">📷</a>
+    </div>
+
+    <!-- 최근 3개 끼니 카드 -->
+    <div id="recent-cards" class="cards-3">
+      <article class="meal-card empty">
+        <div class="meal-card-img"></div>
+        <div class="meal-card-text">아직 기록 전입니다.<br>기록을 남겨보세요!</div>
+      </article>
+      <article class="meal-card empty">
+        <div class="meal-card-img"></div>
+        <div class="meal-card-text">아직 기록 전입니다.<br>기록을 남겨보세요!</div>
+      </article>
+      <article class="meal-card empty">
+        <div class="meal-card-img"></div>
+        <div class="meal-card-text">아직 기록 전입니다.<br>기록을 남겨보세요!</div>
+      </article>
+    </div>
+
+    <div class="recipe-row">
+      <a id="btn-my-recipe" class="recipe-pill" href="#">나의 레시피 가져오기</a>
+    </div>
+
+    <div class="search-row">
+      <input id="food-search-input" class="search-input" type="text" placeholder="검색 내용을 입력하세요.">
+      <button id="food-search-btn" class="search-btn" type="button">Search</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="food-table">
+        <thead>
+          <tr>
+            <th>No.</th><th>제품명</th><th>브랜드</th><th>칼로리</th><th>탄수화물</th><th>단백질</th><th>지방</th>
+          </tr>
+        </thead>
+        <tbody id="record-items-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="add-row">
+      <button id="btn-add-item" class="add-btn" type="button">추가하기</button>
+    </div>
+  </section>
+
+  <!-- 하단 버튼 -->
+  <div class="bottom-actions">
+    <button id="btn-prev" class="bottom-btn" type="button">이전</button>
+    <button id="btn-save-meal" class="bottom-btn primary" type="button">저장</button>
+  </div>
+
+</section>
+
+<script defer src="{% static 'js/record_state.js' %}"></script>
+{% endblock %}
