@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from conf.views import index, timeline
+from conf.views import index, timeline, badges
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -27,4 +27,6 @@ urlpatterns = [
     path("record/", include("record.urls")),
     path("settings/", include("settings.urls")),
     path("timeline/", timeline),
+    path("badges/", badges),
+
 ]

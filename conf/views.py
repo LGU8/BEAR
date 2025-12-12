@@ -5,6 +5,8 @@ from record.services.timeline_ml_predict import predict_negative_risk
 def index(request):
     return render(request, "base.html")
 
+def badges(request):
+    return render(request, "badges.html")
 
 def timeline(request):
     context = {
