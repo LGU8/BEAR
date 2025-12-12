@@ -43,8 +43,8 @@
         <div class="bear-tab-box active">
           <a class="bear-tab-text" href="{% url 'record_app:record_index' %}">기록</a>
         </div>
-        <div class="bear-tab-box">
-          <a class="bear-tab-text" href="#">타임라인</a>
+        <div class="bear-tab-box {% if active_tab == 'timeline' %}active{% endif %}"">
+          <a class="bear-tab-text" href="/timeline">타임라인</a>
         </div>
         <div class="bear-tab-box">
           <a class="bear-tab-text" href="#">도감</a>
