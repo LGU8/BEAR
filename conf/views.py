@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from record.services.timeline_ml_predict import predict_negative_risk
 
 
 def index(request):
