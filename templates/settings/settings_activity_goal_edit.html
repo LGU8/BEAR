@@ -1,4 +1,94 @@
 {% extends "settings/settings_base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/settings_style.css' %}">
+{% endblock %}
+
 {% block main_area %}
-<!-- TODO: 화면 구현 -->
+<section class="settings-page">
+
+  <article class="settings-card edit-card">
+    <div class="edit-header">
+      <a class="back-btn" href="{% url 'settings_app:settings_account' %}" aria-label="back">←</a>
+      <div class="edit-title">운동량 수정</div>
+      <div class="edit-header-spacer"></div>
+    </div>
+
+    <div class="edit-section-title">활동량 수정</div>
+
+    <div class="select-list">
+      <button type="button" class="select-item is-active">
+        <img class="select-icon" src="{% static 'settings_img/bear_maintain.png' %}" alt="low">
+        <div class="select-text">
+          <div class="select-name">낮음</div>
+          <div class="select-desc">사무직 등 좌식생활 위주, 대중교통 출퇴근 등,<br>주 1~3회 가벼운 운동</div>
+        </div>
+      </button>
+
+      <button type="button" class="select-item">
+        <img class="select-icon" src="{% static 'settings_img/bear_maintain.png' %}" alt="mid">
+        <div class="select-text">
+          <div class="select-name">중간</div>
+          <div class="select-desc">활동이 적당히 많음,<br>주 3회 이상 운동</div>
+        </div>
+      </button>
+
+      <button type="button" class="select-item">
+        <img class="select-icon" src="{% static 'settings_img/bear_bulkup.png' %}" alt="high">
+        <div class="select-text">
+          <div class="select-name">높음</div>
+          <div class="select-desc">활동량 많은 편,<br>주 5회 이상 운동</div>
+        </div>
+      </button>
+
+      <button type="button" class="select-item">
+        <img class="select-icon" src="{% static 'settings_img/bear_bulkup.png' %}" alt="very-high">
+        <div class="select-text">
+          <div class="select-name">매우 높음</div>
+          <div class="select-desc">하루종일 활동(육체노동 등),<br>매일 운동</div>
+        </div>
+      </button>
+    </div>
+
+    <div class="edit-footer">
+      <button class="save-btn" type="button" disabled>저장</button>
+    </div>
+
+    <div class="edit-divider"></div>
+
+    <div class="edit-section-title">목표 수정</div>
+
+    <div class="select-list">
+      <button type="button" class="select-item is-active">
+        <img class="select-icon" src="{% static 'settings_img/bear_maintain.png' %}" alt="maintain">
+        <div class="select-text">
+          <div class="select-name">유지</div>
+          <div class="select-desc">지금 잘하고 계세요</div>
+        </div>
+      </button>
+
+      <button type="button" class="select-item">
+        <img class="select-icon" src="{% static 'settings_img/bear_diet.png' %}" alt="diet">
+        <div class="select-text">
+          <div class="select-name">다이어트</div>
+          <div class="select-desc">살을 빼기 위해 400Kcal 줄여볼까요?</div>
+        </div>
+      </button>
+
+      <button type="button" class="select-item">
+        <img class="select-icon" src="{% static 'settings_img/bear_bulkup.png' %}" alt="bulkup">
+        <div class="select-text">
+          <div class="select-name">벌크업</div>
+          <div class="select-desc">몸을 키우기 위해 400Kcal 늘려볼까요?</div>
+        </div>
+      </button>
+    </div>
+
+    <div class="edit-footer">
+      <button class="save-btn" type="button" disabled>저장</button>
+    </div>
+  </article>
+
+</section>
 {% endblock %}
