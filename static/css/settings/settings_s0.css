@@ -1,0 +1,78 @@
+/* =========================
+   Settings S0 (settings_index.html 전용)
+   ========================= */
+
+/* 1) 이메일 pill */
+.profile-email-pill {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 8px;
+
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 1.4;
+
+  background: rgba(255, 226, 182, 0.55);
+  color: rgba(0, 0, 0, 0.75);
+}
+
+/* 2) 키/몸무게 단위 표시 (HTML 구조 유지: CSS로 cm/kg 붙임) */
+.profile-stats .stat:nth-child(1) .stat-value::after {
+  content: "cm";
+  font-weight: 700;
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+.profile-stats .stat:nth-child(2) .stat-value::after {
+  content: "kg";
+  font-weight: 700;
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+/* 3) 메뉴 카드 */
+.menu-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding: 16px;
+  text-decoration: none;
+}
+
+.menu-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-ico {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  display: block;
+}
+
+.menu-text {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.menu-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 0 16px;
+}
+
+/* 4) 모바일 터치 피드백 (S0에서만 가볍게) */
+.menu-item:active {
+  filter: brightness(0.98);
+}

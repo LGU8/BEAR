@@ -2,13 +2,14 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/settings_style.css' %}">
+<link rel="stylesheet" href="{% static 'css/settings/settings_base.css' %}">
+<link rel="stylesheet" href="{% static 'css/settings/settings_s0.css' %}">
 {% endblock %}
 
 {% block main_area %}
 <section class="settings-page">
 
-  <!-- 프로필 카드 -->
+  <!-- (S0-1) 프로필 카드 (시안: BEAR/가입일/이메일 표시) -->
   <article class="settings-card profile-card">
     <div class="profile-row">
       <div class="profile-avatar-wrap">
@@ -16,39 +17,46 @@
       </div>
 
       <div class="profile-meta">
-        <div class="profile-title">프로필 요약</div>
-        <div class="profile-sub">현재 내 BEAR 상태를 확인해요</div>
+        <div class="profile-title">{{ nickname|default:"BEAR" }}</div>
+        {% if created_dt_label %}
+          <div class="profile-sub">(가입일: {{ created_dt_label }})</div>
+        {% else %}
+          <div class="profile-sub"></div>
+        {% endif %}
+        <span class="profile-email-pill">{{ email|default:"" }}</span>
       </div>
     </div>
 
     <div class="profile-stats">
       <div class="stat">
         <div class="stat-label">키</div>
-        <div class="stat-value">178cm</div>
+        <div class="stat-value">{{ height_cm|floatformat:0|default:"-" }}</div>
       </div>
       <div class="stat">
         <div class="stat-label">몸무게</div>
-        <div class="stat-value">70kg</div>
+        <div class="stat-value">{{ weight_kg|floatformat:0|default:"-" }}</div>
       </div>
       <div class="stat">
         <div class="stat-label">나이</div>
-        <div class="stat-value">25</div>
+        <div class="stat-value">{{ age|default:"-" }}</div>
       </div>
       <div class="stat">
         <div class="stat-label">성별</div>
-        <div class="stat-value">남</div>
+        <div class="stat-value">{{ gender_label|default:"-" }}</div>
       </div>
     </div>
   </article>
 
-  <!-- 메뉴 카드 -->
+  <!-- (S0-2) 메뉴 카드 -->
   <article class="settings-card menu-card">
+
     <a class="menu-item" href="{% url 'settings_app:settings_account' %}">
       <div class="menu-left">
         <img class="menu-ico" src="{% static 'settings_img/icon_account.png' %}" alt="account">
         <div class="menu-text">계정 관리</div>
       </div>
-      <div class="menu-right">›</div>
+      {# 시안에는 chevron이 약하거나 없음 → 필요하면 아래 주석 해제 #}
+      {# <div class="menu-right">›</div> #}
     </a>
 
     <div class="menu-divider"></div>
@@ -58,8 +66,9 @@
         <img class="menu-ico" src="{% static 'settings_img/icon_password.png' %}" alt="password">
         <div class="menu-text">비밀번호 관리</div>
       </div>
-      <div class="menu-right">›</div>
+      {# <div class="menu-right">›</div> #}
     </a>
+
   </article>
 
 </section>
