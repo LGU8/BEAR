@@ -1,4 +1,5 @@
-{% extends "record_base.html" %}
+{% extends "record_base_clean.html" %}
+
 {% load static %}
 
 {% block main_area %}
@@ -39,7 +40,10 @@
   <section class="panel">
     <div class="panel-head">
       <h2 class="panel-title">식단 기록</h2>
-      <a id="btn-camera" class="camera-btn" href="#" aria-label="카메라">📷</a>
+      {% load static %}
+      <a id="btn-camera" class="camera-btn" href="#" aria-label="카메라">
+        <img class="camera-ico" src="{% static 'record_img/dslr-camera.png' %}" alt="카메라">
+      </a>
     </div>
 
     <!-- 최근 3개 끼니 카드 -->

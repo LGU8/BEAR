@@ -14,55 +14,55 @@
 
     <!-- BEAR 전용 스타일 -->
     <link rel="stylesheet" href="{% static 'css/nav_style.css' %}">
+    {% block extra_css %}{% endblock %}
   </head>
 
   <body>
     <!-- 1줄: 곰돌이 로고 + 설정 아이콘 -->
     <nav class="bear-navbar">
-    <div class="bear-navbar-inner">
-        <!-- 왼쪽 BEAR 메인 로고 -->
+      <div class="bear-navbar-inner">
         <div class="bear-navbar-left">
-        <a href="/">
+          <a href="/">
             <img src="{% static 'nav_img/logo.png' %}" alt="BEAR logo" class="bear-logo">
-        </a>
+          </a>
         </div>
 
-        <!-- 오른쪽: 소개 곰돌이 + 톱니 아이콘 (가로 정렬) -->
         <div class="settings-navbar-group">
-        <img src="{% static 'nav_img/settings_introduce.png' %}" alt="settings sub logo" class="settings-sub-logo">
-        <a href="/settings">
+          <img src="{% static 'nav_img/settings_introduce.png' %}" alt="settings sub logo" class="settings-sub-logo">
+          <a href="{% url 'settings_app:settings_index' %}">
             <img src="{% static 'nav_img/settings.png' %}" alt="settings logo" class="settings-logo">
-        </a>
+          </a>
         </div>
-    </div>
+      </div>
     </nav>
 
     <!-- 2줄: 리포트 / 기록 / 타임라인 / 도감 -->
     <nav class="bear-tabs-bar">
       <div class="bear-tabs-inner">
-        <div class="bear-tab-box">
+        <div class="bear-tab-box {% if active_tab == 'report' %}active{% endif %}">
           <a class="bear-tab-text" href="#">리포트</a>
         </div>
-        <div class="bear-tab-box">
+
+        <div class="bear-tab-box {% if active_tab == 'record' %}active{% endif %}">
           <a class="bear-tab-text" href="{% url 'record_app:record_index' %}">기록</a>
         </div>
-        <div class="bear-tab-box {% if active_tab == 'timeline' %}active{% endif %}"">
+
+        <div class="bear-tab-box {% if active_tab == 'timeline' %}active{% endif %}">
           <a class="bear-tab-text" href="/timeline">타임라인</a>
         </div>
-        <div class="bear-tab-box">
+
+        <div class="bear-tab-box {% if active_tab == 'badges' %}active{% endif %}">
           <a class="bear-tab-text" href="/badges">도감</a>
         </div>
       </div>
     </nav>
 
-    <!-- 아래 실제 페이지 내용 -->
     <main class="bear-main">
-      <!-- 페이지별 컨텐츠 -->
-       <div class = "container">
-        {% block main_area %}
-
-        {% endblock %}
-    </div>
+      <div class="container">
+        {% block main_area %}{% endblock %}
+      </div>
     </main>
+
+    {% block extra_js %}{% endblock %}
   </body>
 </html>
