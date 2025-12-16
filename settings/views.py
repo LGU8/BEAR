@@ -164,6 +164,8 @@ def _base_ctx(active_tab: str = "") -> Dict[str, Any]:
         "activity_level_desc": activity_copy["desc"],
         "purpose": purpose,
         "purpose_label": purpose_label,
+
+        "seg_range": range(1, 11),
     }
 
 

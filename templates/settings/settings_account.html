@@ -45,38 +45,42 @@
       <a class="btn-edit" href="{% url 'settings_app:preferences_edit' %}">수정</a>
     </div>
 
+    {# 탄수화물 #}
     <div class="pref-row">
       <img class="pref-ico" src="{% static 'settings_img/icon_rice.png' %}" alt="carb">
       <div class="pref-text">밥·빵·면 같은 탄수화물 음식을 어느 정도로 즐기나요?</div>
 
-      <div class="segbar" aria-label="carb preference">
-        {% for on in carb_segments %}
-          <span class="segbar__seg {% if on %}is-on{% endif %}"></span>
+      <div class="seg-bar">
+        {% for i in seg_range %}
+          <span class="seg {% if i <= ratio_carb %}is-on{% endif %}"></span>
         {% endfor %}
       </div>
     </div>
 
+    {# 단백질 #}
     <div class="pref-row">
       <img class="pref-ico" src="{% static 'settings_img/icon_shrimp.png' %}" alt="protein">
       <div class="pref-text">고기·생선·달걀 같은 단백질 음식을 얼마나 중요하게 생각하나요?</div>
 
-      <div class="segbar" aria-label="protein preference">
-        {% for on in protein_segments %}
-          <span class="segbar__seg {% if on %}is-on{% endif %}"></span>
+      <div class="seg-bar">
+        {% for i in seg_range %}
+          <span class="seg {% if i <= ratio_protein %}is-on{% endif %}"></span>
         {% endfor %}
       </div>
     </div>
 
+    {# 지방 #}
     <div class="pref-row">
       <img class="pref-ico" src="{% static 'settings_img/icon_beef.png' %}" alt="fat">
       <div class="pref-text">버터·치즈와 같은 지방 음식을 얼마나 좋아하나요?</div>
 
-      <div class="segbar" aria-label="fat preference">
-        {% for on in fat_segments %}
-          <span class="segbar__seg {% if on %}is-on{% endif %}"></span>
+      <div class="seg-bar">
+        {% for i in seg_range %}
+          <span class="seg {% if i <= ratio_fat %}is-on{% endif %}"></span>
         {% endfor %}
       </div>
     </div>
+
   </article>
 
   <!-- (3) 움직임 + 수정 -->
