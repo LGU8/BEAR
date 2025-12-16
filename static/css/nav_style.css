@@ -157,24 +157,12 @@ body {
 /* ─────────────────────────────
    3줄: 리포트 페이지 전용 (일일 / 주간)
    ───────────────────────────── */
-
-.report-period-tabs {
-    padding-top: 0;
-}
-
-/* 🔥 핵심: 2줄과 동일한 4칸 그리드 */
 .report-period-tabs .bear-tabs-inner {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    column-gap: 5.85%;
+    display: flex;
 }
 
-/* 각 버튼이 정확히 2칸 차지 */
-.report-period-tabs .period-tab {
-    grid-column: span 2;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.report-period-tabs .bear-tab-box {
+    flex: 1 1 0;             /* 🔥 2등분 균등 분배 */
 }
 
 
