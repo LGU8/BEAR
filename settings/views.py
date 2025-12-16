@@ -1,9 +1,18 @@
 from django.shortcuts import render
+from settings.badges import BADGE_MASTER
 
-def settings_index(request):  # S0
-    return render(request, "settings/settings_index.html",
-                  {"active_tab": "settings"}
-                  )
+def settings_index(request):
+    profile_badge_id = "DEFAULT"
+    profile_badge_img = BADGE_MASTER[profile_badge_id]["image"]
+
+    return render(
+        request,
+        "settings/settings_index.html",
+        {
+            "active_tab": None,
+            "profile_badge_img": profile_badge_img,
+        }
+    )
 
 def settings_account(request):  # S1
     return render(request, "settings/settings_account.html")

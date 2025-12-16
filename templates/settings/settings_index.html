@@ -1,9 +1,66 @@
 {% extends "settings/settings_base.html" %}
 {% load static %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/settings_style.css' %}">
+{% endblock %}
+
 {% block main_area %}
-  <figure class="figure">
-    <img src="{% static 'nav_img/logo.png' %}" class="figure-img img-fluid rounded" alt="...">
-    <figcaption class="figure-caption">입에 넣고 와랄라 할거야</figcaption>
-  </figure>
+<section class="settings-page">
+
+  <!-- 프로필 카드 -->
+  <article class="settings-card profile-card">
+    <div class="profile-row">
+      <div class="profile-avatar-wrap">
+        <img class="profile-avatar" src="{% static profile_badge_img %}" alt="profile badge">
+      </div>
+
+      <div class="profile-meta">
+        <div class="profile-title">프로필 요약</div>
+        <div class="profile-sub">현재 내 BEAR 상태를 확인해요</div>
+      </div>
+    </div>
+
+    <div class="profile-stats">
+      <div class="stat">
+        <div class="stat-label">키</div>
+        <div class="stat-value">178cm</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">몸무게</div>
+        <div class="stat-value">70kg</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">나이</div>
+        <div class="stat-value">25</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">성별</div>
+        <div class="stat-value">남</div>
+      </div>
+    </div>
+  </article>
+
+  <!-- 메뉴 카드 -->
+  <article class="settings-card menu-card">
+    <a class="menu-item" href="{% url 'settings_app:settings_account' %}">
+      <div class="menu-left">
+        <img class="menu-ico" src="{% static 'settings_img/icon_account.png' %}" alt="account">
+        <div class="menu-text">계정 관리</div>
+      </div>
+      <div class="menu-right">›</div>
+    </a>
+
+    <div class="menu-divider"></div>
+
+    <a class="menu-item" href="{% url 'settings_app:settings_password' %}">
+      <div class="menu-left">
+        <img class="menu-ico" src="{% static 'settings_img/icon_password.png' %}" alt="password">
+        <div class="menu-text">비밀번호 관리</div>
+      </div>
+      <div class="menu-right">›</div>
+    </a>
+  </article>
+
+</section>
 {% endblock %}

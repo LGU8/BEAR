@@ -1,0 +1,229 @@
+/* static/css/settings_style.css */
+
+/* ======================================
+   0) Design Tokens (SSOT)
+   ====================================== */
+:root{
+  /* Brand */
+  --c-primary: #F47900;
+  --c-primary-2: #FC9027;
+  --c-accent-1: #FFA636;
+  --c-accent-2: #FFB845;
+  --c-accent-3: #FFD17C;
+  --c-surface-1: #FFE2B6;
+  --c-surface-2: #FFF2DD;
+  --c-bg: #FFF9F0;
+
+  /* Text */
+  --t-strong: #000000;
+  --t-muted: #8F8F8F;
+
+  /* Typography */
+  --fz-title: 16px;     /* bold */
+  --fz-subtitle: 14px;  /* bold */
+  --fz-body: 12px;      /* medium */
+  --fz-emph: 12px;      /* regular */
+  --fz-caption: 10px;   /* light */
+  --fz-subtle: 8px;     /* regular */
+
+  /* Radius */
+  --r-card: 18px;
+  --r-inner: 14px;
+  --r-pill: 999px;
+
+  /* Shadow (최소, 깔끔하게) */
+  --shadow-card: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+/* ======================================
+   1) Page layout
+   ====================================== */
+.settings-page{
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 8px 0 30px;
+  color: var(--t-strong);
+}
+
+/* ======================================
+   2) Card (공통)
+   ====================================== */
+.settings-card{
+  background: var(--c-surface-2);         /* #FFF2DD */
+  border-radius: var(--r-card);
+  padding: 16px;
+  box-shadow: var(--shadow-card);         /* 카드형식 '확실히' 보이게 */
+  border: 1px solid rgba(0,0,0,0.04);     /* 거의 안 보이게 얇게 */
+}
+
+/* ======================================
+   3) Profile card
+   ====================================== */
+.profile-row{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+}
+
+.profile-avatar-wrap{
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-1);         /* #FFE2B6 */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  flex: 0 0 auto;
+}
+
+/* ✅ 이미지 강제 사이즈(원본 커도 깨지지 않게) */
+.profile-avatar{
+  width: 52px !important;
+  height: 52px !important;
+  object-fit: contain;
+  display:block;
+}
+
+.profile-meta{
+  display:flex;
+  flex-direction:column;
+  gap: 2px;
+}
+
+.profile-title{
+  font-family: Inter, system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  font-size: var(--fz-title);
+  font-weight: 700; /* bold */
+  line-height: 1.2;
+  color: var(--t-strong);
+}
+
+.profile-sub{
+  font-family: Inter, system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  font-size: var(--fz-body);
+  font-weight: 500; /* medium */
+  color: var(--t-muted);
+  line-height: 1.2;
+}
+
+/* stats box */
+.profile-stats{
+  margin-top: 14px;
+  background: #FFFFFF;
+  border-radius: var(--r-inner);
+  padding: 12px 10px;
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  position: relative;
+}
+
+/* 좌우 오렌지 포인트 라인 */
+.profile-stats::before,
+.profile-stats::after{
+  content:"";
+  position:absolute;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 4px;
+  background: var(--c-primary);
+  opacity: 0.9;
+}
+.profile-stats::before{ left: 10px; }
+.profile-stats::after{ right: 10px; }
+
+.stat{
+  text-align:center;
+}
+
+.stat-label{
+  font-family: Inter, system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  font-size: var(--fz-caption); /* light 10px */
+  font-weight: 300;
+  color: var(--t-muted);
+}
+
+.stat-value{
+  margin-top: 6px;
+  font-family: Inter, system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  font-size: var(--fz-body); /* medium 12px */
+  font-weight: 500;
+  color: var(--t-strong);
+}
+
+/* ======================================
+   4) Menu card (계정/비번)
+   ====================================== */
+.menu-card{
+  padding: 0;
+  overflow: hidden;
+  background: var(--c-surface-2);
+}
+
+.menu-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 16px 14px;
+  text-decoration:none;
+  color: var(--t-strong);
+}
+
+.menu-left{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+}
+
+.menu-ico{
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  display:block;
+}
+
+.menu-text{
+  font-family: Inter, system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  font-size: var(--fz-subtitle); /* bold 14px */
+  font-weight: 700;
+}
+
+.menu-right{
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--t-muted);
+}
+
+/* divider */
+.menu-divider{
+  height: 1px;
+  background: rgba(0,0,0,0.06);
+  margin: 0 14px;
+}
+
+/* hover */
+.menu-item:hover{
+  background: rgba(255, 184, 69, 0.12); /* #FFB845 soft */
+}
+
+/* ======================================
+   5) Responsive
+   ====================================== */
+@media (max-width: 768px){
+  .profile-avatar-wrap{
+    width: 58px;
+    height: 58px;
+  }
+  .profile-avatar{
+    width: 48px !important;
+    height: 48px !important;
+  }
+  .menu-text{
+    font-size: var(--fz-body); /* 작은 화면에선 12px로 */
+    font-weight: 700;
+  }
+}
