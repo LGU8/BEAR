@@ -1,13 +1,17 @@
 // static/js/result.js
+
+console.log("[result.js] loaded");
+
 (function () {
   const params = new URLSearchParams(location.search);
   const date = params.get("date");
   const meal = params.get("meal");
-  const key = `scanDraft:${date}:${meal}`;
+  const draftKey = `scanDraft:${date}:${meal}`;
 
-  const draftRaw = localStorage.getItem(key);
+  // 0) draft 확인
+  const draftRaw = localStorage.getItem(draftKey);
   if (!draftRaw) {
-    console.error("[result] scanDraft not found:", key);
+    console.error("[result] scanDraft not found:", draftKey);
     return;
   }
 
@@ -30,7 +34,7 @@
     if (panelNutrition) panelNutrition.style.display = "none";
   }
 
-  // 3) draft.result로 input 채우기(더미/실데이터 모두 대응)
+  // 3) draft.result로 input 채우기
   const r = draft.result || {};
   function setVal(id, v) {
     const el = document.getElementById(id);
@@ -55,40 +59,65 @@
     setVal("b-fat", r.fat);
   }
 
-  // 4) 저장: UI에서 입력한 값으로 최종 payload 만들기
+  // 4) 저장 버튼
   const btnSave = document.getElementById("btn-save");
-  if (!btnSave) return;
+  if (!btnSave) {
+    console.error("[result] #btn-save not found");
+    return;
+  }
 
-  btnSave.addEventListener("click", () => {
-    const payload = {
-      date,
-      meal,
-      mode,
+  // (안전) 버튼이 form 안에 있어도 submit 안 되게
+  btnSave.setAttribute("type", "button");
+
+  btnSave.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    // 4-1) mealRecords 누적 저장
+    const finalKey = `mealRecords:${date}:${meal}`;
+    const prevRaw = localStorage.getItem(finalKey);
+    const prev = prevRaw ? JSON.parse(prevRaw) : { date, meal, items: [], savedAt: null };
+
+    prev.items = Array.isArray(prev.items) ? prev.items : [];
+
+    const get = (id) => document.getElementById(id)?.value || "";
+
+    const item = {
+      type: mode, // "barcode" | "nutrition"
+      brand: (mode === "nutrition") ? get("n-brand") : get("b-brand"),
+      name: (mode === "nutrition") ? get("n-name") : get("b-name"),
+      serving: (mode === "nutrition") ? get("n-serving") : get("b-serving"),
+      kcal: (mode === "nutrition") ? get("n-kcal") : get("b-kcal"),
+      carb: (mode === "nutrition") ? get("n-carb") : get("b-carb"),
+      protein: (mode === "nutrition") ? get("n-protein") : get("b-protein"),
+      fat: (mode === "nutrition") ? get("n-fat") : get("b-fat"),
       image: draft.image || null,
-      // 한 끼 카드에 “여러 항목”이 들어갈 수 있게 items 배열 구조 권장
-      items: [
-        {
-          type: (mode === "nutrition") ? "nutrition" : "barcode",
-          brand: (mode === "nutrition") ? document.getElementById("n-brand")?.value : document.getElementById("b-brand")?.value,
-          name:  (mode === "nutrition") ? document.getElementById("n-name")?.value  : document.getElementById("b-name")?.value,
-          serving: (mode === "nutrition") ? document.getElementById("n-serving")?.value : document.getElementById("b-serving")?.value,
-          kcal: (mode === "nutrition") ? document.getElementById("n-kcal")?.value : document.getElementById("b-kcal")?.value,
-          carb: (mode === "nutrition") ? document.getElementById("n-carb")?.value : document.getElementById("b-carb")?.value,
-          protein: (mode === "nutrition") ? document.getElementById("n-protein")?.value : document.getElementById("b-protein")?.value,
-          fat: (mode === "nutrition") ? document.getElementById("n-fat")?.value : document.getElementById("b-fat")?.value,
-        }
-      ],
-      savedAt: Date.now(),
+      addedAt: Date.now(),
     };
 
-    // (임시) 최종 저장
-    const finalKey = `mealRecords:${date}:${meal}`;
-    localStorage.setItem(finalKey, JSON.stringify(payload));
+    prev.items.push(item);
+    prev.savedAt = Date.now();
 
-    // draft는 정리
-    localStorage.removeItem(key);
+    localStorage.setItem(finalKey, JSON.stringify(prev));
 
-    // record로 복귀
+    // 4-2) ✅ 최근 3개 카드용 히스토리 저장(끼니별)
+    const historyKey = `mealHistory:${meal}`;
+    const historyRaw = localStorage.getItem(historyKey);
+    const history = historyRaw ? JSON.parse(historyRaw) : [];
+
+    const snapshot = {
+      date,
+      meal,
+      items: prev.items,     // ✅ 누적된 전체 items
+      savedAt: prev.savedAt,
+    };
+
+    history.unshift(snapshot);
+    localStorage.setItem(historyKey, JSON.stringify(history.slice(0, 30)));
+
+    // 4-3) draft 정리
+    localStorage.removeItem(draftKey);
+
+    // 4-4) record로 복귀
     location.href = `/record/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;
   });
 })();

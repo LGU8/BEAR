@@ -172,27 +172,66 @@ function bindMealButtons() {
 
 // ---------- (6) 초기 실행 ----------
 document.addEventListener("DOMContentLoaded", () => {
-  const date = getActiveDate();
-  const meal = getActiveMeal();
+  const params = new URLSearchParams(location.search);
+  const meal = params.get("meal") || "breakfast";
 
-  // hidden input에 date 넣기(필요 시)
-  const dateInput = document.getElementById("record-date");
-  if (dateInput) dateInput.value = date;
+  const cardsWrap = document.getElementById("recent-cards");
+  if (!cardsWrap) {
+    console.warn("[record_state] #recent-cards not found");
+    return;
+  }
 
-  // 현재 meal 버튼 활성화
-  const btn = document.querySelector(`.meal-btn[data-meal="${meal}"]`);
-  if (btn) btn.classList.add("is-active");
+  const cards = cardsWrap.querySelectorAll(".meal-card");
 
-  // 링크들에 query 유지(레시피/카메라)
-  const recipeBtn = document.getElementById("btn-my-recipe");
-  if (recipeBtn) recipeBtn.href = `/record/recipes/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;
+  function resetCards() {
+    cards.forEach(card => {
+      card.classList.add("empty");
+      const textEl = card.querySelector(".meal-card-text");
+      if (textEl) textEl.innerHTML = "아직 기록 전입니다.<br>기록을 남겨보세요!";
+    });
+  }
 
-  const camBtn = document.getElementById("btn-camera");
-  if (camBtn) camBtn.href = `/record/camera/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;
+  resetCards();
 
-  bindMealButtons();
-  renderRecentMealCards(date, meal);
+  const historyKey = `mealHistory:${meal}`;
+  const historyRaw = localStorage.getItem(historyKey);
+  if (!historyRaw) {
+    console.warn("[record_state] no history:", historyKey);
+    return;
+  }
+
+  let history;
+  try {
+    history = JSON.parse(historyRaw);
+  } catch (e) {
+    console.error("[record_state] history JSON parse error", e);
+    return;
+  }
+
+  if (!Array.isArray(history) || history.length === 0) {
+    console.warn("[record_state] history empty:", historyKey);
+    return;
+  }
+
+  history.slice(0, 3).forEach((snap, idx) => {
+    const card = cards[idx];
+    if (!card) return;
+
+    card.classList.remove("empty");
+
+    const textEl = card.querySelector(".meal-card-text");
+    if (!textEl) return;
+
+    const items = Array.isArray(snap.items) ? snap.items : [];
+    const names = items.map(it => it.name).filter(Boolean);
+
+    const firstLine = names.slice(0, 3).join(", ");
+    const more = names.length > 3 ? ` 외 ${names.length - 3}개` : "";
+
+    textEl.innerHTML = `<strong>${snap.date}</strong><br>${firstLine}${more}`;
+  });
 });
+
 
 // === camera 버튼: date / meal 유지해서 이동 ===
 (function () {
@@ -200,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!camBtn) return;
 
   const params = new URLSearchParams(location.search);
-  const date = params.get("date") || "2025-12-12";   // 임시 기본값
+  const date = params.get("meal") || "breakfast";   // 임시 기본값
 
   camBtn.addEventListener("click", (e) => {
     e.preventDefault();
@@ -212,5 +251,67 @@ document.addEventListener("DOMContentLoaded", () => {
       : "breakfast";
 
     location.href = `/record/camera/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;
+  });
+})();
+
+// ===== 최근 3개 끼니 카드 렌더링 =====
+(function () {
+  const params = new URLSearchParams(location.search);
+  const date = params.get("date");
+  const meal = params.get("meal") || "breakfast";
+
+  const cardsWrap = document.getElementById("recent-cards");
+  if (!cardsWrap) return;
+
+  const cards = cardsWrap.querySelectorAll(".meal-card");
+
+  // 기본 초기화
+  function resetCards() {
+    cards.forEach(card => {
+      card.classList.add("empty");
+      const textEl = card.querySelector(".meal-card-text");
+      if (textEl) {
+        textEl.innerHTML = "아직 기록 전입니다.<br>기록을 남겨보세요!";
+      }
+    });
+  }
+
+  resetCards();
+
+  // 끼니별 히스토리 읽기
+  const historyKey = `mealHistory:${meal}`;
+  const historyRaw = localStorage.getItem(historyKey);
+  if (!historyRaw) return;
+
+  let history;
+  try {
+    history = JSON.parse(historyRaw);
+  } catch {
+    return;
+  }
+
+  if (!Array.isArray(history) || history.length === 0) return;
+
+  // 최근 3개만 카드에 반영
+  history.slice(0, 3).forEach((snap, idx) => {
+    const card = cards[idx];
+    if (!card) return;
+
+    card.classList.remove("empty");
+
+    const textEl = card.querySelector(".meal-card-text");
+    if (!textEl) return;
+
+    const items = Array.isArray(snap.items) ? snap.items : [];
+
+    // 음식 이름 요약
+    const names = items.map(it => it.name).filter(Boolean);
+    const firstLine = names.slice(0, 3).join(", ");
+    const more = names.length > 3 ? ` 외 ${names.length - 3}개` : "";
+
+    textEl.innerHTML = `
+      <strong>${snap.date}</strong><br>
+      ${firstLine}${more}
+    `;
   });
 })();
