@@ -315,31 +315,57 @@ a {
   }
 }
 
-/* =========================
-   Camera Page (사진 #1 UI)
-   ========================= */
+/* ===== Camera layout ===== */
 .camera-page{
   width: 100%;
-  min-height: calc(100vh - 160px); /* 상단 배너/탭 높이 감안 */
+  min-height: calc(100vh - 160px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 24px 16px 28px;
+  padding: 22px 16px 28px;
 }
 
-/* 큰 프리뷰(회색 박스) */
+.camera-top-toggle{
+  width: min(720px, 92vw);
+  display: flex;
+  justify-content: center;
+  margin: 18px 0 12px;
+}
+
+/* Toggle pill */
+.scan-toggle{
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.scan-toggle-btn{
+  width: 72px;          /* ✅ 바코드/영양성분 동일 크기 */
+  height: 32px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  background: transparent;
+  color: rgba(0,0,0,0.7);
+}
+
+.scan-toggle-btn.is-active{
+  background: #F8B45D;
+  color: #2b1a00;
+}
+
+/* Preview box */
 .camera-stage{
   width: min(720px, 92vw);
   aspect-ratio: 4 / 3;
   background: #bfbfbf;
   position: relative;
-  border-radius: 0;           /* 사진처럼 각진 느낌 */
   overflow: hidden;
-  margin-top: 40px;           /* 탭 아래 여백 */
 }
 
-/* video는 박스를 꽉 채우기 */
 .camera-stage video{
   width: 100%;
   height: 100%;
@@ -347,43 +373,38 @@ a {
   display: block;
 }
 
-/* 빨간 가이드 박스(안쪽 테두리) */
+/* Guide box base */
 .camera-guidebox{
   position: absolute;
   inset: 22px;
   border: 2px solid #ff4d4d;
   pointer-events: none;
+  transition: none;
 }
 
 /* 안내 문구 */
 .camera-desc{
-  margin: 22px 0 0;
+  margin: 18px 0 0;
   text-align: center;
   font-size: 14px;
   font-weight: 700;
   color: rgba(0,0,0,0.75);
 }
 
-/* 하단 버튼 영역 */
+/* ✅ 하단 스캔 버튼 중앙 고정 */
 .camera-bottom{
   width: min(720px, 92vw);
   display: grid;
-  grid-template-columns: 72px 1fr 72px;
+  grid-template-columns: 1fr auto 1fr; /* 🔑 가운데 칸이 진짜 중앙 */
   align-items: center;
   margin-top: 26px;
 }
 
-/* 왼쪽 작은 버튼(프로필 아이콘 자리) */
-.camera-left-btn{
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.6);
-  border: 1px solid rgba(0,0,0,0.08);
-  justify-self: start;
+.camera-bottom-center{
+  display: flex;
+  justify-content: center;
 }
 
-/* 중앙 큰 촬영 버튼 */
 .camera-shutter{
   width: 84px;
   height: 84px;
@@ -391,15 +412,8 @@ a {
   background: #f3d19a;
   border: 6px solid rgba(255,255,255,0.7);
   box-shadow: 0 0 0 6px rgba(244,121,0,0.18);
-  justify-self: center;
 }
 
-/* 오른쪽은 비워서 중앙 버튼이 정확히 가운데 오게 */
-.camera-right-space{
-  width: 44px;
-  height: 44px;
-  justify-self: end;
-}
 
 /* 모바일에서 프리뷰가 너무 위/아래로 튀지 않게 */
 @media (max-width: 768px){
@@ -442,4 +456,82 @@ a {
     padding: 0 10px;
     font-size: 11px;
   }
+}
+
+/* ===== Result Page ===== */
+.result-page{
+  width: min(720px, 92vw);
+  margin: 0 auto;
+  padding: 22px 0 28px;
+}
+
+.result-preview{
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.result-preview img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.result-panel{
+  margin-top: 18px;
+  background: rgba(255, 236, 207, 0.9);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.result-title{
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.field{
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.field label{
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(0,0,0,0.7);
+}
+
+.input{
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.12);
+  padding: 0 12px;
+  background: rgba(255,255,255,0.6);
+  font-weight: 700;
+}
+
+.field-grid{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.result-actions{
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-save{
+  width: 110px;
+  height: 44px;
+  border-radius: 12px;
+  background: #F47900;
+  color: #fff;
+  font-weight: 900;
 }

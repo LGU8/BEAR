@@ -44,6 +44,47 @@ let scanMode = "barcode"; // 기본값
   scanMode = activeToggle?.dataset.scanMode || "barcode";
   console.log("[init] scanMode =", scanMode);
 
+  // ===== scan mode UI sync =====
+const stageEl = document.getElementById("camera-stage");
+const descEl = document.getElementById("camera-desc");
+
+function setScanMode(nextMode) {
+  scanMode = nextMode;
+
+  // 1) 토글 버튼 UI 동기화
+  document.querySelectorAll(".scan-toggle-btn").forEach(b => {
+    const on = b.dataset.scanMode === scanMode;
+    b.classList.toggle("is-active", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+
+  // 2) 안내 문구 변경
+  if (descEl) {
+    descEl.textContent =
+      (scanMode === "barcode")
+        ? "네모칸 안에 바코드를 스캔해주세요"
+        : "네모칸 안에 영양성분을 스캔해주세요";
+  }
+
+  // 3) 가이드 박스 모드 class 변경
+  if (descEl) {
+    descEl.textContent =
+      (scanMode === "barcode")
+        ? "네모칸 안에 바코드를 스캔해주세요"
+        : "네모칸 안에 영양성분을 스캔해주세요";
+  }
+}
+
+// 초기값: HTML의 is-active 기준으로 동기화
+const active = document.querySelector(".scan-toggle-btn.is-active");
+setScanMode(active?.dataset.scanMode || "barcode");
+
+// 클릭 이벤트
+document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
+  btn.addEventListener("click", () => setScanMode(btn.dataset.scanMode));
+});
+
+
   btnShoot.addEventListener("click", async () => {
     // 2) 캡처
     console.log("[shoot] clicked");
@@ -72,6 +113,6 @@ let scanMode = "barcode"; // 기본값
     localStorage.setItem(key, JSON.stringify({ date, meal, mode: scanMode, image: dataUrl, result: fakeResult }));
 
     // 6) 결과 페이지로 이동
-    location.href = `/record/result/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;
+    location.href = `/record/scan/result/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;
   });
 })();

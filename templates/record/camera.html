@@ -4,52 +4,35 @@
 
 <section class="camera-page">
 
-  <!-- 🔼 스캔 모드 토글 (네모 박스 위) -->
+  <!-- 토글(네모 박스 위) -->
   <div class="camera-top-toggle">
     <div class="scan-toggle" role="tablist" aria-label="스캔 모드">
-      <button type="button"
-              class="scan-toggle-btn is-active"
-              data-scan-mode="barcode"
-              role="tab"
-              aria-selected="true">
-        바코드
-      </button>
-
-      <button type="button"
-              class="scan-toggle-btn"
-              data-scan-mode="nutrition"
-              role="tab"
-              aria-selected="false">
-        영양성분
-      </button>
+      <button type="button" class="scan-toggle-btn is-active"
+              data-scan-mode="barcode" aria-selected="true">바코드</button>
+      <button type="button" class="scan-toggle-btn"
+              data-scan-mode="nutrition" aria-selected="false">영양성분</button>
     </div>
   </div>
 
-  <!-- 🔳 중앙 프리뷰 영역 -->
-  <div class="camera-stage">
+  <!-- 프리뷰 -->
+  <div id="camera-stage" class="camera-stage">
     <video id="cam-video" autoplay playsinline></video>
-
-    <!-- 빨간 가이드 박스 -->
     <div class="camera-guidebox" aria-hidden="true"></div>
   </div>
 
-  <!-- 캡처용 캔버스 (UI에는 안 보임) -->
   <canvas id="cam-canvas" style="display:none;"></canvas>
 
   <!-- 안내 문구 -->
   <p id="camera-desc" class="camera-desc">
-    네모칸 안에 바코드 혹은 영양성분을 스캔해주세요
+    네모칸 안에 바코드를 스캔해주세요
   </p>
 
-  <!-- 🔽 하단 버튼 바 (스캔 버튼은 정중앙) -->
+  <!-- 하단 버튼: 중앙 고정 -->
   <div class="camera-bottom">
     <div class="camera-bottom-left"></div>
 
     <div class="camera-bottom-center">
-      <button id="btn-shoot"
-              type="button"
-              class="camera-shutter"
-              aria-label="촬영"></button>
+      <button id="btn-shoot" type="button" class="camera-shutter" aria-label="촬영"></button>
     </div>
 
     <div class="camera-bottom-right"></div>
