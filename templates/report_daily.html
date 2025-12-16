@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="bear-tabs-bar report-period-tabs">
+    <div class="bear-tabs-inner">
+        <div class="bear-tab-box period-tab active">
+            <a href="/report_daily" class="bear-tab-text">일일</a>
+        </div>
+        <div class="bear-tab-box period-tab">
+            <a href="/report_weekly" class="bear-tab-text">주간</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

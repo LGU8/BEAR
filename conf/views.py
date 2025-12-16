@@ -19,3 +19,6 @@ def timeline(request):
         "llm_ment": "오늘은 기분이 좋지 않았네요. 달리기/걷기/음악듣기 중 하나를 해보는 건 어때요?",
     }
     return render(request, "timeline.html", context)
+
+def report_daily(request):
+    return render(request, "report_daily.html")
