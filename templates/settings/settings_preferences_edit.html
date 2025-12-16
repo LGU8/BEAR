@@ -1,4 +1,72 @@
 {% extends "settings/settings_base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/settings_style.css' %}">
+{% endblock %}
+
 {% block main_area %}
-<!-- TODO: 화면 구현 -->
+<section class="settings-page">
+
+  <article class="settings-card edit-card">
+    <!-- 헤더 -->
+    <div class="edit-header">
+      <a class="back-btn" href="{% url 'settings_app:settings_account' %}" aria-label="back">
+        ←
+      </a>
+      <div class="edit-title">선호도 수정</div>
+      <div class="edit-header-spacer"></div>
+    </div>
+
+    <!-- 질문 1 -->
+    <div class="pref-edit-block">
+      <div class="pref-edit-top">
+        <img class="pref-edit-icon" src="{% static 'settings_img/icon_rice.png' %}" alt="carb">
+        <div class="pref-edit-q">밥·빵·면 같은 탄수화물 음식을<br>어느 정도로 즐기나요?</div>
+      </div>
+
+      <!-- 10칸 슬라이더(일단 더미, Step2-4에서 클릭/합=10 JS 붙임) -->
+      <div class="seg-slider" data-key="carb" data-value="0">
+        {% for i in "0123456789" %}
+          <button type="button" class="seg" aria-label="carb segment {{ forloop.counter }}"></button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 질문 2 -->
+    <div class="pref-edit-block">
+      <div class="pref-edit-top">
+        <img class="pref-edit-icon" src="{% static 'settings_img/icon_shrimp.png' %}" alt="protein">
+        <div class="pref-edit-q">고기·생선·달걀 같은 단백질 음식을<br>식사에서 얼마나 중요하게 생각하나요?</div>
+      </div>
+
+      <div class="seg-slider" data-key="protein" data-value="0">
+        {% for i in "0123456789" %}
+          <button type="button" class="seg" aria-label="protein segment {{ forloop.counter }}"></button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 질문 3 -->
+    <div class="pref-edit-block">
+      <div class="pref-edit-top">
+        <img class="pref-edit-icon" src="{% static 'settings_img/icon_beef.png' %}" alt="fat">
+        <div class="pref-edit-q">버터·치즈와 같은 지방 음식을<br>얼마나 좋아하나요?</div>
+      </div>
+
+      <!-- 디자인처럼 일부 채워진 상태를 보여주고 싶으면 selected 클래스를 몇 칸에만 수동 부여 -->
+      <div class="seg-slider" data-key="fat" data-value="2">
+        {% for i in "0123456789" %}
+          <button type="button" class="seg {% if forloop.counter <= 2 %}is-on{% endif %}" aria-label="fat segment {{ forloop.counter }}"></button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 저장 -->
+    <div class="edit-footer">
+      <button class="save-btn" type="button" disabled>저장</button>
+    </div>
+  </article>
+
+</section>
 {% endblock %}

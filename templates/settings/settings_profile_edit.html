@@ -1,4 +1,69 @@
 {% extends "settings/settings_base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/settings_style.css' %}">
+{% endblock %}
+
 {% block main_area %}
-<!-- TODO: 화면 구현 -->
+<section class="settings-page">
+
+  <article class="settings-card edit-card">
+    <div class="edit-header">
+      <a class="back-btn" href="{% url 'settings_app:settings_account' %}" aria-label="back">←</a>
+      <div class="edit-title">개인정보 수정</div>
+      <div class="edit-header-spacer"></div>
+    </div>
+
+    <div class="profile-edit-avatar">
+      <div class="profile-avatar-wrap lg">
+        <img class="profile-avatar lg" src="{% static profile_badge_img %}" alt="profile badge">
+        <span class="avatar-lock" aria-hidden="true">🔒</span>
+      </div>
+      <div class="profile-edit-hint">한글, 영문, 숫자만 가능</div>
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">닉네임</label>
+      <input class="form-input" type="text" value="밤이" placeholder="닉네임">
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">나이</label>
+      <div class="form-row">
+        <input class="form-input" type="text" value="2026. 01. 10" readonly>
+        <span class="form-suffix">▼</span>
+      </div>
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">성별</label>
+      <div class="seg-toggle">
+        <button type="button" class="seg-toggle-btn">여자</button>
+        <button type="button" class="seg-toggle-btn is-active">남자</button>
+      </div>
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">키</label>
+      <div class="form-row">
+        <input class="form-input" type="number" value="178" placeholder="키">
+        <span class="form-suffix">cm</span>
+      </div>
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">몸무게</label>
+      <div class="form-row">
+        <input class="form-input" type="number" value="70" placeholder="몸무게">
+        <span class="form-suffix">kg</span>
+      </div>
+    </div>
+
+    <div class="edit-footer">
+      <button class="save-btn" type="button" disabled>저장</button>
+    </div>
+  </article>
+
+</section>
 {% endblock %}

@@ -10,4 +10,6 @@ urlpatterns = [
     path("recipes/new/", views.recipe_new, name="recipe_new"),
     path("camera/", views.camera, name="camera"),
     path("scan/result/", views.scan_result, name="scan_result"),
+    # OCR/Barcode 처리 API
+    path("api/scan/", views.api_scan, name="api_scan"),
 ]

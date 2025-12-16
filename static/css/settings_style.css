@@ -1,5 +1,6 @@
 /* =========================
    Settings Style (S0~S5 공통)
+   - nav_style.css(고정 틀)과 충돌하지 않도록 작성
    ========================= */
 
 /* 0) Theme tokens */
@@ -26,27 +27,34 @@
   --shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
 }
 
-/* 유지 */
-.bear-main {
-  max-width: 960px;   /* nav와 동일 */
-  margin: 0 auto;
-  padding: 0 16px;
+/* 1) Page wrapper (레이아웃은 여기서만) */
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;              /* 카드 간격 */
+  margin: 0;
+  padding: 0;             /* padding은 nav_style의 .bear-main이 담당 */
+  box-sizing: border-box;
 }
 
-/* 2) Typography */
+/* 2) Typography (필요 요소만) */
+.settings-page,
 .settings-page * {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Noto Sans KR", system-ui, sans-serif;
   color: var(--text);
+  box-sizing: border-box;
 }
 
+/* Title */
 .profile-title,
 .section-title span,
 .panel-title,
 .settings-title {
-  font-weight: 700;           /* Title Bold */
+  font-weight: 700;       /* Title Bold */
   font-size: 16px;
 }
 
+/* Sub text */
 .profile-sub,
 .move-sub,
 .menu-right,
@@ -59,9 +67,15 @@
   background: var(--card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 16px;
+  padding: 18px;
+
+  /* ✅ (A) 호환용: settings-page 밖에서 단독 사용해도 카드 간격 유지 */
   margin-bottom: 14px;
-  box-sizing: border-box;
+}
+
+/* ✅ (A) settings-page 내부에서는 gap만 사용(마진 제거) */
+.settings-page .settings-card {
+  margin-bottom: 0;
 }
 
 /* 4) Profile card (S0/S1 공통) */
@@ -104,17 +118,16 @@
 }
 
 .profile-meta .profile-sub {
-  font-weight: 300;           /* Sub light 10px 느낌 */
+  font-weight: 300;       /* light */
   font-size: 10px;
   line-height: 1.3;
   margin-top: 2px;
 }
 
 .profile-email {
-  font-weight: 500;           /* body medium 12px */
+  font-weight: 500;       /* medium */
   font-size: 12px;
   margin-top: 6px;
-  color: var(--text);
   opacity: 0.9;
 }
 
@@ -134,9 +147,7 @@
   flex: 0 0 auto;
 }
 
-.btn-edit:hover {
-  filter: brightness(0.98);
-}
+.btn-edit:hover { filter: brightness(0.98); }
 
 /* 5) Stats box (하단 흰 박스 + 좌우 주황 라인) */
 .profile-stats {
@@ -144,6 +155,7 @@
   border-radius: var(--radius-md);
   padding: 12px 10px;
   margin-top: 12px;
+
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
@@ -163,13 +175,11 @@
 .profile-stats::before { left: 8px; }
 .profile-stats::after  { right: 8px; }
 
-.stat {
-  text-align: center;
-}
+.stat { text-align: center; }
 
 .stat-label {
-  font-weight: 400;          /* regular 12px */
-  font-size: 10px;           /* 시안의 작은 라벨 느낌 */
+  font-weight: 400;       /* regular */
+  font-size: 10px;        /* 작은 라벨 */
   color: var(--text-sub);
 }
 
@@ -179,7 +189,7 @@
   margin-top: 4px;
 }
 
-/* 6) Menu card (S0) */
+/* 6) Menu card (S0 / 계정관리, 비밀번호관리) */
 .menu-card {
   padding: 0;
   overflow: hidden;
@@ -190,6 +200,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+
   padding: 16px;
   text-decoration: none;
 }
@@ -208,7 +219,7 @@
 }
 
 .menu-text {
-  font-weight: 700;          /* nav button bold 14px 느낌 */
+  font-weight: 700;       /* nav button 느낌 */
   font-size: 14px;
 }
 
@@ -265,7 +276,7 @@
 }
 
 .pref-text {
-  font-weight: 500;          /* body medium 12px */
+  font-weight: 500;       /* medium */
   font-size: 12px;
   line-height: 1.35;
 }
@@ -307,14 +318,12 @@
 }
 
 .move-sub {
-  font-weight: 300;          /* light 10px */
+  font-weight: 300;
   font-size: 10px;
   color: var(--text-sub);
 }
 
-.goal-box {
-  margin-top: 12px;
-}
+.goal-box { margin-top: 12px; }
 
 .goal-row {
   display: grid;
@@ -323,9 +332,7 @@
   margin-top: 10px;
 }
 
-.goal-item {
-  text-align: center;
-}
+.goal-item { text-align: center; }
 
 .goal-item img {
   width: 44px;
@@ -341,8 +348,259 @@
   color: var(--text-sub);
 }
 
+/* =========================
+   Edit Pages (S2/S3/S4)
+   ========================= */
+
+.edit-card {
+  padding: 18px;
+}
+
+.edit-header {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 700;
+  background: transparent;
+}
+
+.edit-title {
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.edit-header-spacer { width: 32px; height: 32px; }
+
+.edit-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.save-btn {
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 12px;
+  background: var(--orange-1);
+  color: #fff;
+}
+
+.save-btn:disabled {
+  background: rgba(244, 121, 0, 0.35);
+  color: rgba(255,255,255,0.9);
+  cursor: not-allowed;
+}
+
+.edit-section-title {
+  font-weight: 700;
+  font-size: 12px;
+  margin: 6px 0 10px;
+}
+
+.edit-divider {
+  height: 1px;
+  background: rgba(0,0,0,0.08);
+  margin: 18px 0;
+}
+
+/* ---- S3: segmented slider (10칸) ---- */
+.pref-edit-block { padding: 10px 0; }
+
+.pref-edit-top {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pref-edit-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  display: block;
+}
+
+.pref-edit-q {
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.seg-slider {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  padding: 10px 0;
+}
+
+.seg {
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(244,121,0,0.55);
+  background: transparent;
+  padding: 0;
+}
+
+.seg.is-on {
+  background: var(--orange-1);
+  border-color: var(--orange-1);
+}
+
+/* ---- S2: form elements ---- */
+.profile-edit-avatar {
+  display: grid;
+  justify-items: center;
+  margin: 8px 0 16px;
+  gap: 6px;
+}
+
+.profile-avatar-wrap.lg {
+  width: 92px;
+  height: 92px;
+  position: relative;
+}
+
+.profile-avatar.lg {
+  width: 70px;
+  height: 70px;
+}
+
+.avatar-lock {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--beige-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.profile-edit-hint {
+  font-weight: 300;
+  font-size: 10px;
+  color: var(--text-sub);
+}
+
+.form-block {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.form-label {
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--text-sub);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-input {
+  width: 100%;
+  border: 0;
+  border-bottom: 2px solid rgba(244,121,0,0.35);
+  background: transparent;
+  padding: 10px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  outline: none;
+}
+
+.form-suffix {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  padding-right: 6px;
+}
+
+.seg-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.seg-toggle-btn {
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(244,121,0,0.45);
+  padding: 10px 0;
+  background: transparent;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.seg-toggle-btn.is-active {
+  background: rgba(244,121,0,0.12);
+  border-color: var(--orange-1);
+}
+
+/* ---- S4: select list ---- */
+.select-list {
+  display: grid;
+  gap: 10px;
+}
+
+.select-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,0.55);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.select-item.is-active {
+  border-color: var(--orange-1);
+}
+
+.select-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.select-name {
+  font-weight: 700;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.select-desc {
+  font-weight: 300;
+  font-size: 10px;
+  color: var(--text-sub);
+  line-height: 1.35;
+}
+
 /* 10) Responsive */
 @media (max-width: 420px) {
-  .settings-page { padding: 12px 12px 36px; }
-  .profile-stats { grid-template-columns: repeat(2, 1fr); }
+  .profile-stats { grid-template-columns: repeat(4, 1fr); }
 }
