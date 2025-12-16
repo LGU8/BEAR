@@ -193,3 +193,24 @@ document.addEventListener("DOMContentLoaded", () => {
   bindMealButtons();
   renderRecentMealCards(date, meal);
 });
+
+// === camera 버튼: date / meal 유지해서 이동 ===
+(function () {
+  const camBtn = document.getElementById("btn-camera");
+  if (!camBtn) return;
+
+  const params = new URLSearchParams(location.search);
+  const date = params.get("date") || "2025-12-12";   // 임시 기본값
+
+  camBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    // ✅ 현재 선택된 식사 시간 DOM에서 직접 읽기
+    const activeMealEl = document.querySelector(".meal-item.is-active");
+    const meal = activeMealEl
+      ? activeMealEl.dataset.meal
+      : "breakfast";
+
+    location.href = `/record/camera/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;
+  });
+})();

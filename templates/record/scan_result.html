@@ -1,0 +1,40 @@
+{% extends "record_base_clean.html" %}
+{% load static %}
+{% block main_area %}
+
+<section class="record-wrap">
+  <section class="panel">
+    <h2 class="panel-title">인식 결과</h2>
+
+    <div class="result-image-box">
+      <img id="result-img" alt="인식 이미지">
+    </div>
+
+    <div class="result-fields">
+      <label>브랜드명</label>
+      <input id="f-brand" class="search-input" type="text">
+
+      <label>제품명</label>
+      <input id="f-name" class="search-input" type="text">
+
+      <label>열량(kcal)</label>
+      <input id="f-kcal" class="search-input" type="text">
+
+      <label>탄수화물(g)</label>
+      <input id="f-carb" class="search-input" type="text">
+
+      <label>단백질(g)</label>
+      <input id="f-protein" class="search-input" type="text">
+
+      <label>지방(g)</label>
+      <input id="f-fat" class="search-input" type="text">
+    </div>
+
+    <div class="bottom-actions">
+      <button id="btn-save" class="bottom-btn primary" type="button">저장</button>
+    </div>
+  </section>
+</section>
+
+<script defer src="{% static 'js/result.js' %}"></script>
+{% endblock %}
