@@ -1,7 +1,9 @@
 from django.shortcuts import render
 
 def settings_index(request):  # S0
-    return render(request, "settings/settings_index.html")
+    return render(request, "settings/settings_index.html",
+                  {"active_tab": "settings"}
+                  )
 
 def settings_account(request):  # S1
     return render(request, "settings/settings_account.html")

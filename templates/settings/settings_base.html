@@ -1,8 +1,68 @@
-{% extends 'settings_index.html' %}
-{% block main_area %}
 {% load static %}
-    <figure class="figure">
-      <img src="{% static 'nav_img/logo.png' %}" class="figure-img img-fluid rounded" alt="...">
-      <figcaption class="figure-caption">입에 넣고 와랄라 할거야</figcaption>
-    </figure>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS (필요하면 유지) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+          crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- BEAR 전용 스타일 -->
+    <link rel="stylesheet" href="{% static 'css/nav_style.css' %}">
+    {% block extra_css %}{% endblock %}
+  </head>
+
+  <body>
+    <!-- 1줄: 곰돌이 로고 + 설정 아이콘 -->
+    <nav class="bear-navbar">
+      <div class="bear-navbar-inner">
+        <div class="bear-navbar-left">
+          <a href="/">
+            <img src="{% static 'nav_img/logo.png' %}" alt="BEAR logo" class="bear-logo">
+          </a>
+        </div>
+
+        <div class="settings-navbar-group">
+          <img src="{% static 'nav_img/settings_introduce.png' %}" alt="settings sub logo" class="settings-sub-logo">
+          <a href="{% url 'settings_app:settings_index' %}">
+            <img src="{% static 'nav_img/settings.png' %}" alt="settings logo" class="settings-logo">
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 2줄: 리포트 / 기록 / 타임라인 / 도감 -->
+    <nav class="bear-tabs-bar">
+      <div class="bear-tabs-inner">
+        <div class="bear-tab-box {% if active_tab == 'report' %}active{% endif %}">
+          <a class="bear-tab-text" href="#">리포트</a>
+        </div>
+
+        <div class="bear-tab-box {% if active_tab == 'record' %}active{% endif %}">
+          <a class="bear-tab-text" href="{% url 'record_app:record_index' %}">기록</a>
+        </div>
+
+        <div class="bear-tab-box {% if active_tab == 'timeline' %}active{% endif %}">
+          <a class="bear-tab-text" href="/timeline">타임라인</a>
+        </div>
+
+        <div class="bear-tab-box {% if active_tab == 'badges' %}active{% endif %}">
+          <a class="bear-tab-text" href="/badges">도감</a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="bear-main">
+      <div class="container">
+        {% block main_area %}{% endblock %}
+      </div>
+    </main>
+
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>
