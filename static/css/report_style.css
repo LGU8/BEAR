@@ -1,4 +1,15 @@
 /* ─────────────────────────────
+   3줄: 리포트 페이지 전용 (일일 / 주간)
+   ───────────────────────────── */
+.report-period-tabs .bear-tabs-inner {
+    display: flex;
+}
+
+.report-period-tabs .bear-tab-box {
+    flex: 1 1 0;             /* 🔥 2등분 균등 분배 */
+}
+
+/* ─────────────────────────────
    3번째 줄과 달력 간격
    ───────────────────────────── */
 .report-period-tabs + .report-datepicker {
@@ -114,3 +125,144 @@
     color: #3C3C43;
 }
 
+/* =========================
+   Summary Page Wrapper
+   ========================= */
+/* 달력과 첫 카드 간격 */
+.report-datepicker{
+  margin-bottom: 16px;
+}
+
+/* 카드들 사이 간격만 summary-page가 담당 */
+.summary-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 기분 카드 아래 간격 */
+.mood-card{
+  margin-bottom: 100px;
+}
+
+/* =========================
+   Summary Card (영양소 / 기분 공통)
+   ========================= */
+
+.summary-card {
+  background: #FFECCF;           /* ✅ 카드 색상 변경 */
+  border-radius: 18px;
+  padding: 24px;
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================
+   Card Title (카드 안 제목)
+   ========================= */
+
+.summary-card .summary-title {
+  margin-bottom: 14px;
+}
+
+.summary-card .summary-title span {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+
+/* =========================
+   Nutrition Card
+   ========================= */
+
+.nutrition-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 한 영양소 row */
+.nut-row {
+  display: grid;
+  grid-template-columns: 1fr auto; /* title | value */
+  grid-template-rows: auto auto;   /* text row | bar row */
+  column-gap: 10px;
+  row-gap: 6px;
+  padding: 10px 0;
+}
+
+/* 제목 (왼쪽) */
+.nut-title {
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.35;
+  text-align: left;
+  padding-left: 6px;
+}
+
+/* 수치 (오른쪽) */
+.nut-text {
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.35;
+  text-align: right;
+  padding-right: 6px;
+  white-space: nowrap;
+}
+
+/* 바는 두 번째 줄에서 전체 차지 */
+.nut-bar {
+  grid-column: 1 / -1;
+
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  border: 1px solid rgba(244, 121, 0, 0.35);
+  overflow: hidden;
+}
+
+.nut-bar > span {
+  display: block;
+  height: 100%;
+  background: #F47900;
+  border-radius: 999px;
+}
+
+/* row 간 미세 간격 */
+.nutrition-card .nut-row + .nut-row {
+  margin-top: 4px;
+}
+
+/* =========================
+   Mood Card
+   ========================= */
+
+.mood-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 도넛 차트 placeholder */
+.mood-chart-placeholder {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto;
+
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2px dashed rgba(244, 121, 0, 0.35);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 10px;
+  font-weight: 400;
+  color: #8F8F8F;
+}
