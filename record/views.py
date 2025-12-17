@@ -24,10 +24,6 @@ def scan_result(request):
     return render(request, "record/scan_result.html")
 
 
-def api_scan(request):
-    return render(request, "record/scan_result.html")
-
-
 def timeline(request):
     """
     /timeline
