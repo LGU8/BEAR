@@ -1,61 +1,98 @@
 /* =========================
-   Settings S1 (Account)
-   - segmented bar(10칸)
-   - goal 강조
-   - S1 전용 여백/정렬
+   settings_s1.css (S1 전용)
+   목표:
+   - 시안처럼 카드톤/여백/seg bar 느낌 맞추기
    ========================= */
 
-/* S1: 프로필 이메일 pill이 시안처럼 보이도록 */
+/* 1) 카드 배경을 시안처럼 조금 더 밝게 */
+.settings-page .settings-card {
+  background: rgba(255, 242, 221, 0.75); /* 기존보다 살짝 밝고 가벼움 */
+}
+
+/* 2) 섹션 카드 간격/타이틀 라인 타이트하게 */
+.section-card .section-head {
+  margin-bottom: 6px;
+}
+
+/* 3) 프로필 카드: 이메일 pill(시안 느낌) */
+.profile-email,
 .profile-email-pill {
   display: inline-block;
   margin-top: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 209, 124, 0.35);
   font-size: 11px;
   font-weight: 500;
-  color: var(--text-sub);
+  color: rgba(0,0,0,0.65);
 }
 
-/* S1: pref-row 내부 bar를 10칸 segmented로 */
-.segbar {
-  width: 100%;
+/* 4) Stats 단위(cm/kg)는 값 옆에 붙여도 “시안처럼 약하게” */
+.stat-value .unit {
+  font-weight: 500;
+  font-size: 11px;
+  color: rgba(0,0,0,0.55);
+  margin-left: 3px;
+}
+
+/* 5) Preference: 질문 텍스트가 가운데 정렬에 가까워 보이도록 */
+.pref-row {
+  padding: 12px 0;
+  row-gap: 10px;
+}
+
+/* 질문 텍스트 폭을 줄이고 중앙에 정렬되게 */
+.pref-text {
+  max-width: 330px;
+  margin: 0 auto;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* 6) Preference: 10칸 segmented bar (시안 핵심) */
+.seg-bar {
+  /* 화면이 넓어져도 시안처럼 "고정된 덩어리"로 보이게 */
+  width: 320px;
+  max-width: 100%;
+  margin: 0 auto;
+
   display: grid;
   grid-template-columns: repeat(10, 1fr);
-  gap: 6px;
-  padding: 6px 0 2px;
+  gap: 6px;                 /* 시안처럼 칸 간격 조금 */
 }
 
-.segbar__seg {
-  height: 14px;
-  border-radius: 3px;
-  background: transparent;
-  border: 1px solid rgba(244, 121, 0, 0.45);
+.seg-bar .seg {
+  height: 18px;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid rgba(244,121,0,0.45);
 }
 
-.segbar__seg.is-on {
+.seg-bar .seg.is-on {
   background: var(--orange-1);
   border-color: var(--orange-1);
 }
 
-/* S1: pref-row 구분선(시안처럼 은은하게) */
-.section-card .pref-row + .pref-row {
-  border-top: 1px solid rgba(0,0,0,0.06);
-  margin-top: 10px;
-  padding-top: 14px;
-}
-
-/* S1: 움직임 박스(시안 카드 내부 흰 영역 느낌 강화) */
+/* 7) Move box: 시안처럼 내부 박스 더 "하얗고" 여백 타이트 */
 .move-box {
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255,255,255,0.65);
+  padding: 12px;
 }
 
-/* S1: goal 강조 - 선택된 목적만 카드처럼 */
-.goal-item.is-active {
-  background: rgba(244, 121, 0, 0.10);
-  border: 1px solid rgba(244, 121, 0, 0.35);
-  border-radius: 14px;
+/* 8) Goal: 선택 강조 박스가 너무 커 보이는 문제 축소 */
+.goal-row {
+  margin-top: 8px;
+}
+
+.goal-item {
   padding: 10px 6px;
+  border-radius: 14px;
+}
+
+/* 선택 상태(유지/다이어트/벌크업) 강조를 "텍스트 중심"으로 */
+.goal-item.is-active {
+  background: rgba(244,121,0,0.10);
+  outline: 1px solid rgba(244,121,0,0.35);
 }
 
 .goal-item.is-active div {
@@ -63,7 +100,8 @@
   font-weight: 700;
 }
 
-/* S1: 목표 영역의 좌우 여백을 시안처럼 조금 더 넓게 */
-.goal-row {
-  margin-top: 14px;
+/* 9) 모바일에서 타이틀/버튼 위치 안정 */
+@media (max-width: 420px) {
+  .pref-text { max-width: 280px; }
+  .seg-bar { width: 280px; }
 }

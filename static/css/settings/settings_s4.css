@@ -1,0 +1,139 @@
+/* =========================
+   settings_s4.css (S4 전용 - final)
+   ========================= */
+
+.back-ico {
+  width: 22px;
+  height: 22px;
+  display: block;
+  object-fit: contain;
+}
+
+/* ✅ 브라우저 기본 버튼 스타일 제거(회색 버튼 방지) */
+button {
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+/* 섹션 타이틀 */
+.edit-section-title {
+  margin: 8px 0 10px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* 선택 리스트 */
+.select-list {
+  display: grid;
+  gap: 12px;
+}
+
+/* 선택 카드 */
+.select-item {
+  width: 100%;
+  text-align: left;
+
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0,0,0,0.00);
+  border-radius: var(--radius-md);
+
+  padding: 14px 14px;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+  align-items: center;
+
+  cursor: pointer;
+}
+
+/* hover */
+.select-item:hover { filter: brightness(0.99); }
+
+/* ✅ 선택 강조(시안 톤) */
+.select-item.is-active {
+  background: rgba(244, 121, 0, 0.10);
+  border-color: rgba(244, 121, 0, 0.45);
+}
+
+/* 아이콘 */
+.select-icon {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  display: block;
+}
+
+/* 텍스트 */
+.select-name {
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.select-desc {
+  font-weight: 300;
+  font-size: 11px;
+  color: var(--text-sub);
+  line-height: 1.35;
+}
+
+/* 구분선 */
+.edit-divider {
+  height: 1px;
+  background: rgba(0,0,0,0.08);
+  margin: 18px 0;
+}
+
+/* ✅ 저장 버튼(시안과 동일한 pill) */
+.save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 84px;
+  height: 44px;
+
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  background: var(--orange-1);
+  color: #fff;
+
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: -0.2px;
+
+  box-shadow: var(--shadow);
+}
+
+.save-btn:disabled {
+  background: rgba(244, 121, 0, 0.28);
+  color: rgba(255,255,255,0.95);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ✅ 하단 고정(한 화면 저장 UX) */
+.edit-footer--sticky {
+  position: sticky;
+  bottom: 10px;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 14px;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 420px) {
+  .select-item {
+    grid-template-columns: 50px 1fr;
+    padding: 12px;
+  }
+  .select-icon {
+    width: 46px;
+    height: 46px;
+  }
+}

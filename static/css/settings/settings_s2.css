@@ -1,0 +1,185 @@
+/* static/css/settings/settings_s2.css */
+
+/* =========================
+   S2 (개인정보 수정) 전용
+   - settings_base.css + 호환
+   ========================= */
+
+.edit-card { padding: 18px; }
+
+.edit-header {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 700;
+  background: transparent;
+}
+
+.edit-title {
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.edit-header-spacer { width: 32px; height: 32px; }
+
+/* 배지 영역 */
+.profile-edit-avatar {
+  display: grid;
+  justify-items: center;
+  margin: 8px 0 16px;
+  gap: 6px;
+}
+
+.profile-avatar-wrap.lg {
+  width: 92px;
+  height: 92px;
+  position: relative;
+}
+
+.profile-avatar.lg {
+  width: 70px;
+  height: 70px;
+}
+
+/* DSLR 잠금 아이콘 */
+.avatar-lock {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 226, 182, 0.95);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+}
+
+.lock-ico {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+}
+
+.profile-edit-hint {
+  font-weight: 300;
+  font-size: 10px;
+  color: var(--text-sub);
+}
+
+.form-block {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.form-label {
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--text-sub);
+}
+
+.form-help {
+  margin-top: -2px;
+  font-weight: 300;
+  font-size: 10px;
+  color: rgba(0,0,0,0.55);
+}
+
+/* 인풋 라인 스타일 */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-input {
+  width: 100%;
+  border: 0;
+  border-bottom: 2px solid rgba(244,121,0,0.35);
+  background: transparent;
+  padding: 10px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  outline: none;
+}
+
+.form-input:focus {
+  border-bottom-color: rgba(244,121,0,0.75);
+}
+
+.form-suffix {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  padding-right: 6px;
+}
+
+/* 성별 토글 */
+.seg-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.seg-toggle-btn {
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(244,121,0,0.45);
+  padding: 10px 0;
+  background: transparent;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.seg-toggle-btn.is-active {
+  background: rgba(244,121,0,0.12);
+  border-color: var(--orange-1);
+}
+
+/* 에러 */
+.form-error {
+  min-height: 16px;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(220, 38, 38, 0.95);
+}
+
+/* 저장 버튼 */
+.edit-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.save-btn {
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 12px;
+  background: var(--orange-1);
+  color: #fff;
+}
+
+.save-btn:disabled {
+  background: rgba(244, 121, 0, 0.35);
+  color: rgba(255,255,255,0.9);
+  cursor: not-allowed;
+}

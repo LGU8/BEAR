@@ -19,7 +19,11 @@
 
         <div class="profile-meta">
           <div class="profile-title">{{ nickname|default:"BEAR" }}</div>
-          <div class="profile-sub">밤이(가입일: {{ created_dt_label|default:"" }})</div>
+          {% if created_dt_label %}
+            <div class="profile-sub">{{ nickname|default:"BEAR" }}(가입일: {{ created_dt_label }})</div>
+          {% else %}
+            <div class="profile-sub"></div>
+          {% endif %}
           <span class="profile-email-pill">{{ email|default:"" }}</span>
         </div>
       </div>
@@ -28,8 +32,8 @@
     </div>
 
     <div class="profile-stats">
-      <div class="stat"><div class="stat-label">키</div><div class="stat-value">{{ height_cm_label|default:"-" }}</div></div>
-      <div class="stat"><div class="stat-label">몸무게</div><div class="stat-value">{{ weight_kg_label|default:"-" }}</div></div>
+      <div class="stat"><div class="stat-label">키</div><div class="stat-value">{{ height_cm|floatformat:0|default:"-" }}<span class="unit">cm</span></div></div>
+      <div class="stat"><div class="stat-label">몸무게</div><div class="stat-value">{{ weight_kg|floatformat:0|default:"-" }}<span class="unit">kg</span></div></div>
       <div class="stat"><div class="stat-label">나이</div><div class="stat-value">{{ age|default:"-" }}</div></div>
       <div class="stat"><div class="stat-label">성별</div><div class="stat-value">{{ gender_label|default:"-" }}</div></div>
     </div>
@@ -51,8 +55,8 @@
       <div class="pref-text">밥·빵·면 같은 탄수화물 음식을 어느 정도로 즐기나요?</div>
 
       <div class="seg-bar">
-        {% for i in seg_range %}
-          <span class="seg {% if i <= ratio_carb %}is-on{% endif %}"></span>
+        {% for on in carb_segments %}
+          <span class="seg {% if on %}is-on{% endif %}"></span>
         {% endfor %}
       </div>
     </div>
@@ -63,8 +67,8 @@
       <div class="pref-text">고기·생선·달걀 같은 단백질 음식을 얼마나 중요하게 생각하나요?</div>
 
       <div class="seg-bar">
-        {% for i in seg_range %}
-          <span class="seg {% if i <= ratio_protein %}is-on{% endif %}"></span>
+        {% for on in protein_segments %}
+          <span class="seg {% if on %}is-on{% endif %}"></span>
         {% endfor %}
       </div>
     </div>
@@ -75,8 +79,8 @@
       <div class="pref-text">버터·치즈와 같은 지방 음식을 얼마나 좋아하나요?</div>
 
       <div class="seg-bar">
-        {% for i in seg_range %}
-          <span class="seg {% if i <= ratio_fat %}is-on{% endif %}"></span>
+        {% for on in fat_segments %}
+          <span class="seg {% if on %}is-on{% endif %}"></span>
         {% endfor %}
       </div>
     </div>
@@ -97,8 +101,9 @@
       <div class="move-left">
         <div class="move-label">활동량</div>
         <div class="move-value">
-          {{ activity_level_label|default:"-" }}<br>
-          <span class="move-sub">{{ activity_level_desc|linebreaksbr }}</span>
+          {{ activity_level_label|default:"" }}
+          <br>
+          <span class="move-sub">{{ activity_level_desc|default:"" }}</span>
         </div>
       </div>
     </div>

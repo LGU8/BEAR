@@ -2,68 +2,147 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/settings_style.css' %}">
+<link rel="stylesheet" href="{% static 'css/settings/settings_base.css' %}">
+<link rel="stylesheet" href="{% static 'css/settings/settings_s2.css' %}">
 {% endblock %}
 
 {% block main_area %}
 <section class="settings-page">
 
   <article class="settings-card edit-card">
-    <div class="edit-header">
-      <a class="back-btn" href="{% url 'settings_app:settings_account' %}" aria-label="back">←</a>
-      <div class="edit-title">개인정보 수정</div>
-      <div class="edit-header-spacer"></div>
-    </div>
+    <form id="s2Form" method="post" novalidate>
+      {% csrf_token %}
 
-    <div class="profile-edit-avatar">
-      <div class="profile-avatar-wrap lg">
-        <img class="profile-avatar lg" src="{% static profile_badge_img %}" alt="profile badge">
-        <span class="avatar-lock" aria-hidden="true">🔒</span>
+      <div class="edit-header">
+        <a class="back-btn" href="{% url 'settings_app:settings_account' %}" aria-label="back">←</a>
+        <div class="edit-title">개인정보 수정</div>
+        <div class="edit-header-spacer"></div>
       </div>
-      <div class="profile-edit-hint">한글, 영문, 숫자만 가능</div>
-    </div>
 
-    <div class="form-block">
-      <label class="form-label">닉네임</label>
-      <input class="form-input" type="text" value="밤이" placeholder="닉네임">
-    </div>
+      <!-- 배지 + 잠금(DSLR 아이콘) -->
+      <div class="profile-edit-avatar">
+        <div class="profile-avatar-wrap lg">
+          <img class="profile-avatar lg" src="{% static profile_badge_img %}" alt="profile badge">
 
-    <div class="form-block">
-      <label class="form-label">나이</label>
-      <div class="form-row">
-        <input class="form-input" type="text" value="2026. 01. 10" readonly>
-        <span class="form-suffix">▼</span>
+          <span class="avatar-lock" aria-hidden="true">
+            <img class="lock-ico" src="{% static 'icons_img/dslr-camera.png' %}" alt="locked">
+          </span>
+        </div>
+
+        <div class="profile-edit-hint">배지는 현재 변경할 수 없어요</div>
       </div>
-    </div>
 
-    <div class="form-block">
-      <label class="form-label">성별</label>
-      <div class="seg-toggle">
-        <button type="button" class="seg-toggle-btn">여자</button>
-        <button type="button" class="seg-toggle-btn is-active">남자</button>
+      <!-- 닉네임 (현재는 더미: user.nickname에 붙어있지만, 실제 DB 연결 시 CUST_TM 또는 별도 컬럼로 update) -->
+      <div class="form-block">
+        <label class="form-label" for="nickname">닉네임</label>
+        <input
+          id="nickname"
+          name="nickname"
+          class="form-input"
+          type="text"
+          inputmode="text"
+          autocomplete="nickname"
+          value="{{ nickname|default:'' }}"
+          placeholder="닉네임"
+          maxlength="20"
+        >
+        <div class="form-help">한글/영문/숫자/밑줄(_)만 가능</div>
       </div>
-    </div>
 
-    <div class="form-block">
-      <label class="form-label">키</label>
-      <div class="form-row">
-        <input class="form-input" type="number" value="178" placeholder="키">
-        <span class="form-suffix">cm</span>
+      <!-- 생년월일 -->
+      <div class="form-block">
+        <label class="form-label" for="birth_date_ui">생년월일</label>
+
+        <div class="form-row">
+          <input
+            id="birth_date_ui"
+            name="birth_date_ui"
+            class="form-input"
+            type="date"
+            value="{{ birth_dt|default:''|slice:':4' }}-{{ birth_dt|default:''|slice:'4:6' }}-{{ birth_dt|default:''|slice:'6:8' }}"
+          >
+          <span class="form-suffix">▼</span>
+        </div>
+
+        <!-- DB 저장용: YYYYMMDD -->
+        <input type="hidden" id="birth_dt" name="birth_dt" value="{{ birth_dt|default:'' }}">
       </div>
-    </div>
 
-    <div class="form-block">
-      <label class="form-label">몸무게</label>
-      <div class="form-row">
-        <input class="form-input" type="number" value="70" placeholder="몸무게">
-        <span class="form-suffix">kg</span>
+      <!-- 성별: M/F -->
+      <div class="form-block">
+        <label class="form-label">성별</label>
+
+        <div class="seg-toggle" role="group" aria-label="gender toggle">
+          <button
+            type="button"
+            class="seg-toggle-btn {% if gender == 'F' %}is-active{% endif %}"
+            data-value="F"
+            aria-pressed="{% if gender == 'F' %}true{% else %}false{% endif %}"
+          >여자</button>
+
+          <button
+            type="button"
+            class="seg-toggle-btn {% if gender == 'M' %}is-active{% endif %}"
+            data-value="M"
+            aria-pressed="{% if gender == 'M' %}true{% else %}false{% endif %}"
+          >남자</button>
+        </div>
+
+        <input type="hidden" id="gender" name="gender" value="{{ gender|default:'' }}">
       </div>
-    </div>
 
-    <div class="edit-footer">
-      <button class="save-btn" type="button" disabled>저장</button>
-    </div>
+      <!-- 키 -->
+      <div class="form-block">
+        <label class="form-label" for="height_cm">키</label>
+        <div class="form-row">
+          <input
+            id="height_cm"
+            name="height_cm"
+            class="form-input"
+            type="number"
+            inputmode="numeric"
+            min="90"
+            max="250"
+            step="1"
+            value="{{ height_cm|default_if_none:'' }}"
+            placeholder="키"
+          >
+          <span class="form-suffix">cm</span>
+        </div>
+      </div>
+
+      <!-- 몸무게 -->
+      <div class="form-block">
+        <label class="form-label" for="weight_kg">몸무게</label>
+        <div class="form-row">
+          <input
+            id="weight_kg"
+            name="weight_kg"
+            class="form-input"
+            type="number"
+            inputmode="numeric"
+            min="20"
+            max="300"
+            step="1"
+            value="{{ weight_kg|default_if_none:'' }}"
+            placeholder="몸무게"
+          >
+          <span class="form-suffix">kg</span>
+        </div>
+      </div>
+
+      <!-- 에러 텍스트 -->
+      <div id="s2Error" class="form-error" aria-live="polite"></div>
+
+      <div class="edit-footer">
+        <button id="saveBtn" class="save-btn" type="submit" disabled>저장</button>
+      </div>
+    </form>
   </article>
 
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/settings/settings_s2.js' %}"></script>
 {% endblock %}
