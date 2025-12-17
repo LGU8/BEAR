@@ -28,5 +28,5 @@ urlpatterns = [
     path("settings/", include("settings.urls")),
     path("timeline/", timeline),
     path("badges/", badges),
-    path("report_daily/", report_daily),
+    path("report_daily/", include("report.urls")),
 ]
