@@ -5,34 +5,32 @@ let scanMode = "barcode"; // 기본값
 
 (async function () {
   const params = new URLSearchParams(location.search);
-  const date = params.get("date");
-  const meal = params.get("meal");
+  const date = params.get("date") || new Date().toISOString().slice(0,10);
+  const meal = params.get("meal") || "breakfast";
 
   const video = document.getElementById("cam-video");
   const canvas = document.getElementById("cam-canvas");
   const btnShoot = document.getElementById("btn-shoot");
+  btnShoot.disabled = true;               // ✅ 처음엔 비활성
+  btnShoot.style.opacity = "0.6";
+  btnShoot.style.pointerEvents = "none";
+
+  video.addEventListener("loadedmetadata", () => {
+    btnShoot.disabled = false;            // ✅ 메타데이터 준비 후 활성화
+    btnShoot.style.opacity = "1";
+    btnShoot.style.pointerEvents = "auto";
+});
+
+  btnShoot.addEventListener("click", async () => {
+    if (!video.videoWidth || !video.videoHeight) {
+      console.warn("[shoot] video metadata not ready yet");
+      return;
+    }
   
   if (!video || !canvas || !btnShoot) {
   console.error("[camera] missing element", { video, canvas, btnShoot });
   return;
-}
-
-  document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    scanMode = btn.dataset.scanMode;
-
-    console.log("TOGGLE CLICKED =>", scanMode);
-    console.log("[toggle] scanMode =", scanMode);
-
-
-    document.querySelectorAll(".scan-toggle-btn").forEach(b => {
-      b.classList.remove("is-active");
-      b.setAttribute("aria-selected", "false");
-    });
-
-    btn.classList.add("is-active");
-    btn.setAttribute("aria-selected", "true");
-  });
+  }
 });
 
 
@@ -110,7 +108,7 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
 
     // 5) localStorage에 저장(결과 페이지에서 읽기)
     const key = `scanDraft:${date}:${meal}`;
-    localStorage.setItem(key, JSON.stringify({ date, meal, mode: scanMode, image: dataUrl, result: fakeResult }));
+    localStorage.setItem(key, JSON.stringify({ date, meal, mode: scanMode, result: fakeResult }));
 
     // 6) 결과 페이지로 이동
     location.href = `/record/scan/result/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;

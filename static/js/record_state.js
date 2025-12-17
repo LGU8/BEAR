@@ -172,8 +172,17 @@ function bindMealButtons() {
 
 // ---------- (6) 초기 실행 ----------
 document.addEventListener("DOMContentLoaded", () => {
-  const params = new URLSearchParams(location.search);
-  const meal = params.get("meal") || "breakfast";
+  // ✅ 1) meal 버튼 클릭 이벤트 연결
+  bindMealButtons();
+
+  // ✅ 2) 최초 진입 시 현재 meal을 active 처리
+  const date = getActiveDate();
+  const meal = getActiveMeal();
+
+  const buttons = document.querySelectorAll(".meal-btn");
+  buttons.forEach(b => b.classList.remove("is-active"));
+  const initBtn = document.querySelector(`.meal-btn[data-meal="${meal}"]`);
+  if (initBtn) initBtn.classList.add("is-active");
 
   const cardsWrap = document.getElementById("recent-cards");
   if (!cardsWrap) {
@@ -238,17 +247,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const camBtn = document.getElementById("btn-camera");
   if (!camBtn) return;
 
-  const params = new URLSearchParams(location.search);
-  const date = params.get("meal") || "breakfast";   // 임시 기본값
-
   camBtn.addEventListener("click", (e) => {
     e.preventDefault();
 
     // ✅ 현재 선택된 식사 시간 DOM에서 직접 읽기
-    const activeMealEl = document.querySelector(".meal-item.is-active");
+    const date = getActiveDate();
+    const activeMealEl = document.querySelector(".meal-btn.is-active");
     const meal = activeMealEl
       ? activeMealEl.dataset.meal
-      : "breakfast";
+      : getActiveMeal();
 
     location.href = `/record/camera/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;
   });
