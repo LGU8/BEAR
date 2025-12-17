@@ -5,6 +5,8 @@ from datetime import date
 from typing import Optional, Dict, Any, List
 
 from settings.badges import BADGE_MASTER
+from django.contrib import messages
+from django.urls import reverse
 from django.shortcuts import render, redirect
 
 # ------------------------------------------------------------
@@ -283,4 +285,27 @@ def settings_activity_goal_edit(request):  # S4
 
 
 def settings_password(request):  # S5
+    ctx = _base_ctx(active_tab="settings")
+
+    if request.method == "POST":
+        cur_pw = (request.POST.get("current_password") or "").strip()
+        new_pw = (request.POST.get("new_password") or "").strip()
+        new_pw2 = (request.POST.get("new_password_confirm") or "").strip()
+
+        # 최소 검증(서버에서도 동일 정책 유지)
+        if not cur_pw or not new_pw or not new_pw2:
+            ctx["pw_error"] = "모든 항목을 입력해주세요."
+            return render(request, "settings/settings_password.html", ctx)
+
+        if len(new_pw) < 8:
+            ctx["pw_error"] = "새 비밀번호는 8자 이상이어야 해요."
+            return render(request, "settings/settings_password.html", ctx)
+
+        if new_pw != new_pw2:
+            ctx["pw_error"] = "새 비밀번호와 확인이 일치하지 않아요."
+            return render(request, "settings/settings_password.html", ctx)
+
+        # TODO(DB 연동): 현재 비밀번호 검증 + 해시 저장
+        # 성공 시 S1로
+        return redirect(reverse("settings_app:settings_account"))
     return render(request, "settings/settings_password.html", _base_ctx(active_tab="settings"))
