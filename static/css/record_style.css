@@ -536,3 +536,15 @@ a {
   color: #fff;
   font-weight: 900;
 }
+
+.cand-row{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  padding:12px;
+  border:1px solid #ddd;
+  border-radius:12px;
+  margin:10px 0;
+}
+.cand-meta{ opacity:0.8; font-size: 0.95rem; }
+.btn-save:disabled{ opacity:0.5; cursor:not-allowed; }

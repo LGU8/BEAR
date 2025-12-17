@@ -84,33 +84,64 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
 
 
   btnShoot.addEventListener("click", async () => {
-    // 2) 캡처
-    console.log("[shoot] clicked");
-    console.log("SAVE MODE =>", scanMode);
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0);
+  if (!video.videoWidth) return;
 
-    // 3) 이미지 DataURL 저장
-    const dataUrl = canvas.toDataURL("image/png");
+  // 1) 캔버스에 현재 프레임 캡처
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
 
-    // 4) (UI 단계) 인식 결과 더미
-    //    나중에 /record/api/scan/ 으로 보내서 OCR/Barcode 결과 받아오면 됨
-    const fakeResult = {
-      brand: "브랜드명(임시)",
-      name: "제품명(임시)",
-      kcal: "200",
-      carb: "30",
-      protein: "10",
-      fat: "5",
-    };
+  // 2) Blob으로 변환 → 서버로 업로드
+  canvas.toBlob(async (blob) => {
+    const fd = new FormData();
+    fd.append("image", blob, "barcode.jpg");
+    fd.append("date", date);
+    fd.append("meal", meal);
 
-    // 5) localStorage에 저장(결과 페이지에서 읽기)
-    const key = `scanDraft:${date}:${meal}`;
-    localStorage.setItem(key, JSON.stringify({ date, meal, mode: scanMode, result: fakeResult }));
+    const res = await fetch("/record/api/scan/barcode/", {
+      method: "POST",
+      body: fd,
+      credentials: "same-origin",
+    });
 
-    // 6) 결과 페이지로 이동
-    location.href = `/record/scan/result/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;
-  });
+    const raw = await res.text();
+    console.log("[scan] status", res.status);
+    console.log("[scan] raw", raw.slice(0, 600));
+
+    let data = null;
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      alert("서버 응답이 JSON이 아니에요(500/HTML일 수 있음). 콘솔 raw를 확인해줘.");
+      return;
+    }
+
+    console.log("[scan] json", data);
+
+    if (!data.ok) {
+      if (data.reason === "NO_MATCH") {
+        // ✅ 후보 없음 UX
+        alert(data.message || "해당 바코드로 제품을 찾을 수 없어요.");
+
+        // 선택지 UI를 띄우는 방식 3개 중 택1
+        // 1) 재촬영: 그냥 return (사용자가 다시 찍음)
+        // 2) 수동입력: 바코드 입력 모달/페이지로 이동
+        // 3) 검색: 기존 검색 기록 플로우로 이동
+
+        return;
+      }
+      
+      alert(data.message || data.error || "바코드 처리 실패");
+    return;
+  }
+
+    // 3) draft_id 받아서 result 페이지로 이동
+    location.href =
+      `/record/scan/result/?date=${encodeURIComponent(date)}` +
+      `&meal=${encodeURIComponent(meal)}` +
+      `&draft_id=${encodeURIComponent(data.draft_id)}`;
+
+  }, "image/jpeg", 0.85);
+});
 })();
