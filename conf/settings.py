@@ -134,3 +134,25 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.CustBackend',           # 우리가 만든 백엔드
+    'django.contrib.auth.backends.ModelBackend', # Django 기본 백엔드 (관리자 페이지용)
+]
+
+
+# 로그인 성공 후 기본적으로 이동할 URL
+LOGIN_REDIRECT_URL = 'accounts_app:profile'
+
+# 로그아웃 후 이동할 URL (선택 사항)
+LOGOUT_REDIRECT_URL = 'accounts_app:home'
+
+# settings.py
+
+# 1. 커스텀 모델을 사용하는 경우 반드시 지정 (이미 하셨겠지만 다시 확인)
+AUTH_USER_MODEL = 'accounts.Cust'
+
+# 2. 세션 쿠키 설정 (로컬 테스트 시 기본값이어야 합니다)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_SAVE_EVERY_REQUEST = True  # 매 요청마다 세션 저장 강제

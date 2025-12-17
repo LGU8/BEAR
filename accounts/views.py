@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from datetime import date
 import hashlib  # ⭐ 이 라인을 추가합니다.
 from django.shortcuts import render, redirect
-
+from django.contrib.auth.hashers import make_password # SHA256 대신 이걸 사용
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.conf import settings  # settings.LOGIN_REDIRECT_URL 사용을 위해 필요
@@ -42,45 +42,68 @@ def generate_new_cust_id():
 
 # 1. 로그인 뷰 (GET 요청: 폼 표시, POST 요청: 인증 처리)
 # accounts/views.py - user_login 함수
+#
+# def user_login(request):
+#     if request.method == "POST":
+#         email = request.POST.get("email")
+#         password = request.POST.get("password")
+#
+#         # 로그인 시도 전 URL에 담긴 'next' 경로를 가져옵니다.
+#         next_url = request.GET.get('next')
+#
+#         user = authenticate(request, username=email, password=password)
+#
+#         if user is not None:
+#             login(request, user)
+#
+#             # 1순위: 가려던 페이지(next)가 있다면 그곳으로 이동
+#             # 2순위: 없다면 기본 프로필 페이지로 이동
+#             if next_url:
+#                 return redirect(next_url)
+#             return redirect("accounts_app:profile")
+#         else:
+#             return render(request, "accounts/login.html", {"error_message": "이메일 또는 비밀번호가 틀렸습니다."})
+#
+#     return render(request, "accounts/login.html")
+
+
+from django.contrib.auth import authenticate, login
+from django.shortcuts import render, redirect
 
 
 def user_login(request):
+    # 1. URL 파라미터에서 'next' 값을 미리 가져옵니다. (GET/POST 공통)
+    next_url = request.GET.get('next', '')
+
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
 
-        # authenticate가 CustomCustBackend를 통해 Cust 객체를 반환합니다.
+        # 2. 인증 시도 (이메일과 비밀번호 대조)
         user = authenticate(request, username=email, password=password)
 
         if user is not None:
-            login(request, user)  # 세션 생성
+            # 3. 세션 로그인 처리
+            login(request, user)
 
-            # last_login_dt 업데이트 (이전 답변에서 CHAR(14)로 확장됨)
-            user.last_login_dt = timezone.now().strftime("%Y%m%d%H%M%S")
-            user.save()
-
-            # LoginHistory 기록 (timezone.now() import 필요)
-            try:
-                # LoginHistory 모델 import 필요
-                LoginHistory.objects.create(
-                    cust=user,
-                    login_dt=timezone.now().strftime("%Y%m%d"),  # 날짜
-                    login_time=timezone.now().strftime("%Y%m%d%H%M%S"),  # 시간
-                    success_yn="Y",
-                )
-            except Exception as e:
-                print(f"LoginHistory save error: {e}")
-
+            # 4. 리다이렉트 우선순위 결정
+            # next_url이 존재하면 해당 URL로, 없으면 'profile' 페이지로 이동
+            if next_url:
+                return redirect(next_url)
             return redirect("accounts_app:profile")
         else:
+            # 5. 인증 실패 시 에러 메시지와 함께 다시 로그인 페이지 렌더링
             return render(
                 request,
                 "accounts/login.html",
-                {"error_message": "이메일 또는 비밀번호가 올바르지 않습니다."},
+                {
+                    "error_message": "이메일 또는 비밀번호가 올바르지 않습니다.",
+                    "email": email  # 사용자가 입력했던 이메일을 다시 채워줌
+                }
             )
 
+    # GET 요청 시 로그인 페이지 표시
     return render(request, "accounts/login.html")
-
 
 # 2. 로그아웃 뷰
 def user_logout(request):
@@ -148,22 +171,31 @@ from django.shortcuts import render, redirect
 from django.db import IntegrityError  # DB 에러 처리를 위해 추가
 from .models import Cust, CusProfile  # 모델 import 확인
 
+from django.contrib.auth.hashers import make_password  # ⭐ 추가: Django 암호화 함수
+# import hashlib  <-- 이제 단순 SHA256은 사용하지 않으므로 필요 없습니다.
+
 def signup_step1(request):
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
 
+        # 1. 이메일 중복 확인
         if Cust.objects.filter(email=email).exists():
             return render(request, "accounts/signup_step1.html", {"error": "이미 가입된 이메일입니다."})
 
-        # 1단계 성공 시 이메일을 세션에 담습니다. (이게 있어야 Step 2 진입 가능)
-        hashed_password = hashlib.sha256(password.encode("utf-8")).hexdigest()
+        # 2. Django 표준 방식으로 비밀번호 암호화 ⭐
+        # hashlib.sha256 대신 make_password를 사용합니다.
+        # 이 함수는 내부적으로 salt를 추가하고 수천 번 해싱(PBKDF2)하여 매우 안전합니다.
+        secure_password = make_password(password)
+
+        # 3. 세션에 안전한 비밀번호 저장
         request.session["reg_email"] = email
-        request.session["reg_password"] = hashed_password
+        request.session["reg_password"] = secure_password
 
         return redirect("accounts_app:signup_step2")
 
     return render(request, "accounts/signup_step1.html")
+
 from django.shortcuts import render, redirect
 from django.db import IntegrityError
 from .models import Cust, CusProfile  # 필요한 모델 import
@@ -409,10 +441,12 @@ def signup_step4(request):
 
     return render(request, "accounts/signup_step4.html")
 
-def home(request):
-    """
-    첫 진입 화면
-    - 로그인
-    - 회원가입 버튼만 표시
-    """
-    return render(request, "accounts/home.html")
+
+# accounts/views.py
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url='accounts_app:user_login')
+def profile(request):
+    # 로그인된 사용자는 request.user에 담겨 있습니다.
+    # 만약 여기서 오류가 난다면 로그인이 풀린 것입니다.
+    return render(request, "accounts/profile.html", {"user": request.user})
