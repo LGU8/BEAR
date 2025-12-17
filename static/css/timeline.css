@@ -94,3 +94,116 @@
     font-weight: 600;
     color: #3C3C43;
 }
+/* ─────────────────────────────
+   카드 헤더: 제목 아래 날짜바 (스샷처럼 2줄)
+   ───────────────────────────── */
+.timeline-card-head--stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* ─────────────────────────────
+   날짜 선택 바 (아이콘 + range + 화살표)
+   ───────────────────────────── */
+.timeline-datebar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  background-color: #FFF2DD;
+  border-radius: 12px;
+  padding: 8px 12px;
+
+  cursor: pointer;
+  user-select: none;
+}
+
+.timeline-datebar-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.timeline-datebar-text {
+  font-size: 0.92rem;
+  color: #3C3C43;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.timeline-datebar-caret {
+  font-size: 12px;
+  color: #3C3C43;
+  line-height: 1;
+  transform: translateY(1px);
+}
+
+/* 실제 datepicker input은 숨겨서 UI는 datebar가 담당 */
+.timeline-week-hidden-input {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* ─────────────────────────────
+   흰 배경 그래프 패널 (스샷처럼)
+   ───────────────────────────── */
+.timeline-chart-panel {
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  padding: 14px 14px 10px 14px;
+
+  /* 카드 내부에서 더 "올라온" 느낌 */
+  box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+}
+
+/* canvas 높이 안정화 (모바일에서 찌그러짐 방지) */
+.timeline-chart-panel canvas {
+  width: 100% !important;
+  height: 220px !important; /* 필요하면 200~260 사이로 조절 */
+}
+
+/* ─────────────────────────────
+   Datepicker 캘린더(기존 report 스타일 유지)
+   ───────────────────────────── */
+.datepicker {
+  background-color: #FFF7EC;
+  border-radius: 16px;
+  padding: 8px;
+}
+
+.datepicker table tr td:hover,
+.datepicker table tr td.focused {
+  background-color: #FFE2B6 !important;
+  border-radius: 50%;
+}
+
+.datepicker table tr td.day.active,
+.datepicker table tr td.day.active:hover,
+.datepicker table tr td.day.active:focus {
+  background-color: #F47900 !important;
+  color: #FFFFFF !important;
+  border-radius: 50% !important;
+}
+
+.datepicker table tr td.day.today {
+  border: 1px solid #F47900;
+  background-color: transparent;
+}
+
+.datepicker table tr td.day.today.active {
+  background-color: #F47900 !important;
+  color: #FFFFFF !important;
+  border-radius: 50% !important;
+  border: none !important;
+}
+
+.datepicker-switch,
+.datepicker .prev,
+.datepicker .next {
+  font-weight: 600;
+  color: #3C3C43;
+}
