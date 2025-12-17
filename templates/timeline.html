@@ -17,23 +17,38 @@
 <!-- (1) 주간 누적 막대 그래프 -->
 <section class="timeline-section">
   <div class="timeline-card">
-    <div class="timeline-card-head">
+
+    <!-- ✅ 헤더를 2줄 구조로: 제목 → 날짜선택 -->
+    <div class="timeline-card-head timeline-card-head--stack">
       <h4 class="timeline-title">감정 변화 요약</h4>
 
-      <!-- ✅ 주간 Datepicker -->
-      <div class="timeline-date-range">
+      <!-- ✅ Datepicker bar (아이콘 + 텍스트 + 화살표) -->
+      <div class="timeline-datebar" id="week-picker-trigger">
+        <span class="timeline-datebar-icon" aria-hidden="true">📅</span>
+
+        <!-- input은 투명/겹쳐두고, 보여지는 텍스트는 span으로 제어 -->
+        <span class="timeline-datebar-text" id="week-picker-label">
+          {{ week_start }} ~ {{ week_end }}
+        </span>
+
+        <span class="timeline-datebar-caret" aria-hidden="true">▾</span>
+
+        <!-- 실제 datepicker input (보이지 않게 깔아둠) -->
         <input
           type="text"
           id="week-picker"
-          class="form-control timeline-week-input"
+          class="timeline-week-hidden-input"
           readonly
+          aria-label="주간 시작일 선택"
         >
       </div>
     </div>
 
-    <div class="timeline-chart-wrap">
+    <!-- ✅ 흰 배경 패널 위에 그래프 -->
+    <div class="timeline-chart-panel">
       <canvas id="weeklyEmotionChart"></canvas>
     </div>
+
   </div>
 </section>
 
@@ -81,12 +96,12 @@ $(function () {
     const weekStartStr = "{{ week_start }}"; // YYYY.MM.DD
     const weekEndStr   = "{{ week_end }}";
 
-    // input 기본 표시
-    $('#week-picker').val(`${weekStartStr} ~ ${weekEndStr}`);
+    // 라벨 초기 표시
+    $('#week-picker-label').text(`${weekStartStr} ~ ${weekEndStr}`);
 
     const today = new Date();
     const maxStart = new Date();
-    maxStart.setDate(today.getDate() - 6); // 미래일 방지 (A-1)
+    maxStart.setDate(today.getDate() - 6); // (A-1) 오늘-6까지만 시작 가능
 
     $('#week-picker').datepicker({
         format: 'yyyy-mm-dd',
@@ -106,13 +121,28 @@ $(function () {
             return `${y}${m}${day}`;
         };
 
+        // 라벨(화면표시)은 YYYY.MM.DD ~ YYYY.MM.DD 형태 유지
+        const fmtLabel = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}.${m}.${day}`;
+        };
+        $('#week-picker-label').text(`${fmtLabel(startDate)} ~ ${fmtLabel(endDate)}`);
+
         const startParam = fmt(startDate);
         const endParam = fmt(endDate);
 
-        // 화면 즉시 갱신 (페이지 이동 느낌 X)
+        // 화면 갱신(같은 페이지에서 데이터만 바뀌는 느낌)
         window.location.search = `?start=${startParam}&end=${endParam}`;
+    });
+
+    // ✅ 바 전체 클릭 시 달력 열기
+    $('#week-picker-trigger').on('click', function () {
+        $('#week-picker').datepicker('show');
     });
 });
 </script>
+
 
 {% endblock %}
