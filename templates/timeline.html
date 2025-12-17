@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block content %}
+
 <!-- (1) 주간 누적 막대 그래프 -->
 <section class="timeline-section">
   <div class="timeline-card">
@@ -25,9 +26,13 @@
   </div>
 </section>
 
-  <!-- (2) ML 부정 감정 예측 결과 -->
-  <section class="timeline-section">
-    <h4>부정 감정 예측</h4>
+<!-- (2) ML 부정 감정 예측 결과 -->
+<section class="timeline-section">
+  <div class="timeline-card">
+    <div class="timeline-card-head">
+      <h4 class="timeline-title">부정 감정 예측</h4>
+    </div>
+
     <div class="prediction-box">
       <p>
         예측 결과:
@@ -35,18 +40,29 @@
         (score: {{ risk_score }})
       </p>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- (3) LLM 멘트 -->
-  <section class="timeline-section">
-    <h4>행동 추천</h4>
+<!-- (3) LLM 멘트 -->
+<section class="timeline-section">
+  <div class="timeline-card">
+    <div class="timeline-card-head">
+      <h4 class="timeline-title">행동 추천</h4>
+    </div>
+
     <div class="llm-box">
       <p>{{ llm_ment }}</p>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- 차트 JS (Chart.js 쓸 거면) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="{% static 'js/timeline.js' %}"></script>
+<!-- ✅ Chart data (view에서 chart_json으로 내려줌: json.dumps 결과) -->
+<script id="weeklyEmotionData" type="application/json">
+{{ chart_json|safe }}
+</script>
+
+<!-- 차트 JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/timeline.js' %}"></script>
 
 {% endblock %}
