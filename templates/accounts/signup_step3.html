@@ -19,7 +19,7 @@
     <h2>Step 3/4. 식습관 취향 설정</h2>
     <p>식사할 때 선호하는 탄수화물/단백질/지방의 비중을 설정해주세요. (0점~9점)</p>
 
-    <form method="post" action="{% url 'signup_step3' %}">
+    <form method="post" action="{% url 'accounts/signup_step3' %}">
         {% csrf_token %}
 
         <div class="question-group">
