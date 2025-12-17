@@ -113,7 +113,7 @@ def user_login(request):
             # 4. 리다이렉트
             if next_url:
                 return redirect(next_url)
-            return redirect("accounts_app:profile")
+            return redirect("home")
         else:
             return render(request, "accounts/login.html", {
                 "error_message": "이메일 또는 비밀번호가 올바르지 않습니다.",
