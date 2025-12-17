@@ -67,12 +67,59 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ======================================================
    * 1) Chart.js (주간 감정 누적 막대)
-   *    - x축 tick은 숨김 (DOM 날짜 7개가 담당)
-   *    - labels가 비어도 week-picker-label로 생성
+   *    - 막대 높이: score 합 (0~9)
+   *    - 누적 구성: pos/neu/neg score
+   *    - x축 tick 숨김 (DOM 날짜 7개가 담당)
    * ====================================================== */
   const canvas = document.getElementById("weeklyEmotionChart");
   const dataTag = document.getElementById("weeklyEmotionData");
   let chartInstance = null;
+
+  // ✅ 라운드 규칙:
+  // - 그 날짜 막대가 단일 조각이면 전체 radius 10
+  // - 여러 조각이면 최상단 조각만 topLeft/topRight radius 10
+  function getTopRadius(ctx, r) {
+    const chart = ctx.chart;
+    const dataIndex = ctx.dataIndex;
+    const stackKey = ctx.dataset.stack;
+
+    const stackDatasets = chart.data.datasets.filter((ds) => ds.stack === stackKey);
+    const nonZero = stackDatasets.filter((ds) => Number(ds.data?.[dataIndex] ?? 0) > 0);
+
+    if (nonZero.length === 0) return 0;
+
+    const isTop = nonZero[nonZero.length - 1] === ctx.dataset;
+
+    // 단일 조각이면 전체 둥글게
+    if (nonZero.length === 1 && isTop) return r;
+
+    // 여러 조각이면 최상단만 윗모서리 둥글게
+    if (isTop) {
+      return { topLeft: r, topRight: r, bottomLeft: 0, bottomRight: 0 };
+    }
+
+    return 0;
+  }
+  function syncXLabelsToChartArea(chartInstance) {
+    const wrap = document.getElementById("weeklyDateLabels");
+    if (!wrap || !chartInstance) return;
+
+    const ca = chartInstance.chartArea;
+    if (!ca) return;
+
+    const canvas = chartInstance.canvas;
+
+    // canvas의 내부 pixel 기준으로 padding 계산
+    const leftPad = ca.left;
+    const rightPad = canvas.width - ca.right;
+
+    // 날짜 그리드가 chartArea 폭과 동일해지도록 좌/우 padding을 맞춤
+    wrap.style.paddingLeft = `${leftPad}px`;
+    wrap.style.paddingRight = `${rightPad}px`;
+
+    // 혹시 이전 CSS에서 margin/transform이 있으면 영향 줄이기
+    wrap.style.boxSizing = "border-box";
+  }
 
   function renderWeeklyChart(payload) {
     if (!canvas) return;
@@ -84,18 +131,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const range = getWeekRangeFromLabel();
     const fallbackLabels = buildWeekLabelsFromRange(range.start, range.end);
 
-    // ✅ labels 우선순위: payload.labels > fallback(week range)
     const labels =
       (Array.isArray(payload?.labels) && payload.labels.length > 0)
         ? payload.labels
         : fallbackLabels;
 
-    // ✅ 날짜 7개는 무조건 렌더(데이터 없어도)
+    // ✅ 날짜 7개는 무조건 렌더
     renderWeekDateLabels(labels);
 
     const N = labels.length || 7;
 
-    // ✅ 데이터가 비어도 0으로 채워서 차트가 “그려지게” 함
+    // ✅ score 데이터(0~9), 비어도 0으로 채움
     const pos = normalizeToLength(payload?.pos, N, 0);
     const neu = normalizeToLength(payload?.neu, N, 0);
     const neg = normalizeToLength(payload?.neg, N, 0);
@@ -112,32 +158,31 @@ document.addEventListener("DOMContentLoaded", () => {
       data: {
         labels,
         datasets: [
-            {
-                label: "Positive (긍정)",
-                data: pos,                 // 강도 score (0~9)
-                stack: "feeling",
-                backgroundColor: "rgba(245, 148, 30, 0.70)", // 긍정: 메인 오렌지
-                borderRadius: 10,
-                borderSkipped: false,
-            },
-            {
-                label: "Neutral (중립)",
-                data: neu,                 // 강도 score
-                stack: "feeling",
-                backgroundColor: "rgba(245, 148, 30, 0.35)", // 중립: 연한 톤
-                borderRadius: 10,
-                borderSkipped: false,
-            },
-            {
-                label: "Negative (부정)",
-                data: neg,                 // 강도 score
-                stack: "feeling",
-                backgroundColor: "rgba(180, 120, 60, 0.55)", // 부정: 더 무거운 색
-                borderRadius: 10,
-                borderSkipped: false,
-            },
-        ]
-
+          {
+            label: "Positive (긍정)",
+            data: pos,
+            stack: "feeling",
+            backgroundColor: "#FFD07C",
+            borderSkipped: false,
+            borderRadius: (c) => getTopRadius(c, 10),
+          },
+          {
+            label: "Neutral (중립)",
+            data: neu,
+            stack: "feeling",
+            backgroundColor: "#FFE2B6",
+            borderSkipped: false,
+            borderRadius: (c) => getTopRadius(c, 10),
+          },
+          {
+            label: "Negative (부정)",
+            data: neg,
+            stack: "feeling",
+            backgroundColor: "#FFB845",
+            borderSkipped: false,
+            borderRadius: (c) => getTopRadius(c, 10),
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -147,7 +192,8 @@ document.addEventListener("DOMContentLoaded", () => {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (c) => `${c.dataset.label}: ${c.parsed.y}%`,
+              // ✅ 점수 기반이므로 % 제거
+              label: (c) => `${c.dataset.label}: ${c.parsed.y}점`,
             },
           },
         },
@@ -160,13 +206,22 @@ document.addEventListener("DOMContentLoaded", () => {
           y: {
             stacked: true,
             beginAtZero: true,
-            max: payload.y_max || 9,
+            max: payload?.y_max ?? 9, // ✅ 고정 스케일 (기본 9)
             grid: { display: false, drawBorder: false },
-            ticks: { display: false, stepSize: 1    },
+            ticks: { display: false, stepSize: 1 },
           },
         },
       },
     });
+    // ✅ 차트가 그려진 후 chartArea가 생기므로, 다음 프레임에 동기화
+    requestAnimationFrame(() => syncXLabelsToChartArea(chartInstance));
+
+    // ✅ 리사이즈 시에도 계속 맞추기
+    window.addEventListener("resize", () => {
+        if (chartInstance) syncXLabelsToChartArea(chartInstance);
+    });
+
+
   }
 
   if (canvas && dataTag) {
@@ -175,7 +230,6 @@ document.addEventListener("DOMContentLoaded", () => {
       payload = JSON.parse(dataTag.textContent || "{}");
     } catch (e) {
       console.error("[timeline] JSON parse failed:", e);
-      // JSON이 깨져도 날짜는 range로라도 보이게
       payload = {};
     }
     renderWeeklyChart(payload);
@@ -186,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ======================================================
-   * 2) Week Datepicker + Caret 아래 Arrow 정렬
+   * 2) Week Datepicker
    * ====================================================== */
   if (!window.jQuery) return;
   const $ = window.jQuery;
@@ -229,30 +283,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     $label.text(`${fmtLabel(startDate)} ~ ${fmtLabel(endDate)}`);
 
-    // ✅ (즉시 UI 반영) 페이지 이동 전에도 날짜 7개는 range로 갱신
+    // ✅ 페이지 이동 전에도 날짜 7개만 즉시 갱신
     renderWeekDateLabels(buildWeekLabelsFromRange(fmtLabel(startDate), fmtLabel(endDate)));
 
     window.location.search = `?start=${fmtParam(startDate)}&end=${fmtParam(endDate)}`;
   });
 
-  function alignDatepickerArrow() {
-    const dp = $weekPicker.data("datepicker");
-    if (!dp || !dp.picker) return;
-
-    const pickerEl = dp.picker.get(0);
-    const caretEl = document.querySelector(".timeline-datebar-caret");
-    if (!pickerEl || !caretEl) return;
-
-    const pickerRect = pickerEl.getBoundingClientRect();
-    const caretRect = caretEl.getBoundingClientRect();
-    const arrowLeft = (caretRect.left + caretRect.width / 2) - pickerRect.left;
-
-    pickerEl.style.setProperty("--dp-arrow-left", `${arrowLeft}px`);
-  }
-
   $trigger.on("click", function () {
     $weekPicker.datepicker("show");
-    setTimeout(alignDatepickerArrow, 0);
-    setTimeout(alignDatepickerArrow, 30);
   });
 });

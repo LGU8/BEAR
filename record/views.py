@@ -63,9 +63,9 @@ def timeline(request):
     sql = """
     SELECT
       rgs_dt,
-      COALESCE(pos_ratio, 0) AS pos_score,
-      COALESCE(neu_ratio, 0) AS neu_score,
-      COALESCE(neg_ratio, 0) AS neg_score
+      COALESCE(pos_count, 0) AS pos_score,
+      COALESCE(neu_count, 0) AS neu_score,
+      COALESCE(neg_count, 0) AS neg_score
     FROM CUS_FEEL_RATIO_TH
     WHERE cust_id = %s
       AND rgs_dt BETWEEN %s AND %s
