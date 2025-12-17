@@ -12,6 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="{% static 'css/nav_style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+
+  {% block extra_css %}{% endblock %}
   </head>
 
   <body>
@@ -36,7 +39,7 @@
     <nav class="bear-tabs-bar">
       <div class="bear-tabs-inner">
         <div class="bear-tab-box {% if active_tab == 'report' %}active{% endif %}">
-          <a class="bear-tab-text" href="/report_daily">리포트</a>
+          <a class="bear-tab-text" href="{% url 'report_app:report_daily' %}">리포트</a>
         </div>
 
         <div class="bear-tab-box {% if active_tab == 'record' %}active{% endif %}">

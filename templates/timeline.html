@@ -1,18 +1,29 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block content %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/timeline.css' %}">
+{% endblock %}
 
-  <!-- (1) 주간 누적 막대 그래프 -->
-  <section class="timeline-section">
-    <h4>감정 변화 요약</h4>
-    <div class="timeline-date-range">
-      <!-- 나중에 date picker 붙일 자리 -->
-      <span>{{ week_start }} ~ {{ week_end }}</span>
+{% block content %}
+<!-- (1) 주간 누적 막대 그래프 -->
+<section class="timeline-section">
+  <div class="timeline-card">
+    <div class="timeline-card-head">
+      <h4 class="timeline-title">감정 변화 요약</h4>
+
+      <div class="timeline-date-range">
+        <!-- 나중에 date picker 붙일 자리 -->
+        <span class="timeline-range-text">{{ week_start }} ~ {{ week_end }}</span>
+      </div>
     </div>
 
-    <canvas id="weeklyEmotionChart"></canvas>
-  </section>
+    <div class="timeline-chart-wrap">
+      <!-- 차트 반응형을 위해 canvas를 wrap으로 감싸는 게 안정적 -->
+      <canvas id="weeklyEmotionChart"></canvas>
+    </div>
+  </div>
+</section>
 
   <!-- (2) ML 부정 감정 예측 결과 -->
   <section class="timeline-section">
