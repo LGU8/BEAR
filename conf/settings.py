@@ -143,7 +143,7 @@ AUTHENTICATION_BACKENDS = [
 
 
 # 로그인 성공 후 기본적으로 이동할 URL
-LOGIN_REDIRECT_URL = 'accounts_app:profile'
+LOGIN_REDIRECT_URL = 'home/'
 
 # 로그아웃 후 이동할 URL (선택 사항)
 LOGOUT_REDIRECT_URL = 'accounts_app:home'
