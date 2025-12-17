@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date
 from typing import Optional, Dict, Any, List
-
+from django.contrib.auth.decorators import login_required
 from settings.badges import BADGE_MASTER
 from django.contrib import messages
 from django.urls import reverse
@@ -13,6 +13,8 @@ from django.shortcuts import render, redirect
 # 공통: local 더미 데이터 (나중에 DB에서 그대로 교체)
 #  - DB 테이블: CUST_TM, CUS_PROFILE_TS 컬럼명 기준
 # ------------------------------------------------------------
+
+@login_required
 def _dummy_user() -> Dict[str, Any]:
     return {
         # CUST_TM 유사

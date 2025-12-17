@@ -54,7 +54,7 @@ def index(request):
 # badges 뷰
 @login_required(login_url='/')
 def badges(request):
-    return render(request, "badge.html") # 파일명이 badge.html인지 badges.html인지 확인!
+    return render(request, "badges.html") # 파일명이 badge.html인지 badges.html인지 확인!
 
 # report_daily 뷰
 @login_required(login_url='/')
