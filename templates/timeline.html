@@ -14,43 +14,34 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/locales/bootstrap-datepicker.ko.min.js"></script>
 
-<!-- (1) 주간 누적 막대 그래프 -->
 <section class="timeline-section">
   <div class="timeline-card">
+    <div class="timeline-card-inner">
+      <div class="timeline-card-head timeline-card-head--stack">
+        <h4 class="timeline-title">감정 변화 요약</h4>
 
-    <!-- ✅ 헤더를 2줄 구조로: 제목 → 날짜선택 -->
-    <div class="timeline-card-head timeline-card-head--stack">
-      <h4 class="timeline-title">감정 변화 요약</h4>
+        <div class="timeline-datebar" id="week-picker-trigger">
+          <span class="timeline-datebar-icon">📅</span>
+          <span class="timeline-datebar-text" id="week-picker-label">
+            {{ week_start }} ~ {{ week_end }}
+          </span>
+          <span class="timeline-datebar-caret">▾</span>
+          <input type="text" id="week-picker"
+                class="timeline-week-hidden-input" readonly>
+        </div>
+      </div>
 
-      <!-- ✅ Datepicker bar (아이콘 + 텍스트 + 화살표) -->
-      <div class="timeline-datebar" id="week-picker-trigger">
-        <span class="timeline-datebar-icon" aria-hidden="true">📅</span>
+      <div class="timeline-chart-panel">
+        <div class="timeline-canvas-wrap">
+          <canvas id="weeklyEmotionChart"></canvas>
+        </div>
 
-        <!-- input은 투명/겹쳐두고, 보여지는 텍스트는 span으로 제어 -->
-        <span class="timeline-datebar-text" id="week-picker-label">
-          {{ week_start }} ~ {{ week_end }}
-        </span>
-
-        <span class="timeline-datebar-caret" aria-hidden="true">▾</span>
-
-        <!-- 실제 datepicker input (보이지 않게 깔아둠) -->
-        <input
-          type="text"
-          id="week-picker"
-          class="timeline-week-hidden-input"
-          readonly
-          aria-label="주간 시작일 선택"
-        >
+        <div class="timeline-xlabels" id="weeklyDateLabels" aria-hidden="true"></div>
       </div>
     </div>
-
-    <!-- ✅ 흰 배경 패널 위에 그래프 -->
-    <div class="timeline-chart-panel">
-      <canvas id="weeklyEmotionChart"></canvas>
-    </div>
-
   </div>
 </section>
+
 
 <!-- (2) ML 부정 감정 예측 결과 -->
 <section class="timeline-section">
