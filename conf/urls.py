@@ -1,68 +1,31 @@
-# """
-# URL configuration for conf project.
-#
-# The `urlpatterns` list routes URLs to views. For more information please see:
-#     https://docs.djangoproject.com/en/4.2/topics/http/urls/
-# Examples:
-# Function views
-#     1. Add an import:  from my_app import views
-#     2. Add a URL to urlpatterns:  path('', views.home, name='home')
-# Class-based views
-#     1. Add an import:  from other_app.views import Home
-#     2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-# Including another URLconf
-#     1. Import the include() function: from django.urls import include, path
-#     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-# """
-#
-# from django.contrib import admin
-# from django.urls import path, include
-# from django.conf import settings
-# from django.conf.urls.static import static
-# from conf.views import index, badges, report_daily
-# from record.views import timeline
-#
-# urlpatterns = [
-#     path("admin/", admin.site.urls),
-#     path("", index),
-#     path("accounts/",include("accounts.urls")),
-#     path("record/", include("record.urls")),
-#     path("settings/", include("settings.urls")),
-#     path("timeline/", timeline),
-#     path("badges/", badges),
-#     path("report_daily/", include("report.urls")),
-# ]
-
-
 # conf/urls.py
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from conf.views import index, badges, report_daily
+from conf import views as conf_views  # 이름을 구분해서 임포트
 from record.views import timeline
-from accounts.views import user_login  # 로그인 뷰 직접 임포트
+from accounts.views import user_login
 
 urlpatterns = [
     path("admin/", admin.site.urls),
 
-    # 1. 루트 접속 시 바로 로그인 페이지가 뜨게 설정
+    # 루트 주소 접속 시 로그인 페이지
     path("", user_login, name="root"),
 
-    # 2. 로그인 후 실제 메인 화면(index)으로 보낼 경로
-    path("home/", index, name="home"),
+    # 로그인 후 이동할 홈
+    path("home/", conf_views.index, name="home"),
 
+    # 앱 단위 include
     path("accounts/", include("accounts.urls")),
     path("record/", include("record.urls")),
     path("settings/", include("settings.urls")),
 
+    # 뷰 함수 직접 연결 (데코레이터가 붙은 conf_views의 함수인지 확인!)
     path("timeline/", timeline, name="timeline"),
-    path("badges/", badges, name="badges"),
+    path("badges/", conf_views.badges, name="badges"),
 
-    # report_daily가 앱이라면 include 사용, 함수라면 path 사용
-    # 현재 include("report.urls")로 되어 있으니 해당 앱의 urls.py를 따라갑니다.
+    # report_daily가 include 방식이라면, 해당 앱의 views.py에도 @login_required가 있어야 합니다.
     path("report_daily/", include("report.urls")),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

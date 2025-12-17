@@ -146,7 +146,7 @@ def user_logout(request):
             # 2. 장고 세션 로그아웃 (세션 데이터가 삭제됨)
             logout(request)
 
-        return redirect("accounts_app:user_login")
+        return redirect("root")
 
 
 
