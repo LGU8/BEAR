@@ -2,7 +2,6 @@ from django.shortcuts import render
 from datetime import date, datetime, timedelta
 from django.db import connection
 import json
-from conf.views import timeline
 
 
 from record.services.timeline_ml_predict import predict_negative_risk
