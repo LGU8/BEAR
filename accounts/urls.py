@@ -6,7 +6,7 @@ app_name = "accounts_app"
 
 urlpatterns = [
     path("", views.home, name="home"),
-    path("login/", views.user_login, name="login"),
+    path("login/", views.user_login, name="user_login"),
     # 2. 로그아웃 URL (views.user_logout 함수와 연결)
     path("logout/", views.user_logout, name="user_logout"),
     path("password-reset/", views.password_reset),

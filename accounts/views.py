@@ -66,79 +66,88 @@ def generate_new_cust_id():
 #
 #     return render(request, "accounts/login.html")
 
-
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
+from django.utils import timezone
+from django.db.models import Max
+from .models import LoginHistory
 
 
 def user_login(request):
-    # 1. URL 파라미터에서 'next' 값을 미리 가져옵니다. (GET/POST 공통)
     next_url = request.GET.get('next', '')
 
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
 
-        # 2. 인증 시도 (이메일과 비밀번호 대조)
         user = authenticate(request, username=email, password=password)
 
         if user is not None:
-            # 3. 세션 로그인 처리
+            # 1. 장고 세션 로그인
             login(request, user)
 
-            # 4. 리다이렉트 우선순위 결정
-            # next_url이 존재하면 해당 URL로, 없으면 'profile' 페이지로 이동
+            # 2. 로그인 이력 생성을 위한 정보 준비
+            max_seq = LoginHistory.objects.filter(cust=user).aggregate(Max('seq'))['seq__max'] or 0
+            new_seq = max_seq + 1
+
+            now = timezone.now()
+            today_str = now.strftime('%Y%m%d')
+            time_str = now.strftime('%H%M%S')
+
+            # 3. DB에 로그인 기록 저장
+            try:
+                LoginHistory.objects.create(
+                    cust=user,
+                    seq=new_seq,
+                    login_dt=today_str,
+                    login_time=time_str,
+                    success_yn="Y"
+                )
+
+                # ⭐ 핵심: 현재 생성된 seq를 세션에 저장하여 로그아웃 때 사용함
+                request.session['current_login_seq'] = new_seq
+
+            except Exception as e:
+                print(f"Login History Save Error: {e}")
+
+            # 4. 리다이렉트
             if next_url:
                 return redirect(next_url)
             return redirect("accounts_app:profile")
         else:
-            # 5. 인증 실패 시 에러 메시지와 함께 다시 로그인 페이지 렌더링
-            return render(
-                request,
-                "accounts/login.html",
-                {
-                    "error_message": "이메일 또는 비밀번호가 올바르지 않습니다.",
-                    "email": email  # 사용자가 입력했던 이메일을 다시 채워줌
-                }
-            )
+            return render(request, "accounts/login.html", {
+                "error_message": "이메일 또는 비밀번호가 올바르지 않습니다.",
+                "email": email
+            })
 
-    # GET 요청 시 로그인 페이지 표시
     return render(request, "accounts/login.html")
 
-# 2. 로그아웃 뷰
+
 def user_logout(request):
-    # 1. Cust 테이블의 leave_dt 필드 업데이트
-    # 사용자가 로그인 상태인지 확인합니다. (request.user는 로그인된 사용자 객체입니다.)
-    if request.user.is_authenticated:
-        try:
-            # request.user가 Cust 모델의 인스턴스라 가정하거나,
-            # Cust 테이블의 필드를 업데이트할 수 있는 객체라 가정합니다.
+    if request.method == "POST":
+        user = request.user
+        if user.is_authenticated:
+            # ⭐ 로그인할 때 세션에 담아뒀던 seq 번호를 가져옴
+            current_seq = request.session.get('current_login_seq')
 
-            # 현재 시간을 DB 필드 형식에 맞춰 포맷팅합니다.
-            # (예: YYYYMMDDHHMMSS 또는 YYYY-MM-DD HH:MM:SS)
-            # 여기서는 예시로 'YYYYMMDDHHMMSS' 형식을 사용합니다.
-            current_dt = timezone.now().strftime("%Y%m%d%H%M%S")
+            now = timezone.now()
+            today_str = now.strftime('%Y%m%d')
+            time_str = now.strftime('%H%M%S')
 
-            # Cust 객체를 직접 업데이트하거나, request.user가 Cust라면 바로 업데이트
-            # request.user가 Cust 객체라고 가정하고 진행합니다.
-            request.user.leave_dt = current_dt
-            request.user.save()
+            if current_seq:
+                # 1. 세션에 저장된 seq와 일치하는 '딱 하나의 행'만 업데이트
+                # filter(...).update(...)를 사용하여 중복 PK 에러 원천 차단
+                LoginHistory.objects.filter(
+                    cust=user,
+                    login_dt=today_str,
+                    seq=current_seq
+                ).update(logout_time=time_str)
 
-            print(f"User {request.user.email} logged out at {current_dt}")
+            # 2. 장고 세션 로그아웃 (세션 데이터가 삭제됨)
+            logout(request)
 
-        except AttributeError:
-            # request.user에 leave_dt 필드가 없거나 Cust 객체가 아닌 경우
-            print(
-                "Error: request.user does not have 'leave_dt' field or is not Cust model."
-            )
-        except Exception as e:
-            print(f"Error updating leave_dt: {e}")
+        return redirect("accounts_app:user_login")
 
-    # 2. Django 세션에서 사용자 정보 제거 (실제 로그아웃 처리)
-    logout(request)
-
-    # 3. 로그아웃 후 홈 또는 로그인 페이지로 이동
-    return redirect("accounts_app:home")
 
 
 # 3. 프로필 뷰 (로그인 필요)
