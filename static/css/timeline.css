@@ -1,113 +1,50 @@
-/* timeline layout */
-.timeline-section {
+/* ======================================================
+   Timeline Layout
+   ====================================================== */
+.timeline-section{
   max-width: 960px;
   margin: 0 auto;
   padding: 12px 16px;
+  overflow: visible;
 }
 
-.timeline-card {
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-  padding: 16px;
+.timeline-card{
+  background: transparent;
+  padding: 0;
+  overflow: visible;
 }
 
-.timeline-card-head {
+/* ✅ 공통 왼쪽 기준선(헤더 + 패널 모두 이 안에서 시작) */
+.timeline-card-inner{
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* ======================================================
+   Header (제목 + 날짜 선택)
+   ====================================================== */
+.timeline-card-head--stack{
+  /* ❌ 여기서 또 좌우 padding 주면 기준선이 밀림 -> 제거 */
+  padding: 0 0 12px 0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  overflow: visible;
 }
 
-.timeline-title {
+.timeline-title{
   margin: 0;
   font-size: 18px;
+  padding: 0 0 0 5px;
   font-weight: 700;
 }
 
-.timeline-range-text {
-  font-size: 13px;
-  color: #666;
-  background: #FFF4E6;
-  border: 1px solid rgba(245,148,30,0.25);
-  padding: 6px 10px;
-  border-radius: 999px;
-}
-
-.timeline-chart-wrap {
+/* ======================================================
+   Week Picker Bar
+   ====================================================== */
+.timeline-datebar{
   position: relative;
-  height: 280px;
-}
-/* ─────────────────────────────
-   Timeline Week Picker
-   ───────────────────────────── */
-.timeline-week-input {
-    width: 230px;
-    background-color: #FFF2DD;
-    border: none;
-    border-radius: 12px;
-    padding: 10px 14px;
-    font-size: 0.95rem;
-    color: #3C3C43;
-    box-shadow: none;
-    cursor: pointer;
-}
-
-.timeline-week-input:focus {
-    outline: none;
-    box-shadow: none;
-}
-
-/* Datepicker calendar */
-.datepicker {
-    background-color: #FFF7EC;
-    border-radius: 16px;
-    padding: 8px;
-}
-
-.datepicker table tr td:hover,
-.datepicker table tr td.focused {
-    background-color: #FFE2B6 !important;
-    border-radius: 50%;
-}
-
-.datepicker table tr td.day.active {
-    background-color: #F47900 !important;
-    color: #FFFFFF !important;
-    border-radius: 50% !important;
-}
-
-.datepicker table tr td.day.today {
-    border: 1px solid #F47900;
-    background-color: transparent;
-}
-
-.datepicker table tr td.day.today.active {
-    background-color: #F47900 !important;
-    color: #FFFFFF !important;
-    border-radius: 50% !important;
-}
-
-.datepicker-switch,
-.datepicker .prev,
-.datepicker .next {
-    font-weight: 600;
-    color: #3C3C43;
-}
-/* ─────────────────────────────
-   카드 헤더: 제목 아래 날짜바 (스샷처럼 2줄)
-   ───────────────────────────── */
-.timeline-card-head--stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-/* ─────────────────────────────
-   날짜 선택 바 (아이콘 + range + 화살표)
-   ───────────────────────────── */
-.timeline-datebar {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -120,90 +57,122 @@
   user-select: none;
 }
 
-.timeline-datebar-icon {
+.timeline-datebar-icon{
   font-size: 14px;
-  line-height: 1;
 }
 
-.timeline-datebar-text {
+.timeline-datebar-text{
   font-size: 0.92rem;
   color: #3C3C43;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.timeline-datebar-caret {
-  font-size: 12px;
-  color: #3C3C43;
+.timeline-datebar-caret{
+  font-size: 18px;
   line-height: 1;
   transform: translateY(1px);
 }
 
-/* 실제 datepicker input은 숨겨서 UI는 datebar가 담당 */
-.timeline-week-hidden-input {
+/* 실제 datepicker input (트리거용, 투명 오버레이) */
+.timeline-week-hidden-input{
   position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
+  cursor: pointer;
+  background: transparent;
+  border: none;
 }
 
-/* ─────────────────────────────
-   흰 배경 그래프 패널 (스샷처럼)
-   ───────────────────────────── */
-.timeline-chart-panel {
-  background-color: #FFFFFF;
+/* ======================================================
+   Chart White Panel
+   ====================================================== */
+.timeline-chart-panel{
+  background: #fff;
   border-radius: 16px;
-  padding: 14px 14px 10px 14px;
+  padding: 16px 16px 12px;
+  height: 360px;
+  box-sizing: border-box;
 
-  /* 카드 내부에서 더 "올라온" 느낌 */
-  box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
 }
 
-/* canvas 높이 안정화 (모바일에서 찌그러짐 방지) */
-.timeline-chart-panel canvas {
+.timeline-canvas-wrap{
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#weeklyEmotionChart{
   width: 100% !important;
-  height: 220px !important; /* 필요하면 200~260 사이로 조절 */
+  height: 100% !important;
+  display: block;
 }
 
-/* ─────────────────────────────
-   Datepicker 캘린더(기존 report 스타일 유지)
-   ───────────────────────────── */
-.datepicker {
+/* 날짜 7개 */
+.timeline-xlabels{
+  flex: 0 0 22px;
+  margin-top: 8px;
+
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.timeline-xlabel{
+  display: block;
+  height: 22px;
+  line-height: 22px;
+  font-size: 12px;
+  color: rgba(0,0,0,0.65);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ======================================================
+   Bootstrap Datepicker Theme
+   ====================================================== */
+.datepicker{
   background-color: #FFF7EC;
   border-radius: 16px;
   padding: 8px;
 }
 
+.datepicker.datepicker-dropdown{
+  z-index: 9999 !important;
+}
+
 .datepicker table tr td:hover,
-.datepicker table tr td.focused {
+.datepicker table tr td.focused{
   background-color: #FFE2B6 !important;
   border-radius: 50%;
 }
 
 .datepicker table tr td.day.active,
 .datepicker table tr td.day.active:hover,
-.datepicker table tr td.day.active:focus {
+.datepicker table tr td.day.active:focus{
   background-color: #F47900 !important;
   color: #FFFFFF !important;
   border-radius: 50% !important;
 }
 
-.datepicker table tr td.day.today {
+.datepicker table tr td.day.today{
   border: 1px solid #F47900;
   background-color: transparent;
 }
 
-.datepicker table tr td.day.today.active {
+.datepicker table tr td.day.today.active{
   background-color: #F47900 !important;
   color: #FFFFFF !important;
   border-radius: 50% !important;
   border: none !important;
 }
 
-.datepicker-switch,
-.datepicker .prev,
-.datepicker .next {
-  font-weight: 600;
-  color: #3C3C43;
+/* 기본 arrow 숨김(너가 원하는 디자인이면 유지) */
+.datepicker-dropdown:before,
+.datepicker-dropdown:after{
+  display: none !important;
 }

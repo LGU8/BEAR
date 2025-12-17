@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from datetime import date
 import hashlib  # ⭐ 이 라인을 추가합니다.
 from django.shortcuts import render, redirect
-
+from django.contrib.auth.hashers import make_password # SHA256 대신 이걸 사용
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.conf import settings  # settings.LOGIN_REDIRECT_URL 사용을 위해 필요
@@ -42,80 +42,112 @@ def generate_new_cust_id():
 
 # 1. 로그인 뷰 (GET 요청: 폼 표시, POST 요청: 인증 처리)
 # accounts/views.py - user_login 함수
+#
+# def user_login(request):
+#     if request.method == "POST":
+#         email = request.POST.get("email")
+#         password = request.POST.get("password")
+#
+#         # 로그인 시도 전 URL에 담긴 'next' 경로를 가져옵니다.
+#         next_url = request.GET.get('next')
+#
+#         user = authenticate(request, username=email, password=password)
+#
+#         if user is not None:
+#             login(request, user)
+#
+#             # 1순위: 가려던 페이지(next)가 있다면 그곳으로 이동
+#             # 2순위: 없다면 기본 프로필 페이지로 이동
+#             if next_url:
+#                 return redirect(next_url)
+#             return redirect("accounts_app:profile")
+#         else:
+#             return render(request, "accounts/login.html", {"error_message": "이메일 또는 비밀번호가 틀렸습니다."})
+#
+#     return render(request, "accounts/login.html")
+
+from django.contrib.auth import authenticate, login, logout
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from django.db.models import Max
+from .models import LoginHistory
 
 
 def user_login(request):
+    next_url = request.GET.get('next', '')
+
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
 
-        # authenticate가 CustomCustBackend를 통해 Cust 객체를 반환합니다.
         user = authenticate(request, username=email, password=password)
 
         if user is not None:
-            login(request, user)  # 세션 생성
+            # 1. 장고 세션 로그인
+            login(request, user)
 
-            # last_login_dt 업데이트 (이전 답변에서 CHAR(14)로 확장됨)
-            user.last_login_dt = timezone.now().strftime("%Y%m%d%H%M%S")
-            user.save()
+            # 2. 로그인 이력 생성을 위한 정보 준비
+            max_seq = LoginHistory.objects.filter(cust=user).aggregate(Max('seq'))['seq__max'] or 0
+            new_seq = max_seq + 1
 
-            # LoginHistory 기록 (timezone.now() import 필요)
+            now = timezone.now()
+            today_str = now.strftime('%Y%m%d')
+            time_str = now.strftime('%H%M%S')
+
+            # 3. DB에 로그인 기록 저장
             try:
-                # LoginHistory 모델 import 필요
                 LoginHistory.objects.create(
                     cust=user,
-                    login_dt=timezone.now().strftime("%Y%m%d"),  # 날짜
-                    login_time=timezone.now().strftime("%Y%m%d%H%M%S"),  # 시간
-                    success_yn="Y",
+                    seq=new_seq,
+                    login_dt=today_str,
+                    login_time=time_str,
+                    success_yn="Y"
                 )
-            except Exception as e:
-                print(f"LoginHistory save error: {e}")
 
-            return redirect("accounts_app:profile")
+                # ⭐ 핵심: 현재 생성된 seq를 세션에 저장하여 로그아웃 때 사용함
+                request.session['current_login_seq'] = new_seq
+
+            except Exception as e:
+                print(f"Login History Save Error: {e}")
+
+            # 4. 리다이렉트
+            if next_url:
+                return redirect(next_url)
+            return redirect("home")
         else:
-            return render(
-                request,
-                "accounts/login.html",
-                {"error_message": "이메일 또는 비밀번호가 올바르지 않습니다."},
-            )
+            return render(request, "accounts/login.html", {
+                "error_message": "이메일 또는 비밀번호가 올바르지 않습니다.",
+                "email": email
+            })
 
     return render(request, "accounts/login.html")
 
 
-# 2. 로그아웃 뷰
 def user_logout(request):
-    # 1. Cust 테이블의 leave_dt 필드 업데이트
-    # 사용자가 로그인 상태인지 확인합니다. (request.user는 로그인된 사용자 객체입니다.)
-    if request.user.is_authenticated:
-        try:
-            # request.user가 Cust 모델의 인스턴스라 가정하거나,
-            # Cust 테이블의 필드를 업데이트할 수 있는 객체라 가정합니다.
+    if request.method == "POST":
+        user = request.user
+        if user.is_authenticated:
+            # ⭐ 로그인할 때 세션에 담아뒀던 seq 번호를 가져옴
+            current_seq = request.session.get('current_login_seq')
 
-            # 현재 시간을 DB 필드 형식에 맞춰 포맷팅합니다.
-            # (예: YYYYMMDDHHMMSS 또는 YYYY-MM-DD HH:MM:SS)
-            # 여기서는 예시로 'YYYYMMDDHHMMSS' 형식을 사용합니다.
-            current_dt = timezone.now().strftime("%Y%m%d%H%M%S")
+            now = timezone.now()
+            today_str = now.strftime('%Y%m%d')
+            time_str = now.strftime('%H%M%S')
 
-            # Cust 객체를 직접 업데이트하거나, request.user가 Cust라면 바로 업데이트
-            # request.user가 Cust 객체라고 가정하고 진행합니다.
-            request.user.leave_dt = current_dt
-            request.user.save()
+            if current_seq:
+                # 1. 세션에 저장된 seq와 일치하는 '딱 하나의 행'만 업데이트
+                # filter(...).update(...)를 사용하여 중복 PK 에러 원천 차단
+                LoginHistory.objects.filter(
+                    cust=user,
+                    login_dt=today_str,
+                    seq=current_seq
+                ).update(logout_time=time_str)
 
-            print(f"User {request.user.email} logged out at {current_dt}")
+            # 2. 장고 세션 로그아웃 (세션 데이터가 삭제됨)
+            logout(request)
 
-        except AttributeError:
-            # request.user에 leave_dt 필드가 없거나 Cust 객체가 아닌 경우
-            print(
-                "Error: request.user does not have 'leave_dt' field or is not Cust model."
-            )
-        except Exception as e:
-            print(f"Error updating leave_dt: {e}")
+        return redirect("root")
 
-    # 2. Django 세션에서 사용자 정보 제거 (실제 로그아웃 처리)
-    logout(request)
-
-    # 3. 로그아웃 후 홈 또는 로그인 페이지로 이동
-    return redirect("accounts_app:home")
 
 
 # 3. 프로필 뷰 (로그인 필요)
@@ -148,22 +180,31 @@ from django.shortcuts import render, redirect
 from django.db import IntegrityError  # DB 에러 처리를 위해 추가
 from .models import Cust, CusProfile  # 모델 import 확인
 
+from django.contrib.auth.hashers import make_password  # ⭐ 추가: Django 암호화 함수
+# import hashlib  <-- 이제 단순 SHA256은 사용하지 않으므로 필요 없습니다.
+
 def signup_step1(request):
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
 
+        # 1. 이메일 중복 확인
         if Cust.objects.filter(email=email).exists():
             return render(request, "accounts/signup_step1.html", {"error": "이미 가입된 이메일입니다."})
 
-        # 1단계 성공 시 이메일을 세션에 담습니다. (이게 있어야 Step 2 진입 가능)
-        hashed_password = hashlib.sha256(password.encode("utf-8")).hexdigest()
+        # 2. Django 표준 방식으로 비밀번호 암호화 ⭐
+        # hashlib.sha256 대신 make_password를 사용합니다.
+        # 이 함수는 내부적으로 salt를 추가하고 수천 번 해싱(PBKDF2)하여 매우 안전합니다.
+        secure_password = make_password(password)
+
+        # 3. 세션에 안전한 비밀번호 저장
         request.session["reg_email"] = email
-        request.session["reg_password"] = hashed_password
+        request.session["reg_password"] = secure_password
 
         return redirect("accounts_app:signup_step2")
 
     return render(request, "accounts/signup_step1.html")
+
 from django.shortcuts import render, redirect
 from django.db import IntegrityError
 from .models import Cust, CusProfile  # 필요한 모델 import
@@ -409,10 +450,12 @@ def signup_step4(request):
 
     return render(request, "accounts/signup_step4.html")
 
-def home(request):
-    """
-    첫 진입 화면
-    - 로그인
-    - 회원가입 버튼만 표시
-    """
-    return render(request, "accounts/home.html")
+
+# accounts/views.py
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url='accounts_app:user_login')
+def profile(request):
+    # 로그인된 사용자는 request.user에 담겨 있습니다.
+    # 만약 여기서 오류가 난다면 로그인이 풀린 것입니다.
+    return render(request, "accounts/profile.html", {"user": request.user})
