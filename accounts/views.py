@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.db.models import Max
+from django.db import IntegrityError, transaction
 from .models import Cust, LoginHistory, CusProfile
 import hashlib
 from django.contrib.auth.models import User
@@ -70,7 +71,7 @@ def user_login(request):
             except Exception as e:
                 print(f"LoginHistory save error: {e}")
 
-            return redirect("profile")
+            return redirect("accounts_app:profile")
         else:
             return render(
                 request,
@@ -114,7 +115,7 @@ def user_logout(request):
     logout(request)
 
     # 3. 로그아웃 후 홈 또는 로그인 페이지로 이동
-    return redirect("home")
+    return redirect("accounts_app:home")
 
 
 # 3. 프로필 뷰 (로그인 필요)
@@ -147,62 +148,22 @@ from django.shortcuts import render, redirect
 from django.db import IntegrityError  # DB 에러 처리를 위해 추가
 from .models import Cust, CusProfile  # 모델 import 확인
 
-
 def signup_step1(request):
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
 
-        # 1. 이메일 중복 확인
         if Cust.objects.filter(email=email).exists():
-            return render(
-                request,
-                "accounts/signup_step1.html",
-                {"error": "이미 가입된 이메일입니다."},
-            )
+            return render(request, "accounts/signup_step1.html", {"error": "이미 가입된 이메일입니다."})
 
-        # 2. 비밀번호 해시
-        # Django의 make_password가 아닌, 기존 로직에 맞게 hashlib 사용
+        # 1단계 성공 시 이메일을 세션에 담습니다. (이게 있어야 Step 2 진입 가능)
         hashed_password = hashlib.sha256(password.encode("utf-8")).hexdigest()
+        request.session["reg_email"] = email
+        request.session["reg_password"] = hashed_password
 
-        # 3. 오늘 날짜 포맷 (YYYYMMDD)
-        today = date.today().strftime("%Y%m%d")
-        new_cust_id = generate_new_cust_id()  # 고유 ID 생성
-        try:
-            # 4. Cust 및 CusProfile 생성
-            cust = Cust.objects.create(
-                cust_id=new_cust_id,  # ⭐ 생성된 ID 값 전달 ⭐
-                email=email,
-                password=hashed_password,
-                created_dt=today,
-            )
-
-            # Cust 생성과 동시에 프로필 테이블도 생성
-            CusProfile.objects.create(cust=cust)
-
-            # 5. 세션에 ID 저장 및 다음 단계로 이동
-            request.session["cust_id"] = cust.cust_id
-            return redirect("signup_step2")
-
-        except IntegrityError as e:
-            # DB 무결성 에러 (예: 이메일 unique 제약조건 위반 등)
-            print(f"DB Integrity Error in Step 1: {e}")
-            return render(
-                request,
-                "accounts/signup_step1.html",
-                {"error": "회원가입 처리 중 데이터베이스 오류가 발생했습니다."},
-            )
-        except Exception as e:
-            print(f"General Error in Step 1: {e}")
-            return render(
-                request,
-                "accounts/signup_step1.html",
-                {"error": "알 수 없는 오류가 발생했습니다."},
-            )
+        return redirect("accounts_app:signup_step2")
 
     return render(request, "accounts/signup_step1.html")
-
-
 from django.shortcuts import render, redirect
 from django.db import IntegrityError
 from .models import Cust, CusProfile  # 필요한 모델 import
@@ -212,91 +173,40 @@ import logging  # 로깅 추가 (선택 사항)
 # 로거 설정 (선택 사항)
 # logger = logging.getLogger(__name__)
 
-
 def signup_step2(request):
-    cust_id = request.session.get("cust_id")
-
-    # 세션 검증: cust_id가 없으면 Step 1로 리다이렉트
-    if not cust_id:
-        # logger.warning("Step 2 accessed without cust_id in session.")
-        return redirect("signup_step1")
+    # ⭐ 수정됨: 아직 DB에 계정이 없으므로 'reg_email' 세션 여부로 유효성 체크
+    if not request.session.get("reg_email"):
+        return redirect("accounts_app:signup_step1")
 
     if request.method == "POST":
+        # 세션에 입력값만 저장 (DB 저장 안 함)
+        request.session["gender"] = request.POST.get("gender")
+        request.session["birth_dt"] = request.POST.get("birth_dt", "").replace("-", "")
+        request.session["height_cm"] = request.POST.get("height_cm")
+        request.session["weight_kg"] = request.POST.get("weight_kg")
 
-        # POST 데이터 추출
-        raw_birth_dt = request.POST.get("birth_dt")
-        gender = request.POST.get("gender")
-        height_cm = request.POST.get("height_cm")
-        weight_kg = request.POST.get("weight_kg")
+        return redirect("accounts_app:signup_step3")
 
-        try:
-            # 1. Cust ID로 CusProfile 객체 가져오기
-            # cust_id는 문자열이지만, CusProfile의 cust_id는 외래키(BIGINT/VARCHAR)입니다.
-            # ORM이 타입 변환을 처리하지만, 객체가 없으면 DoesNotExist 발생.
-            profile = CusProfile.objects.get(cust_id=cust_id)
-
-            # 2. birth_dt 클리닝: YYYY-MM-DD (10자)를 YYYYMMDD (8자)로 변환
-            if raw_birth_dt and "-" in raw_birth_dt:
-                birth_dt_cleaned = raw_birth_dt.replace("-", "")
-            else:
-                # None 또는 이미 8자 형태인 경우
-                birth_dt_cleaned = raw_birth_dt
-
-                # 3. 프로필 필드 업데이트 (DB 저장)
-            profile.gender = gender
-            profile.birth_dt = birth_dt_cleaned
-            profile.height_cm = height_cm
-            profile.weight_kg = weight_kg
-            profile.save()
-
-            # ⭐ 4. Step 4에서 사용하도록 세션에 저장 (계산에 필요한 원시 데이터) ⭐
-            # DB에 저장한 값을 그대로 세션에 저장하여 Step 4에서 사용
-            request.session["gender"] = profile.gender
-            request.session["birth_dt"] = profile.birth_dt
-            request.session["height_cm"] = profile.height_cm
-            request.session["weight_kg"] = profile.weight_kg
-
-            # 5. 다음 단계로 이동
-            return redirect("signup_step3")
-
-        except CusProfile.DoesNotExist:
-            # Step 1에서 cust_id가 생성되었으나, CusProfile 생성이 누락된 경우
-            # logger.error(f"CusProfile missing for cust_id: {cust_id}")
-            return redirect("signup_step1")  # 다시 처음부터 시작하도록 유도
-
-        except Exception as e:
-            # 기타 예외 (DB 오류, 타입 변환 오류 등)
-            # logger.error(f"Error in Step 2 POST for cust_id {cust_id}: {e}")
-
-            # 오류 메시지와 함께 Step 2 폼을 다시 렌더링
-            return render(
-                request,
-                "accounts/signup_step2.html",
-                {
-                    "error": "입력 값 처리 중 오류가 발생했습니다. 모든 필드를 올바르게 입력했는지 확인해주세요."
-                },
-            )
-
-    # GET 요청 처리 (폼 렌더링)
     return render(request, "accounts/signup_step2.html")
 
 
 def signup_step3(request):
-    cust_id = request.session.get("cust_id")
-    if not cust_id:
-        return redirect("signup_step1")
+    if not request.session.get("reg_email"):
+        return redirect("accounts_app:signup_step1")
 
     if request.method == "POST":
-        request.session["pref_carb"] = request.POST.get("pref_carb")
-        request.session["pref_protein"] = request.POST.get("pref_protein")
-        request.session["pref_fat"] = request.POST.get("pref_fat")
+        # 세션에 선호도 데이터 저장
+        request.session["pref_carb"] = request.POST.get("pref_carb", 5)
+        request.session["pref_protein"] = request.POST.get("pref_protein", 5)
+        request.session["pref_fat"] = request.POST.get("pref_fat", 5)
 
-        request.session["activity_level"] = request.POST.get("activity_level")
-        request.session["purpose"] = request.POST.get("purpose")
+        request.session["activity_level"] = request.POST.get("activity_level", "1")
+        request.session["purpose"] = request.POST.get("purpose", "1")
 
-        return redirect("signup_step4")
+        return redirect("accounts_app:signup_step4")
 
     return render(request, "accounts/signup_step3.html")
+
 
 
 from django.shortcuts import render, redirect
@@ -412,99 +322,92 @@ def calc_macro_ratio(carb, protein, fat):
 
 
 # -------------------------------------------------------------------
+@transaction.atomic # 계정과 프로필이 둘 다 성공해야만 DB에 반영됨 (원자성)
 def signup_step4(request):
     if request.method == "POST":
-        cust_id = request.session.get("cust_id")
-        if not cust_id:
-            return redirect("signup_step1")
+        # 세션에서 Step 1 데이터 가져오기 (없으면 처음으로 리다이렉트)
+        email = request.session.get("reg_email")
+        password = request.session.get("reg_password")
+        if not email or not password:
+            return redirect("accounts_app:signup_step1")
 
-        # 1. Step 4 POST 데이터 세션 저장 (활동량, 목표)
-        request.session["activity_level"] = request.POST.get("activity_level")
-        request.session["purpose"] = request.POST.get("purpose")
+        # 1. Step 4 데이터 추출 (활동량, 목표)
+        activity_level = request.POST.get("activity_level", "1")
+        purpose = request.POST.get("purpose", "1")
 
-        # ⭐ 2. 비율 데이터 추출 및 클리닝 (ValueError 발생 가능성 가장 높은 곳)
+        # 2. 세션에 저장된 이전 단계 데이터 추출 및 클리닝
         try:
-            # 세션에서 값을 가져오고 int()로 변환. 실패하면 5점을 기본값으로 사용
-            pref_carb = int(request.session.get("pref_carb", 5))
-            pref_protein = int(request.session.get("pref_protein", 5))
-            pref_fat = int(request.session.get("pref_fat", 5))
-        except ValueError as ve:
-            # '2-'와 같은 유효하지 않은 값이 세션에 저장되어 변환 실패 시:
-            print(f"Error: Corrupt preference data in session: {ve}")
-            # 안전하게 기본값 5/5/5로 설정하여 계산 진행을 보장
-            pref_carb = 5
-            pref_protein = 5
-            pref_fat = 5
-
-        # 3. 메인 계산 및 DB 저장 로직 (Cust.DoesNotExist 등 기타 에러는 여기서 발생)
-        try:
-            cust = Cust.objects.get(cust_id=cust_id)
-
-            # --- 필수 세션 데이터 추출 (NoneType 방지) ---
-            gender = request.session.get("gender")
-            raw_birth_dt = request.session.get("birth_dt")
-
-            # ⭐ 날짜 형식 클리닝: 'YYYY-MM-DD' (10자)를 'YYYYMMDD' (8자)로 변환
-            if raw_birth_dt and "-" in raw_birth_dt:
-                birth_dt = raw_birth_dt.replace("-", "")  # 하이픈 제거
-            else:
-                birth_dt = raw_birth_dt  # 이미 8자 형태거나 None인 경우 그대로 사용
-
-            # float 변환
+            # Step 2에서 저장했을 데이터들
+            raw_birth_dt = request.session.get("birth_dt", "").replace("-", "")
+            gender = request.session.get("gender", "M")
             height = float(request.session.get("height_cm", 0))
             weight = float(request.session.get("weight_kg", 0))
 
-            activity_level = request.session.get("activity_level", "1")
-            purpose = request.session.get("purpose", "1")
+            # Step 3에서 저장했을 선호도 데이터
+            pref_carb = int(request.session.get("pref_carb", 5))
+            pref_protein = int(request.session.get("pref_protein", 5))
+            pref_fat = int(request.session.get("pref_fat", 5))
+        except (ValueError, TypeError) as e:
+            print(f"Session data error: {e}")
+            return redirect("accounts_app:signup_step2")
 
-            # --- 계산 ---
-            # birth_dt이 None이거나 형식 오류일 경우 calc_age에서 에러가 발생할 수 있습니다.
-            age = calc_age(birth_dt)
+        # 3. 계산 로직 (기존 함수들 호출)
+        try:
+            age = calc_age(raw_birth_dt)
             bmi = calc_bmi(weight, height)
             bmr = calc_bmr(gender, weight, height, age)
             tdee = calc_tdee(bmr, activity_level)
             recommended, offset = calc_recommended_calories(tdee, purpose)
+            ratio_c, ratio_p, ratio_f = calc_macro_ratio(pref_carb, pref_protein, pref_fat)
 
-            ratio_c, ratio_p, ratio_f = calc_macro_ratio(
-                pref_carb, pref_protein, pref_fat
+            # 4. 날짜 및 ID 생성
+            today_8 = date.today().strftime("%Y%m%d")
+            now_14 = timezone.now().strftime("%Y%m%d%H%M%S")
+            new_cust_id = generate_new_cust_id()
+
+            # --- [실제 DB 저장 시작] ---
+            # A. Cust 계정 생성 (CUST_TM)
+            new_user = Cust.objects.create(
+                cust_id=new_cust_id,
+                email=email,
+                password=password,
+                created_dt=today_8,
+                created_time=now_14,
+                updated_time=now_14,
+                retry_cnt=0,
+                lock_yn='N'
             )
 
-            # --- DB 저장 ---
-            profile, created = CusProfile.objects.update_or_create(
-                cust=cust,
-                defaults={
-                    "height_cm": height,
-                    "weight_kg": weight,
-                    "bmi": bmi,
-                    "bmr": bmr,
-                    "gender": gender,
-                    "birth_dt": birth_dt,
-                    "ratio_carb": ratio_c,
-                    "ratio_protein": ratio_p,
-                    "ratio_fat": ratio_f,
-                    "activity_level": activity_level,
-                    "purpose": purpose,
-                    "calories_burned": tdee,
-                    "recommended_calories": recommended,
-                    "offset": offset,
-                },
+            # B. CusProfile 상세 생성 (CUS_PROFILE_TS)
+            CusProfile.objects.create(
+                cust=new_user,
+                height_cm=height,
+                weight_kg=weight,
+                bmi=bmi,
+                bmr=bmr,
+                gender=gender,
+                birth_dt=raw_birth_dt,
+                ratio_carb=ratio_c,
+                ratio_protein=ratio_p,
+                ratio_fat=ratio_f,
+                activity_level=activity_level,
+                purpose=purpose,
+                calories_burned=tdee,
+                recommended_calories=recommended,
+                offset=offset,
+                created_time=now_14,
+                updated_time=now_14
             )
 
+            # 5. 세션 정리 및 완료
             request.session.flush()
-            return redirect("profile")
+            return redirect("accounts_app:profile")
 
         except Exception as e:
-            # Cust.DoesNotExist, calc_age 오류, DB 저장 오류 등 기타 오류
-            print(f"Error in signup_step4 (General Exception): {e}")
-            # 오류가 발생하면 Step 3로 리다이렉트
-            return redirect("signup_step3")
+            print(f"Final Signup Error: {e}")
+            return render(request, "accounts/signup_step4.html", {"error": f"가입 처리 중 오류 발생: {e}"})
 
     return render(request, "accounts/signup_step4.html")
-
-
-# GET 요청에 대한 렌더링은 그대로 유지
-# return render(request, 'accounts/signup_step4.html')
-
 
 def home(request):
     """
