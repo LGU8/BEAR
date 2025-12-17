@@ -19,7 +19,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from conf.views import index, timeline, badges, report_daily
+from conf.views import index, badges, report_daily
+from record.views import timeline
 
 urlpatterns = [
     path("admin/", admin.site.urls),
