@@ -25,6 +25,7 @@ from record.views import timeline
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", index),
+    path("accounts/",include("accounts.urls")),
     path("record/", include("record.urls")),
     path("settings/", include("settings.urls")),
     path("timeline/", timeline),

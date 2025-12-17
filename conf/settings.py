@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
     "record",
+    "accounts",
     "settings",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -79,8 +80,8 @@ WSGI_APPLICATION = "conf.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "bear",                 # RDS DB 이름
-        "USER": "admin",           # RDS 계정
+        "NAME": "bear",  # RDS DB 이름
+        "USER": "admin",  # RDS 계정
         "PASSWORD": "tada1212!",
         "HOST": "bear.cbq46w2gwwum.ap-northeast-2.rds.amazonaws.com",
         "PORT": "3306",
