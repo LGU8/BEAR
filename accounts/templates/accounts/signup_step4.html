@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 - Step 4</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .question-group { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .question-title { font-weight: bold; margin-bottom: 10px; display: block; }
+        .radio-label { display: block; margin: 10px 0; padding: 8px; border: 1px solid #eee; border-radius: 4px; cursor: pointer; }
+        .radio-label:hover { background-color: #f8f9fa; }
+        input[type="radio"] { margin-right: 10px; }
+        button { padding: 12px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background-color: #1e7e34; }
+    </style>
+</head>
+<body>
+
+    <h2>Step 4/4. 활동량 및 목표 설정</h2>
+    <p>마지막 단계입니다. 정확한 칼로리 계산을 위해 정보를 입력해 주세요.</p>
+
+    <form method="post" action="{% url 'signup_step4' %}">
+        {% csrf_token %}
+
+        <div class="question-group">
+            <label class="question-title">1. 평소 활동량은 어느 정도인가요?</label>
+            <label class="radio-label">
+                <input type="radio" name="activity_level" value="0" required>
+                **0: 활동 적음** (거의 활동 없음, 사무직, 학생)
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="activity_level" value="1">
+                **1: 보통 활동** (주 1~3회 가벼운 운동)
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="activity_level" value="2">
+                **2: 활동 많음** (주 3~5회 운동, 활동적인 직업)
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="activity_level" value="3">
+                **3: 매우 활동적** (매일 강도 높은 운동, 육체 노동/운동 관련 직업인)
+            </label>
+        </div>
+
+        <div class="question-group">
+            <label class="question-title">2. 다이어트/건강 목표는 무엇인가요?</label>
+            <label class="radio-label">
+                <input type="radio" name="purpose" value="0" required>
+                **0: 체중 감량** (TDEE -400kcal 권장)
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="purpose" value="1">
+                **1: 체중 유지** (TDEE와 동일하게 섭취)
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="purpose" value="2">
+                **2: 체중 증량** (TDEE +400kcal 권장)
+            </label>
+        </div>
+
+        <div style="text-align: center;">
+            <button type="submit">계산 및 회원가입 완료</button>
+        </div>
+    </form>
+
+</body>
+</html>

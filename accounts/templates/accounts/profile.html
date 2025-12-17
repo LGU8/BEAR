@@ -1,0 +1,35 @@
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h3>사용자 프로필</h3>
+
+    <p><strong>회원 번호 (Cust ID):</strong> {{ user.cust_id }}</p>
+
+    <p><strong>이메일 (Email):</strong> {{ user.email }}</p>
+
+    <p><strong>가입일 (Date joined):</strong> {{ user.created_dt }}</p>
+
+    {% if user.last_login %}
+        <p><strong>최근 로그인:</strong> {{ user.last_login }}</p>
+    {% endif %}
+
+    <hr>
+
+    <h4>신체 정보</h4>
+    {% if user.cusprofile %}
+        <p><strong>키 (Height):</strong> {{ user.cusprofile.height_cm | default:"미입력" }} cm</p>
+        <p><strong>몸무게 (Weight):</strong> {{ user.cusprofile.weight_kg | default:"미입력" }} kg</p>
+        <p><strong>성별:</strong> {{ user.cusprofile.gender | default:"미입력" }}</p>
+        {% else %}
+        <p>프로필 정보가 없습니다.</p>
+    {% endif %}
+
+    <hr>
+
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">로그아웃</button>
+    </form>
+</div>
+{% endblock %}

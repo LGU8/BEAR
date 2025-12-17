@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 - Step 3: 영양 비율 설정</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .question-group { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .question-title { font-weight: bold; margin-bottom: 10px; display: block; }
+        .range-container { display: flex; align-items: center; gap: 10px; }
+        .range-value { font-weight: bold; color: #007bff; min-width: 30px; text-align: center; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <h2>Step 3/4. 식습관 취향 설정</h2>
+    <p>식사할 때 선호하는 탄수화물/단백질/지방의 비중을 설정해주세요. (0점~9점)</p>
+
+    <form method="post" action="{% url 'signup_step3' %}">
+        {% csrf_token %}
+
+        <div class="question-group">
+            <label class="question-title">
+                1. 탄수화물 선호도 (0: 안 먹음 ~ 9: 매우 좋아함)
+            </label>
+            <div class="range-container">
+                <input type="range" name="pref_carb" min="0" max="9" value="5" required
+                       oninput="document.getElementById('val_carb').innerText = this.value">
+            </div>
+            <p>선택한 점수: <span id="val_carb" class="range-value">5</span>점</p>
+        </div>
+
+        <div class="question-group">
+            <label class="question-title">
+                2. 단백질 선호도 (0: 관심 없음 ~ 9: 꼭 챙겨 먹음)
+            </label>
+            <div class="range-container">
+                <input type="range" name="pref_protein" min="0" max="9" value="5" required
+                       oninput="document.getElementById('val_protein').innerText = this.value">
+            </div>
+            <p>선택한 점수: <span id="val_protein" class="range-value">5</span>점</p>
+        </div>
+
+        <div class="question-group">
+            <label class="question-title">
+                3. 지방 선호도 (0: 피하는 편 ~ 9: 매우 선호)
+            </label>
+            <div class="range-container">
+                <input type="range" name="pref_fat" min="0" max="9" value="5" required
+                       oninput="document.getElementById('val_fat').innerText = this.value">
+            </div>
+            <p>선택한 점수: <span id="val_fat" class="range-value">5</span>점</p>
+        </div>
+
+        <button type="submit">다음 단계 (활동량 설정)</button>
+    </form>
+
+    <script>
+        // 초기 값 설정을 위해 페이지 로드 시 슬라이더 값 반영
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('val_carb').innerText = document.querySelector('input[name="pref_carb"]').value;
+            document.getElementById('val_protein').innerText = document.querySelector('input[name="pref_protein"]').value;
+            document.getElementById('val_fat').innerText = document.querySelector('input[name="pref_fat"]').value;
+        });
+    </script>
+
+</body>
+</html>
