@@ -38,3 +38,59 @@
   position: relative;
   height: 280px;
 }
+/* ─────────────────────────────
+   Timeline Week Picker
+   ───────────────────────────── */
+.timeline-week-input {
+    width: 230px;
+    background-color: #FFF2DD;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    color: #3C3C43;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.timeline-week-input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Datepicker calendar */
+.datepicker {
+    background-color: #FFF7EC;
+    border-radius: 16px;
+    padding: 8px;
+}
+
+.datepicker table tr td:hover,
+.datepicker table tr td.focused {
+    background-color: #FFE2B6 !important;
+    border-radius: 50%;
+}
+
+.datepicker table tr td.day.active {
+    background-color: #F47900 !important;
+    color: #FFFFFF !important;
+    border-radius: 50% !important;
+}
+
+.datepicker table tr td.day.today {
+    border: 1px solid #F47900;
+    background-color: transparent;
+}
+
+.datepicker table tr td.day.today.active {
+    background-color: #F47900 !important;
+    color: #FFFFFF !important;
+    border-radius: 50% !important;
+}
+
+.datepicker-switch,
+.datepicker .prev,
+.datepicker .next {
+    font-weight: 600;
+    color: #3C3C43;
+}

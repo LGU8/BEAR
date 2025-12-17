@@ -3,9 +3,16 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/timeline.css' %}">
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
 {% endblock %}
 
 {% block content %}
+
+<!-- jQuery & Datepicker -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/locales/bootstrap-datepicker.ko.min.js"></script>
 
 <!-- (1) 주간 누적 막대 그래프 -->
 <section class="timeline-section">
@@ -13,14 +20,18 @@
     <div class="timeline-card-head">
       <h4 class="timeline-title">감정 변화 요약</h4>
 
+      <!-- ✅ 주간 Datepicker -->
       <div class="timeline-date-range">
-        <!-- 나중에 date picker 붙일 자리 -->
-        <span class="timeline-range-text">{{ week_start }} ~ {{ week_end }}</span>
+        <input
+          type="text"
+          id="week-picker"
+          class="form-control timeline-week-input"
+          readonly
+        >
       </div>
     </div>
 
     <div class="timeline-chart-wrap">
-      <!-- 차트 반응형을 위해 canvas를 wrap으로 감싸는 게 안정적 -->
       <canvas id="weeklyEmotionChart"></canvas>
     </div>
   </div>
@@ -56,13 +67,52 @@
   </div>
 </section>
 
-<!-- ✅ Chart data (view에서 chart_json으로 내려줌: json.dumps 결과) -->
+<!-- ✅ Chart data -->
 <script id="weeklyEmotionData" type="application/json">
 {{ chart_json|safe }}
 </script>
 
-<!-- 차트 JS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{% static 'js/timeline.js' %}"></script>
+
+<!-- ✅ Week Datepicker Script -->
+<script>
+$(function () {
+    const weekStartStr = "{{ week_start }}"; // YYYY.MM.DD
+    const weekEndStr   = "{{ week_end }}";
+
+    // input 기본 표시
+    $('#week-picker').val(`${weekStartStr} ~ ${weekEndStr}`);
+
+    const today = new Date();
+    const maxStart = new Date();
+    maxStart.setDate(today.getDate() - 6); // 미래일 방지 (A-1)
+
+    $('#week-picker').datepicker({
+        format: 'yyyy-mm-dd',
+        language: 'ko',
+        autoclose: true,
+        endDate: maxStart,
+        todayHighlight: false
+    }).on('changeDate', function (e) {
+        const startDate = e.date;
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+
+        const fmt = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}${m}${day}`;
+        };
+
+        const startParam = fmt(startDate);
+        const endParam = fmt(endDate);
+
+        // 화면 즉시 갱신 (페이지 이동 느낌 X)
+        window.location.search = `?start=${startParam}&end=${endParam}`;
+    });
+});
+</script>
 
 {% endblock %}
