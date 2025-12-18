@@ -44,20 +44,25 @@ from django.shortcuts import render, redirect
 from datetime import date, datetime
 from django.contrib.auth.decorators import login_required
 
+
 # index 뷰: 로그인 후 첫 화면
-@login_required(login_url='/')
+@login_required(login_url="/")
 def index(request):
     # base.html을 직접 렌더링하면 본문이 비어 보일 수 있으니,
     # 나중에 index.html을 만들어 상속받는 것을 추천합니다.
-    return render(request, "base.html")
+    return render(request, "home.html")
+
 
 # badges 뷰
-@login_required(login_url='/')
+@login_required(login_url="/")
 def badges(request):
-    return render(request, "badges.html") # 파일명이 badge.html인지 badges.html인지 확인!
+    return render(
+        request, "badges.html"
+    )  # 파일명이 badge.html인지 badges.html인지 확인!
+
 
 # report_daily 뷰
-@login_required(login_url='/')
+@login_required(login_url="/")
 def report_daily(request):
     date_str = request.GET.get("date")
 
@@ -73,7 +78,7 @@ def report_daily(request):
 
     context = {
         "selected_date": selected_date.strftime("%Y-%m-%d"),
-        "user_email": request.user.email, # 간단하게 사용자 정보도 넘겨봅니다.
+        "user_email": request.user.email,  # 간단하게 사용자 정보도 넘겨봅니다.
     }
 
     return render(request, "report_daily.html", context)
