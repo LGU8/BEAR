@@ -1,5 +1,23 @@
 // static/js/camera.js
 
+function showScanFailUI(msg) {
+  const statusEl = document.getElementById("camera-desc");
+  if (statusEl) {
+    statusEl.textContent =
+      msg || "바코드를 인식하지 못했어요. 바코드를 네모칸 안에 맞추고 다시 시도해 주세요.";
+  } else {
+    alert(msg || "바코드를 인식하지 못했어요. 다시 시도해 주세요.");
+  }
+
+  const btn = document.getElementById("btn-shoot");
+  if (btn) {
+    btn.disabled = false;
+    btn.style.opacity = "1";
+    btn.style.pointerEvents = "auto";
+  }
+}
+
+
 let scanMode = "barcode"; // 기본값
 
 
@@ -20,19 +38,6 @@ let scanMode = "barcode"; // 기본값
     btnShoot.style.opacity = "1";
     btnShoot.style.pointerEvents = "auto";
 });
-
-  btnShoot.addEventListener("click", async () => {
-    if (!video.videoWidth || !video.videoHeight) {
-      console.warn("[shoot] video metadata not ready yet");
-      return;
-    }
-  
-  if (!video || !canvas || !btnShoot) {
-  console.error("[camera] missing element", { video, canvas, btnShoot });
-  return;
-  }
-});
-
 
   // 1) 카메라 켜기
   const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -64,12 +69,11 @@ function setScanMode(nextMode) {
         : "네모칸 안에 영양성분을 스캔해주세요";
   }
 
-  // 3) 가이드 박스 모드 class 변경
-  if (descEl) {
-    descEl.textContent =
-      (scanMode === "barcode")
-        ? "네모칸 안에 바코드를 스캔해주세요"
-        : "네모칸 안에 영양성분을 스캔해주세요";
+
+  // 3) 가이드 박스 모드 class 변경 (예: camera-stage에 모드 클래스 부여)
+  if (stageEl) {
+    stageEl.classList.toggle("is-barcode", scanMode === "barcode");
+    stageEl.classList.toggle("is-nutrition", scanMode === "nutrition");
   }
 }
 
@@ -84,10 +88,14 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
 
 
   btnShoot.addEventListener("click", async () => {
+
+  btnShoot.disabled = true;
+  btnShoot.style.opacity = "0.6";
+  btnShoot.style.pointerEvents = "none";
+
   if (!video.videoWidth) return;
 
-  // 1) 캔버스에 현재 프레임 캡처
-  const canvas = document.createElement("canvas");
+  // 1) 캔버스(#cam-canvas)에 현재 프레임 캡처 (재사용)
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   canvas.getContext("2d").drawImage(video, 0, 0);
@@ -98,6 +106,7 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
     fd.append("image", blob, "barcode.jpg");
     fd.append("date", date);
     fd.append("meal", meal);
+    fd.append("mode", scanMode);
 
     const res = await fetch("/record/api/scan/barcode/", {
       method: "POST",
@@ -119,20 +128,32 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
 
     console.log("[scan] json", data);
 
-    if (!data.ok) {
-      if (data.reason === "NO_MATCH") {
-        // ✅ 후보 없음 UX
-        alert(data.message || "해당 바코드로 제품을 찾을 수 없어요.");
+  if (!data.ok) {
+    // ✅ 1) 인식 실패면: 카메라 페이지에서 재시도
+    if (data.reason === "SCAN_FAIL") {
+      showScanFailUI(data.message);
+      return; // ✅ record로 보내지 않음
+    }
 
-        // 선택지 UI를 띄우는 방식 3개 중 택1
-        // 1) 재촬영: 그냥 return (사용자가 다시 찍음)
-        // 2) 수동입력: 바코드 입력 모달/페이지로 이동
-        // 3) 검색: 기존 검색 기록 플로우로 이동
+    // ✅ 2) 후보 없음이면: record 페이지로 보내고 검색창 포커스
+    const isNoMatch =
+      data.reason === "NO_MATCH" ||
+      data.error === "no candidates found"; // 혹시 구버전 응답이 섞일 때 대비
 
-        return;
-      }
-      
-      alert(data.message || data.error || "바코드 처리 실패");
+    if (isNoMatch) {
+      alert(data.message || "해당 바코드로 조회되는 제품이 없습니다. 검색으로 추가해 주세요.");
+      location.href =
+        `/record/?date=${encodeURIComponent(date)}` +
+        `&meal=${encodeURIComponent(meal)}` +
+        `&focus=search`;
+      return;
+    }
+
+    // ✅ 3) 그 외 에러
+    alert(data.message || data.error || "바코드 처리 중 오류가 발생했어요.");
+    btnShoot.disabled = false;
+    btnShoot.style.opacity = "1";
+    btnShoot.style.pointerEvents = "auto";
     return;
   }
 
