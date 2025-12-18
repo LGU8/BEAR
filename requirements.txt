@@ -1,0 +1,44 @@
+# =========================
+# Core (Web)
+# =========================
+Django==4.2
+python-dotenv==1.0.1
+mysqlclient==2.2.7
+
+# =========================
+# LangChain stack
+# =========================
+langchain==0.3.27
+langchain-community==0.3.31
+langchain-core==0.3.80
+langchain-openai==0.3.35
+langchain-text-splitters==0.3.11
+langsmith==0.4.49
+langdetect==1.0.9
+tavily-python==0.7.14
+
+# =========================
+# Utilities
+# =========================
+matplotlib==3.10.0
+
+# =========================
+# Computer Vision (choose ONE)
+# - Server/CI recommended:
+# =========================
+opencv-python-headless==4.12.0.88
+
+# =========================
+# FatSecret
+# - often needs rauth for OAuth1-based wrappers
+# =========================
+fatsecret
+rauth
+
+# =========================
+# OCR / Paddle (DISABLED on Python 3.13)
+# - PaddleX documents say Python 3.8~3.12 supported
+# =========================
+paddleocr==3.3.2; python_version < "3.13"
+paddlepaddle==3.2.2; python_version < "3.13"
+paddlex==3.3.10; python_version < "3.13"
