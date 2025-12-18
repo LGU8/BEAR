@@ -4,46 +4,180 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>회원가입 - Step 2</title>
+    {% load static %}
     <style>
-        body { font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        /* 전체 배경 설정 (Step 1과 동일) */
+        body {
+            background-color: #FFFBE6;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 상단 로고 및 진행 바 섹션 */
+        .header-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 20px 20px;
+            text-align: center;
+        }
+
+        .bear-logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        /* 프로그래스 바 (Step 2/4 = 50%) */
+        .progress-container {
+            width: 80%;
+            height: 12px;
+            background-color: #F0EAD6;
+            border-radius: 10px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 50%; /* Step 2 이므로 50% */
+            height: 100%;
+            background-color: #F38218;
+            border-radius: 10px;
+        }
+
+        /* 카드형 컨텐츠 영역 */
+        .card {
+            background-color: white;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-top: 10px;
+            box-sizing: border-box;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+
+        .sub-title {
+            color: #F38218;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 30px;
+        }
+
+        /* 폼 스타일 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #E0E0E0;
+            border-radius: 10px;
+            background-color: #FAFAFA;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #F38218;
+            background-color: #fff;
+        }
+
+        /* 버튼 스타일 */
+        button {
+            width: 100%;
+            padding: 16px;
+            background-color: #F38218;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #D66D0E;
+        }
+
+        /* 숫자 입력 옆 단위 표시 등 커스텀이 필요할 때 활용 */
+        .input-wrapper {
+            position: relative;
+        }
     </style>
 </head>
 <body>
-    <h2>Step 2/4. 기본 신체 정보</h2>
 
-    <form method="post" action="{% url 'accounts_app:signup_step2' %}">
-        {% csrf_token %}
+    <div class="header-container">
+        <a href="javascript:void(0);" style="cursor: default; text-decoration: none;">
+            <img src="{% static 'nav_img/logo.png' %}" alt="BEAR logo" class="bear-logo">
+        </a>
 
-        <div class="input-group">
-            <label for="gender">성별</label>
-            <select name="gender" id="gender" required>
-                <option value="" disabled selected>성별을 선택하세요</option>
-                <option value="M">남성</option>
-                <option value="F">여성</option>
-            </select>
+        <div class="progress-container">
+            <div class="progress-bar"></div>
         </div>
+    </div>
 
-        <div class="input-group">
-            <label for="birth_dt">생년월일</label>
-            <input type="date" name="birth_dt" id="birth_dt" required>
-        </div>
+    <div class="card">
+        <h2>Step 2/4. 기본 신체 정보</h2>
+        <div class="sub-title">정확한 분석을 위해 정보를 입력해주세요</div>
 
-        <div class="input-group">
-            <label for="height_cm">키 (cm)</label>
-            <input type="number" name="height_cm" id="height_cm" placeholder="예: 175.5" step="0.1" min="50" max="300" required>
-        </div>
+        <form method="post" action="{% url 'accounts_app:signup_step2' %}">
+            {% csrf_token %}
 
-        <div class="input-group">
-            <label for="weight_kg">체중 (kg)</label>
-            <input type="number" name="weight_kg" id="weight_kg" placeholder="예: 65.2" step="0.1" min="10" max="500" required>
-        </div>
+            <div class="form-group">
+                <label for="gender">성별</label>
+                <select name="gender" id="gender" required>
+                    <option value="" disabled selected>성별을 선택하세요</option>
+                    <option value="M">남성</option>
+                    <option value="F">여성</option>
+                </select>
+            </div>
 
-        <button type="submit">다음 단계 (영양 비율 설정)</button>
-    </form>
+            <div class="form-group">
+                <label for="birth_dt">생년월일</label>
+                <input type="date" name="birth_dt" id="birth_dt" required>
+            </div>
+
+            <div class="form-group">
+                <label for="height_cm">키 (cm)</label>
+                <input type="number" name="height_cm" id="height_cm" placeholder="예: 175.5" step="0.1" min="50" max="300" required>
+            </div>
+
+            <div class="form-group">
+                <label for="weight_kg">체중 (kg)</label>
+                <input type="number" name="weight_kg" id="weight_kg" placeholder="예: 65.2" step="0.1" min="10" max="500" required>
+            </div>
+
+            <button type="submit">다음 단계</button>
+        </form>
+    </div>
 
 </body>
 </html>

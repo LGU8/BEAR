@@ -442,7 +442,7 @@ def signup_step4(request):
 
             # 5. 세션 정리 및 완료
             request.session.flush()
-            return redirect("accounts_app:profile")
+            return redirect("accounts_app:user_login")
 
         except Exception as e:
             print(f"Final Signup Error: {e}")

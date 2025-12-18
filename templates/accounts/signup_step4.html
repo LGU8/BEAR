@@ -4,65 +4,146 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>회원가입 - Step 4</title>
+    {% load static %}
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .question-group { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
-        .question-title { font-weight: bold; margin-bottom: 10px; display: block; }
-        .radio-label { display: block; margin: 10px 0; padding: 8px; border: 1px solid #eee; border-radius: 4px; cursor: pointer; }
-        .radio-label:hover { background-color: #f8f9fa; }
-        input[type="radio"] { margin-right: 10px; }
-        button { padding: 12px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; }
-        button:hover { background-color: #1e7e34; }
+        body {
+            background-color: #FFFBE6;
+            margin: 0; padding: 0;
+            font-family: 'Noto Sans KR', sans-serif;
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+        }
+
+        .header-container { width: 100%; max-width: 400px; padding: 40px 20px 20px; text-align: center; }
+        .bear-logo { width: 100px; height: auto; margin-bottom: 20px; }
+        .progress-container { width: 80%; height: 12px; background-color: #F0EAD6; border-radius: 10px; margin: 0 auto; overflow: hidden; }
+        .progress-bar { width: 100%; height: 100%; background-color: #F38218; border-radius: 10px; }
+
+        .card {
+            background-color: white; width: 95%; max-width: 450px; border-radius: 15px;
+            padding: 30px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-top: 10px; box-sizing: border-box; margin-bottom: 40px;
+        }
+
+        h3 { font-size: 1.1rem; margin-bottom: 15px; color: #333; }
+
+        /* 활동량 선택 스타일 (세로형 버튼) */
+        .selection-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
+
+        .select-card {
+            display: flex; align-items: center; gap: 15px; padding: 15px;
+            border: 2px solid #F0EAD6; border-radius: 12px; cursor: pointer; transition: all 0.2s;
+            background-color: white;
+        }
+        .select-card:hover { border-color: #F38218; background-color: #FFFDF5; }
+        .select-card.active { border-color: #F38218; background-color: #FFF8E1; box-shadow: 0 2px 8px rgba(243, 130, 24, 0.2); }
+
+        .select-card img { width: 45px; height: 45px; }
+        .select-info { flex: 1; }
+        .select-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+        .select-desc { font-size: 0.8rem; color: #888; line-height: 1.3; }
+
+        /* 목표 설정 스타일 (가로형 3열 버튼) */
+        .purpose-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .purpose-card {
+            padding: 15px 5px; border: 2px solid #F0EAD6; border-radius: 12px;
+            text-align: center; cursor: pointer; transition: all 0.2s; background-color: white;
+        }
+        .purpose-card img { width: 50px; height: 50px; margin-bottom: 8px; }
+        .purpose-card div { font-size: 0.85rem; font-weight: 700; color: #555; }
+        .purpose-card.active { border-color: #F38218; background-color: #FFF8E1; }
+        .purpose-card.active div { color: #F38218; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-prev { background-color: #F38218; color: white; border: none; padding: 16px; border-radius: 12px; cursor: pointer; flex: 1; font-weight: 700; }
+        .btn-next { background-color: #F38218; color: white; border: none; padding: 16px; border-radius: 12px; cursor: pointer; flex: 2; font-weight: 700; }
+
+        /* 실제 라디오 버튼은 숨김 */
+        input[type="radio"] { display: none; }
     </style>
 </head>
 <body>
 
-    <h2>Step 4/4. 활동량 및 목표 설정</h2>
-    <p>마지막 단계입니다. 정확한 칼로리 계산을 위해 정보를 입력해 주세요.</p>
+    <div class="header-container">
+        <img src="{% static 'nav_img/logo.png' %}" alt="BEAR logo" class="bear-logo">
+        <div class="progress-container"><div class="progress-bar"></div></div>
+    </div>
 
-    <form method="post" action="{% url 'accounts_app:signup_step4' %}">
-        {% csrf_token %}
+    <div class="card">
+        <form method="post" action="{% url 'accounts_app:signup_step4' %}" id="step4Form">
+            {% csrf_token %}
 
-        <div class="question-group">
-            <label class="question-title">1. 평소 활동량은 어느 정도인가요?</label>
-            <label class="radio-label">
-                <input type="radio" name="activity_level" value="0" required>
-                **0: 활동 적음** (거의 활동 없음, 사무직, 학생)
-            </label>
-            <label class="radio-label">
-                <input type="radio" name="activity_level" value="1">
-                **1: 보통 활동** (주 1~3회 가벼운 운동)
-            </label>
-            <label class="radio-label">
-                <input type="radio" name="activity_level" value="2">
-                **2: 활동 많음** (주 3~5회 운동, 활동적인 직업)
-            </label>
-            <label class="radio-label">
-                <input type="radio" name="activity_level" value="3">
-                **3: 매우 활동적** (매일 강도 높은 운동, 육체 노동/운동 관련 직업인)
-            </label>
-        </div>
+            <h3>활동량 설정</h3>
+            <div class="selection-group">
+                <label class="select-card" data-group="activity">
+                    <input type="radio" name="activity_level" value="0" required>
+                    <img src="{% static 'icons_img/bear_낮음.png' %}">
+                    <div class="select-info">
+                        <div class="select-title">낮음</div>
+                        <div class="select-desc">사무직 등 좌식생활 위주, 대중교통 출퇴근 등, 주 1~3회 가볍게 운동</div>
+                    </div>
+                </label>
+                <label class="select-card" data-group="activity">
+                    <input type="radio" name="activity_level" value="1">
+                    <img src="{% static 'icons_img/bear_중간.png' %}">
+                    <div class="select-info">
+                        <div class="select-title">중간</div>
+                        <div class="select-desc">일상에서 활동량 높음, 주 3회 이상 운동</div>
+                    </div>
+                </label>
+                <label class="select-card" data-group="activity">
+                    <input type="radio" name="activity_level" value="2">
+                    <img src="{% static 'icons_img/bear_높음.png' %}">
+                    <div class="select-info">
+                        <div class="select-title">높음</div>
+                        <div class="select-desc">활동량 많은 편, 주 5회 이상 운동</div>
+                    </div>
+                </label>
+                <label class="select-card" data-group="activity">
+                    <input type="radio" name="activity_level" value="3">
+                    <img src="{% static 'icons_img/bear_매우 높음.png' %}">
+                    <div class="select-info">
+                        <div class="select-title">매우 높음</div>
+                        <div class="select-desc">하루종일 활동(육체노동 등), 매일 운동</div>
+                    </div>
+                </label>
+            </div>
 
-        <div class="question-group">
-            <label class="question-title">2. 다이어트/건강 목표는 무엇인가요?</label>
-            <label class="radio-label">
-                <input type="radio" name="purpose" value="0" required>
-                **0: 체중 감량** (TDEE -400kcal 권장)
-            </label>
-            <label class="radio-label">
-                <input type="radio" name="purpose" value="1">
-                **1: 체중 유지** (TDEE와 동일하게 섭취)
-            </label>
-            <label class="radio-label">
-                <input type="radio" name="purpose" value="2">
-                **2: 체중 증량** (TDEE +400kcal 권장)
-            </label>
-        </div>
+            <h3>목표 설정</h3>
+            <div class="purpose-grid">
+                <label class="purpose-card" data-group="purpose">
+                    <input type="radio" name="purpose" value="0" required>
+                    <img src="{% static 'settings_img/bear_diet.png' %}">
+                    <div>다이어트</div>
+                </label>
+                <label class="purpose-card" data-group="purpose">
+                    <input type="radio" name="purpose" value="1">
+                    <img src="{% static 'settings_img/bear_maintain.png' %}">
+                    <div>유지</div>
+                </label>
+                <label class="purpose-card" data-group="purpose">
+                    <input type="radio" name="purpose" value="2">
+                    <img src="{% static 'settings_img/bear_bulkup.png' %}">
+                    <div>벌크업</div>
+                </label>
+            </div>
 
-        <div style="text-align: center;">
-            <button type="submit">계산 및 회원가입 완료</button>
-        </div>
-    </form>
+            <div class="btn-group">
+                <button type="button" class="btn-prev" onclick="history.back()">이전</button>
+                <button type="submit" class="btn-next">회원가입 완료</button>
+            </div>
+        </form>
+    </div>
 
+    <script>
+        // 카드 클릭 시 active 클래스 부여하는 스크립트
+        document.querySelectorAll('.select-card, .purpose-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const group = this.getAttribute('data-group');
+                // 같은 그룹 내의 다른 active 제거
+                document.querySelectorAll(`[data-group="${group}"]`).forEach(c => c.classList.remove('active'));
+                // 현재 카드에 active 추가
+                this.classList.add('active');
+            });
+        });
+    </script>
 </body>
 </html>
