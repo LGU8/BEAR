@@ -1,69 +1,64 @@
-/* static/css/settings/settings_s3.css */
-
 /* =========================
-   Settings S3 (선호도 수정) 전용
-   - 공용(카드/헤더/저장버튼)은 settings_s2.css 재사용
-   - 여기서는 "문항 레이아웃 + 10칸 segmented slider"만 담당
+   Settings S3 (선호도 수정) 전용 - ALIGN FIX
    ========================= */
 
-/* ---------------------------------
-   0) 문항 블록을 "한 덩어리"로 중앙 정렬
-   - 데스크탑에서 아이콘은 왼쪽 끝, 텍스트는 가운데 뜨는 현상 방지
----------------------------------- */
+/* 0) 문항 블록: "아이콘(76) + 내용(520)"을 한 덩어리로 중앙 배치 */
 .pref-edit-block {
-  max-width: 720px;     /* S2 edit-card 폭과 정렬감 맞춤 */
-  margin: 0 auto;       /* 블록 자체 중앙 */
-  padding: 14px 0;      /* 문항 간 간격 */
+  /* 카드(980) 안에서 컨텐츠만 보기 좋게 묶기 */
+  width: fit-content;
+  margin: 0 auto;
+  padding: 14px 0;
 }
 
-/* ---------------------------------
-   1) 문항 상단(아이콘 + 질문)
----------------------------------- */
+/* 1) 상단(아이콘+질문)을 딱 고정 폭으로 중앙 정렬 */
 .pref-edit-top {
   display: grid;
-  grid-template-columns: 76px 1fr; /* 아이콘 컬럼 + 컨텐츠 컬럼 */
+  grid-template-columns: 76px 520px; /* 핵심: 1fr 금지 */
   gap: 12px;
   align-items: center;
-  margin-bottom: 10px;
+
+  width: fit-content;
+  margin: 0 auto 10px;
 }
 
+/* 아이콘: 아이콘 컬럼 중앙 */
 .pref-edit-icon {
   width: 54px;
   height: 54px;
   object-fit: contain;
   display: block;
-  margin: 0 auto;       /* 아이콘 컬럼 중앙 */
+  margin: 0 auto;
 }
 
+.settings-page .edit-card .back-btn img {
+  width: 32px;
+  height: 32px;
+}
+/* 질문: 내용 컬럼 내부에서 중앙(기존 의도 유지) */
 .pref-edit-q {
+  width: 520px;              /* 핵심: 폭 고정 */
   font-weight: 600;
   font-size: 15px;
   line-height: 1.35;
-
-  /* 텍스트는 컨텐츠 컬럼 안에서만 중앙 정렬 */
   text-align: center;
-  max-width: 520px;
-  margin: 0 auto;       /* 컨텐츠 컬럼 내 중앙 */
+  margin: 0;                 /* 불필요한 auto 제거 */
 }
 
-/* ---------------------------------
-   2) 10칸 segmented slider
-   - S1의 seg-bar 톤과 통일
----------------------------------- */
+/* 2) 슬라이더: 질문과 같은 "내용 컬럼" 시작선으로 정렬 */
 .seg-slider {
-  max-width: 520px;     /* 질문 폭과 동일 */
-  width: 100%;
-  margin: 0 auto;       /* 컨텐츠 컬럼 기준 중앙 */
+  width: 520px;
+  margin-left: calc(76px + 12px);   /* 아이콘 컬럼 + gap 만큼 들여쓰기 */
+  margin-right: 0;
 
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   gap: 8px;
 }
 
+/* seg 버튼 */
 .seg-slider .seg {
   appearance: none;
   -webkit-appearance: none;
-
   height: 24px;
   padding: 0;
 
@@ -80,19 +75,15 @@
   border-color: var(--orange-1);
 }
 
-/* 접근성: 키보드 포커스 */
 .seg-slider .seg:focus-visible {
   box-shadow: 0 0 0 3px rgba(244,121,0,0.18);
 }
 
-.seg-slider .seg:hover { filter: brightness(0.995); }
 .seg-slider .seg:active { transform: translateY(1px); }
 
-/* ---------------------------------
-   3) 합계 안내
----------------------------------- */
+/* 3) 합계 안내: 컨텐츠 덩어리 기준 중앙 */
 .sum-hint {
-  max-width: 720px;
+  width: fit-content;
   margin: 12px auto 0;
   text-align: center;
   font-size: 13px;
@@ -105,31 +96,23 @@
   color: var(--orange-1);
 }
 
-/* ---------------------------------
-   4) 모바일 최적화
----------------------------------- */
+/* 4) 모바일: 2컬럼 → 1컬럼 느낌으로 자연스럽게 축소 */
 @media (max-width: 420px) {
-  .pref-edit-block {
-    padding: 12px 0;
-  }
-
   .pref-edit-top {
     grid-template-columns: 64px 1fr;
-    gap: 10px;
-  }
-
-  .pref-edit-icon {
-    width: 44px;
-    height: 44px;
+    width: 100%;
+    margin: 0 0 10px;
   }
 
   .pref-edit-q {
+    width: auto;
     font-size: 13px;
-    max-width: 280px;
+    text-align: left; /* 모바일에서 가독성 ↑ */
   }
 
   .seg-slider {
-    max-width: 300px;
+    width: 100%;
+    margin-left: 0;     /* 모바일에서는 들여쓰기 제거 */
     gap: 6px;
   }
 

@@ -1,130 +1,95 @@
-/* static/css/settings/settings_s5.css */
 /* =========================
-   S5 Password page only (final)
-   - settings_s2.css의 카드/헤더 톤과 통일
+   settings_s5.css (S5 전용 - FINAL)
+   목표:
+   - S2의 edit-card / edit-header / save-btn 톤 유지
+   - 시안처럼 중앙 배지 + 밑줄형 input
+   - 저장 버튼은 우하단 1개
    ========================= */
 
-.password-card{
-  padding: 18px;
-  max-width: 720px;
-  margin: 0 auto;
+.settings-page .password-card {
+  /* S2 edit-card 기반 + 비밀번호 화면은 살짝 컴팩트 */
+  max-width: 928px;
 }
 
-.back-ico{
-  width: 22px;
-  height: 22px;
+/* back icon size */
+.settings-page .password-card .back-ico {
+  width: 18px;
+  height: 18px;
   display: block;
   object-fit: contain;
 }
 
-.password-form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+/* 중앙 배지 영역 */
+.settings-page .password-card .pw-avatar {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 10px 0 18px;
 }
 
-/* S5 내부에서만 appearance 오염 방지 */
-.password-card input,
-.password-card button {
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-/* field block */
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field-label {
-  font-weight: 800;
-  font-size: 12px;
-  color: var(--text);
-}
-
-/* input: white bg + rounded + border */
-.field-input {
-  height: 44px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: #fff;
-  padding: 0 12px;
-
-  font-weight: 600;
-  font-size: 12px;
-
-  box-shadow: none !important;
-}
-
-.field-input:focus {
-  outline: none;
-  border-color: rgba(244, 121, 0, 0.45);
-}
-
-.field-input::placeholder {
-  color: var(--text-sub);
-  opacity: 0.85;
-}
-
-/* autofill 방지 */
-.password-card input:-webkit-autofill,
-.password-card input:-webkit-autofill:hover,
-.password-card input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--text);
-  transition: background-color 9999s ease-out 0s;
-  box-shadow: 0 0 0px 1000px #fff inset !important;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: var(--radius-md);
-}
-
-/* hint */
-.password-hint {
-  margin: 0;
+.settings-page .password-card .pw-avatar-hint {
   font-weight: 300;
   font-size: 10px;
   color: var(--text-sub);
-  line-height: 1.35;
 }
 
-/* error box */
-.error-box{
+/* 입력 블록 */
+.settings-page .password-card .pw-block {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-page .password-card .pw-label {
+  font-weight: 700;
   font-size: 11px;
-  font-weight: 600;
-  color: rgba(0,0,0,0.75);
-  min-height: 0;
-}
-.error-box.is-show{
-  background: rgba(244,121,0,0.08);
-  border: 1px solid rgba(244,121,0,0.25);
-  border-radius: 12px;
-  padding: 10px 12px;
-  min-height: 40px;
+  color: var(--text);
 }
 
-/* save button */
-.password-save-btn {
-  height: 44px;
-  border-radius: var(--radius-pill);
-  background: var(--orange-1);
-  color: #fff;
-  font-weight: 800;
-  font-size: 14px;
+/* 밑줄 input (S2 form-input 톤과 연결) */
+.settings-page .password-card .pw-input {
+  width: 100%;
   border: 0;
-  margin-top: 6px;
-  box-shadow: var(--shadow);
+  border-bottom: 2px solid rgba(244,121,0,0.28);
+  background: transparent;
+
+  padding: 12px 8px;
+  font-size: 12px;
+  font-weight: 700;
+
+  outline: none;
 }
 
-.password-save-btn:hover { filter: brightness(0.98); }
-
-.password-save-btn:disabled{
-  background: rgba(244, 121, 0, 0.35);
-  color: rgba(255,255,255,0.92);
-  box-shadow: none;
-  cursor: not-allowed;
+.settings-page .password-card .pw-input:focus {
+  border-bottom-color: rgba(244,121,0,0.80);
 }
 
-/* mobile */
+.settings-page .password-card .pw-help {
+  margin-top: -2px;
+  font-weight: 300;
+  font-size: 10px;
+  color: rgba(0,0,0,0.55);
+}
+
+/* 에러 박스 (시안처럼 과하지 않게) */
+.settings-page .password-card .pw-error {
+  min-height: 18px;
+  margin-top: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(220, 38, 38, 0.95);
+}
+
+/* 저장 1개: 우하단 */
+.settings-page .password-card .pw-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+/* 모바일 */
 @media (max-width: 420px) {
-  .password-card { padding: 16px; }
+  .settings-page .password-card .pw-avatar {
+    margin: 8px 0 14px;
+  }
 }

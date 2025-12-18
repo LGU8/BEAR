@@ -1,251 +1,158 @@
+/* static/css/settings/settings_s0.css */
+
 /* =========================
    Settings S0 (settings_index.html 전용)
-   - 목표: 시안(마이페이지)과 spacing/폰트/구분선/단위표기 정렬
    ========================= */
 
-/* ---------------------------------
-   0) S0에서만 카드 shadow 강도 살짝 완화(시안 느낌)
-   --------------------------------- */
+   /* settings_s0.css or settings_s1.css */
+.settings-page {
+  max-width: 980px;
+  margin: 0 auto;
+}
+/* 0) S0에서만 카드 shadow 완화 */
 .settings-page .profile-card,
 .settings-page .menu-card {
-  /* base의 --shadow가 강하게 느껴지면 S0에서만 완화 */
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
 }
 
-/* ---------------------------------
-   1) 이메일 pill (시안처럼 더 “pill” + 베이지 톤 + 작은 글씨)
-   --------------------------------- */
-.profile-email-pill {
-  display: inline-block;
+/* 1) 이메일 pill (S0 톤) - ✅ 스코프 제한 */
+.settings-page .profile-card .profile-email-pill {
   margin-top: 6px;
-  padding: 4px 10px;              /* base보다 살짝 넉넉 */
-  border-radius: 999px;           /* 진짜 pill */
+  padding: 4px 10px;
+  border-radius: 999px;
 
   font-weight: 500;
   font-size: 10px;
   line-height: 1.4;
 
-  background: rgba(255, 226, 182, 0.85); /* 시안 베이지에 더 근접 */
+  background: rgba(255, 226, 182, 0.85);
   color: rgba(0, 0, 0, 0.7);
 }
 
-/* ---------------------------------
-   2) 프로필 상단 텍스트 간격/크기 미세조정 (시안)
-   --------------------------------- */
-.profile-meta .profile-title {
-  font-size: 16px;  /* 시안과 유사 */
+/* 2) 프로필 상단 텍스트 미세조정 (S0) */
+.settings-page .profile-card .profile-meta .profile-title {
+  font-size: 16px;
   line-height: 1.2;
 }
-
-.profile-meta .profile-sub {
+.settings-page .profile-card .profile-meta .profile-sub {
   margin-top: 2px;
   font-size: 10px;
   line-height: 1.3;
   opacity: 0.9;
 }
 
-/* ---------------------------------
-   3) 키/몸무게 단위 표시 (공백 포함이 핵심)
-   - HTML 구조 유지: CSS pseudo-element로 단위 붙임
-   --------------------------------- */
-.profile-stats .stat:nth-child(1) .stat-value::after {
-  content: " cm";                 /* ✅ 공백 포함 */
+/* 3) 키/몸무게 단위 표시 */
+.settings-page .profile-card .profile-stats .stat:nth-child(1) .stat-value::after {
+  content: " cm";
   font-weight: 700;
   font-size: 12px;
-  margin-left: 0;                 /* 공백이 이미 있으니 margin 불필요 */
 }
-
-.profile-stats .stat:nth-child(2) .stat-value::after {
-  content: " kg";                 /* ✅ 공백 포함 */
+.settings-page .profile-card .profile-stats .stat:nth-child(2) .stat-value::after {
+  content: " kg";
   font-weight: 700;
   font-size: 12px;
-  margin-left: 0;
 }
 
-/* ---------------------------------
-   4) Stats box(흰 박스) 시안처럼 조금 더 “단정/넉넉”
-   --------------------------------- */
-.profile-stats {
-  padding: 14px 12px;             /* base보다 약간 넉넉 */
+/* 4) Stats box(흰 박스) */
+.settings-page .profile-card .profile-stats {
+  padding: 14px 12px;
   margin-top: 12px;
 }
-
-.stat-label {
+.settings-page .profile-card .stat-label {
   font-size: 10px;
   letter-spacing: -0.2px;
 }
-
-.stat-value {
+.settings-page .profile-card .stat-value {
   font-size: 12px;
-  margin-top: 6px;                /* 시안은 값이 살짝 아래 */
+  margin-top: 6px;
 }
 
-/* 좌우 오렌지 bar를 시안처럼 약간 더 도톰하게 */
-.profile-stats::before,
-.profile-stats::after {
-  width: 3px;                     /* base 2px → 3px */
+/* 좌우 오렌지 bar 두께 조정 */
+.settings-page .profile-card .profile-stats::before,
+.settings-page .profile-card .profile-stats::after {
+  width: 3px;
   top: 12px;
   bottom: 12px;
   border-radius: 3px;
 }
+.settings-page .profile-card .profile-stats::before { left: 10px; }
+.settings-page .profile-card .profile-stats::after  { right: 10px; }
 
-.profile-stats::before { left: 10px; }
-.profile-stats::after  { right: 10px; }
-
-/* ---------------------------------
-   5) 메뉴 카드 (시안: row 높이/아이콘/구분선 정렬)
-   --------------------------------- */
-.menu-card {
+/* 5) 메뉴 카드 */
+.settings-page .menu-card {
   padding: 0;
   overflow: hidden;
 }
 
-/* 메뉴 row: 시안은 더 “여백 많은” 느낌 */
-.menu-item {
+.settings-page .menu-card .menu-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
 
-  padding: 18px 18px;            /* 기존 16px → 18px */
+  padding: 18px 18px;
   text-decoration: none;
 }
 
-/* 왼쪽 정렬/간격 */
-.menu-left {
+.settings-page .menu-card .menu-left {
   display: flex;
   align-items: center;
-  gap: 12px;                      /* 아이콘-텍스트 간격 조금 증가 */
+  gap: 12px;
 }
 
-/* 아이콘 크기: 시안이 조금 더 큼 */
-.menu-ico {
-  width: 30px;                    /* 기존 26px → 30px */
+.settings-page .menu-card .menu-ico {
+  width: 30px;
   height: 30px;
   object-fit: contain;
   display: block;
 }
 
-.menu-text {
+.settings-page .menu-card .menu-text {
   font-weight: 700;
   font-size: 14px;
   letter-spacing: -0.2px;
 }
 
-/* divider: 시안처럼 더 은은하고 얇게 */
-.menu-divider {
+.settings-page .menu-card .menu-divider {
   height: 1px;
   background: rgba(0, 0, 0, 0.06);
-  margin: 0 18px;                 /* row padding과 맞춤 */
+  margin: 0 18px;
 }
 
-/* ---------------------------------
-   8) S0 하단 로그아웃 버튼
-   - 시안 톤: pill + outline orange
-   - menu-card 아래에 배치
----------------------------------- */
-.s0-logout {
-  margin-top: 14px;
-  display: flex;
-  justify-content: flex-end; /* 오른쪽 정렬 */
-}
-
-.s0-logout form {
-  margin: 0;
-}
-
-/* 버튼: outline → hover 시 fill */
-.s0-logout-btn {
-  appearance: none;
-  -webkit-appearance: none;
-
-  border: 1px solid rgba(244, 121, 0, 0.55);
-  background: rgba(255, 255, 255, 0.35);
-  color: var(--orange-1);
-
-  border-radius: var(--radius-pill);
-  padding: 10px 14px;
-  min-width: 84px;
-
-  font-weight: 800;
-  font-size: 12px;
-  line-height: 1;
-
-  cursor: pointer;
-  transition: background 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
-}
-
-.s0-logout-btn:hover {
-  background: rgba(244, 121, 0, 0.12);
-  border-color: rgba(244, 121, 0, 0.75);
-  filter: brightness(0.99);
-}
-
-.s0-logout-btn:active {
-  transform: translateY(1px);
-}
-
-.s0-logout-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(244, 121, 0, 0.18);
-}
-
-/* 모바일 간격 보정 */
-@media (max-width: 420px) {
-  .s0-logout { margin-top: 12px; }
-  .s0-logout-btn { padding: 10px 12px; }
-}
-
-
-/* ---------------------------------
-   6) 모바일 터치 피드백 (가볍게)
-   --------------------------------- */
-.menu-item:active {
+.settings-page .menu-card .menu-item:active {
   filter: brightness(0.985);
 }
 
-/* ---------------------------------
-   7) 작은 화면에서 과한 여백 방지(보정)
-   --------------------------------- */
-@media (max-width: 420px) {
-  .menu-item { padding: 16px; }
-  .menu-divider { margin: 0 16px; }
-}
-/* ---------------------------------
-   9) menu-card 안에 "로그아웃" row를 link row와 동일하게
----------------------------------- */
-.menu-item-form {
-  margin: 0;          /* form 기본 margin 제거 */
+/* 6) ✅ 로그아웃 row(form+button) */
+.settings-page .menu-card .menu-item-form {
+  margin: 0; /* form 기본 margin 제거 */
 }
 
-/* form 안 button을 row처럼 */
-.menu-item-btn {
+.settings-page .menu-card .menu-item-btn {
   width: 100%;
   border: 0;
   background: transparent;
-  padding: 0;         /* padding은 .menu-item에서 먹게 */
+  padding: 0;
   text-align: left;
   cursor: pointer;
 
-  /* ✅ 버튼 기본 스타일 오염 방지 */
   appearance: none;
   -webkit-appearance: none;
+
   color: inherit;
   font: inherit;
+
+  display: block; /* ✅ 일부 브라우저에서 클릭 영역 안정 */
 }
 
-/* button이 .menu-item 레이아웃을 그대로 따르도록 */
-.menu-item-form.menu-item {
-  /* 이미 .menu-item에 선언된 display/padding 등이 적용됨 */
-}
-
-/* hover/active도 기존 row 느낌 유지 */
-.menu-item-btn:active {
-  filter: brightness(0.985);
-}
-
-.menu-item-btn:focus-visible {
+.settings-page .menu-card .menu-item-btn:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(244, 121, 0, 0.16);
-  border-radius: 14px; /* 카드 row 라운드 느낌 */
+  border-radius: var(--radius-md);
+}
+
+/* 7) 모바일 */
+@media (max-width: 420px) {
+  .settings-page .menu-card .menu-item { padding: 16px; }
+  .settings-page .menu-card .menu-divider { margin: 0 16px; }
 }

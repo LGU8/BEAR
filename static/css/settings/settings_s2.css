@@ -1,25 +1,24 @@
 /* static/css/settings/settings_s2.css */
 
 /* =========================
-   S2 (개인정보 수정) 전용
+   S2 (개인정보 수정) 전용 - SAFE SCOPE
    ========================= */
 
-/* 카드 폭: 데스크탑에서 시안처럼 “적당히 컴팩트” */
-.edit-card {
+/* 카드 폭 */
+.settings-page .edit-card {
   padding: 18px;
-  max-width: 720px;
   margin: 0 auto;
 }
 
-/* 헤더: back / title / spacer */
-.edit-header {
+/* 헤더 */
+.settings-page .edit-card .edit-header {
   display: grid;
   grid-template-columns: 40px 1fr 40px;
   align-items: center;
   margin-bottom: 14px;
 }
 
-.back-btn {
+.settings-page .edit-card .back-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -36,38 +35,38 @@
   background: transparent;
 }
 
-.edit-title {
+.settings-page .edit-card .edit-title {
   text-align: center;
   font-weight: 800;
   font-size: 16px;
 }
 
-.edit-header-spacer {
+.settings-page .edit-card .edit-header-spacer {
   width: 40px;
   height: 40px;
 }
 
 /* 배지 영역 */
-.profile-edit-avatar {
+.settings-page .edit-card .profile-edit-avatar {
   display: grid;
   justify-items: center;
   margin: 8px 0 16px;
   gap: 6px;
 }
 
-.profile-avatar-wrap.lg {
+.settings-page .edit-card .profile-avatar-wrap.lg {
   width: 92px;
   height: 92px;
   position: relative;
 }
 
-.profile-avatar.lg {
+.settings-page .edit-card .profile-avatar.lg {
   width: 70px;
   height: 70px;
 }
 
-/* DSLR 잠금 아이콘 */
-.avatar-lock {
+/* 잠금 아이콘 */
+.settings-page .edit-card .avatar-lock {
   position: absolute;
   right: 8px;
   bottom: 8px;
@@ -84,33 +83,33 @@
   box-shadow: 0 4px 10px rgba(0,0,0,0.10);
 }
 
-.lock-ico {
+.settings-page .edit-card .lock-ico {
   width: 16px;
   height: 16px;
   object-fit: contain;
   display: block;
 }
 
-.profile-edit-hint {
+.settings-page .edit-card .profile-edit-hint {
   font-weight: 300;
   font-size: 10px;
   color: var(--text-sub);
 }
 
 /* 폼 블록 */
-.form-block {
+.settings-page .edit-card .form-block {
   display: grid;
   gap: 8px;
   margin-top: 12px;
 }
 
-.form-label {
+.settings-page .edit-card .form-label {
   font-weight: 400;
   font-size: 10px;
   color: var(--text-sub);
 }
 
-.form-help {
+.settings-page .edit-card .form-help {
   margin-top: -2px;
   font-weight: 300;
   font-size: 10px;
@@ -118,7 +117,7 @@
 }
 
 /* input row */
-.form-row {
+.settings-page .edit-card .form-row {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -126,7 +125,7 @@
 }
 
 /* underline input */
-.form-input {
+.settings-page .edit-card .form-input {
   width: 100%;
   border: 0;
   border-bottom: 2px solid rgba(244,121,0,0.35);
@@ -139,12 +138,12 @@
   outline: none;
 }
 
-.form-input:focus {
+.settings-page .edit-card .form-input:focus {
   border-bottom-color: rgba(244,121,0,0.80);
 }
 
-/* suffix (cm/kg/▼) 정렬/톤 통일 */
-.form-suffix {
+/* suffix */
+.settings-page .edit-card .form-suffix {
   font-size: 12px;
   font-weight: 800;
   color: rgba(0,0,0,0.50);
@@ -153,13 +152,13 @@
 }
 
 /* 성별 토글 */
-.seg-toggle {
+.settings-page .edit-card .seg-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
-.seg-toggle-btn {
+.settings-page .edit-card .seg-toggle-btn {
   border-radius: var(--radius-pill);
   border: 1px solid rgba(244,121,0,0.45);
   padding: 10px 0;
@@ -171,13 +170,13 @@
   transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
-.seg-toggle-btn.is-active {
+.settings-page .edit-card .seg-toggle-btn.is-active {
   background: rgba(244,121,0,0.14);
   border-color: var(--orange-1);
 }
 
 /* 에러 */
-.form-error {
+.settings-page .edit-card .form-error {
   min-height: 16px;
   margin-top: 10px;
   font-size: 11px;
@@ -186,13 +185,13 @@
 }
 
 /* 저장 버튼 */
-.edit-footer {
+.settings-page .edit-card .edit-footer {
   display: flex;
   justify-content: flex-end;
   margin-top: 18px;
 }
 
-.save-btn {
+.settings-page .edit-card .save-btn {
   border: 0;
   border-radius: var(--radius-pill);
   padding: 10px 14px;
@@ -204,18 +203,18 @@
   color: #fff;
 }
 
-.save-btn:hover { filter: brightness(0.98); }
+.settings-page .edit-card .save-btn:hover { filter: brightness(0.98); }
 
-.save-btn:disabled {
+.settings-page .edit-card .save-btn:disabled {
   background: rgba(244, 121, 0, 0.35);
   color: rgba(255,255,255,0.92);
   cursor: not-allowed;
 }
 
-/* 모바일: 카드가 너무 넓게 느껴지지 않게 */
+/* 모바일 */
 @media (max-width: 420px) {
-  .edit-card { padding: 16px; }
-  .edit-header { grid-template-columns: 36px 1fr 36px; }
-  .back-btn { width: 36px; height: 36px; border-radius: 10px; }
-  .edit-header-spacer { width: 36px; height: 36px; }
+  .settings-page .edit-card { padding: 16px; }
+  .settings-page .edit-card .edit-header { grid-template-columns: 36px 1fr 36px; }
+  .settings-page .edit-card .back-btn { width: 36px; height: 36px; border-radius: 10px; }
+  .settings-page .edit-card .edit-header-spacer { width: 36px; height: 36px; }
 }

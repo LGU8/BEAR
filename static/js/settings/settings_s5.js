@@ -1,5 +1,3 @@
-/* static/js/settings/settings_s5.js */
-
 (function () {
   const form = document.getElementById("pwForm");
   if (!form) return;
@@ -10,15 +8,9 @@
   const saveBtn = document.getElementById("saveBtn");
   const errBox = document.getElementById("pwError");
 
-  function showError(msg) {
+  function show(msg) {
     if (!errBox) return;
-    if (!msg) {
-      errBox.textContent = "";
-      errBox.classList.remove("is-show");
-      return;
-    }
-    errBox.textContent = msg;
-    errBox.classList.add("is-show");
+    errBox.textContent = msg || "";
   }
 
   function hasLetterAndNumber(pw) {
@@ -30,49 +22,49 @@
     const b = (newPw.value || "").trim();
     const c = (newPw2.value || "").trim();
 
-    // 0) 모두 비면 초기 상태
+    // 초기
     if (!a && !b && !c) {
-      showError("");
+      show("");
       saveBtn.disabled = true;
       return false;
     }
 
-    // 1) required
+    // required
     if (!a || !b || !c) {
-      showError("모든 항목을 입력해주세요.");
+      show("모든 항목을 입력해주세요.");
       saveBtn.disabled = true;
       return false;
     }
 
-    // 2) 길이
+    // length
     if (b.length < 8) {
-      showError("새 비밀번호는 8자 이상으로 입력해주세요.");
+      show("새 비밀번호는 8자 이상으로 입력해주세요.");
       saveBtn.disabled = true;
       return false;
     }
 
-    // 3) 확인 일치 (✅ 권장 룰보다 먼저)
+    // match
     if (b !== c) {
-      showError("새 비밀번호와 확인이 일치하지 않아요.");
+      show("새 비밀번호와 재입력이 일치하지 않아요.");
       saveBtn.disabled = true;
       return false;
     }
 
-    // 4) 현재 비밀번호와 동일 금지(권장/필수는 선택)
+    // not same as current
     if (a === b) {
-      showError("새 비밀번호는 현재 비밀번호와 다르게 입력해주세요.");
+      show("새 비밀번호는 현재 비밀번호와 다르게 입력해주세요.");
       saveBtn.disabled = true;
       return false;
     }
 
-    // 5) 권장 룰(영문+숫자) — 통과는 허용, 메시지만 유지
+    // 권장 룰: 통과는 허용, 메시지만 출력 (원하면 여기서 disabled 유지로 바꿔도 됨)
     if (!hasLetterAndNumber(b)) {
-      showError("새 비밀번호는 영문과 숫자를 함께 포함하는 것을 권장해요.");
+      show("영문과 숫자를 함께 포함하는 것을 권장해요.");
       saveBtn.disabled = false;
       return true;
     }
 
-    showError("");
+    show("");
     saveBtn.disabled = false;
     return true;
   }
@@ -80,8 +72,7 @@
   ["input", "change", "keyup"].forEach((evt) => form.addEventListener(evt, validate));
 
   form.addEventListener("submit", (e) => {
-    const ok = validate();
-    if (!ok) e.preventDefault();
+    if (!validate()) e.preventDefault();
   });
 
   validate();
