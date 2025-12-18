@@ -57,15 +57,6 @@
             <a href="/settings">
                 <img src="{% static 'nav_img/settings.png' %}" alt="settings logo" class="settings-logo">
             </a>
-
-            {% if user.is_authenticated %}
-            <form action="{% url 'accounts_app:user_logout' %}" method="post" style="margin: 0;">
-                {% csrf_token %}
-                <button type="submit" class="logout-btn">
-                    로그아웃
-                </button>
-            </form>
-            {% endif %}
         </div>
       </div>
 </nav>
