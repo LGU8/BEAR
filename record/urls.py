@@ -1,7 +1,6 @@
 from django.urls import path, include
 from conf.views import index
 from . import views, views_api
-from record import views
 
 app_name = "record_app"
 
