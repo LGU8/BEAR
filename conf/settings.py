@@ -161,10 +161,10 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_SAVE_EVERY_REQUEST = True  # 매 요청마다 세션 저장 강제
 
 # settings.py
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "your-email@gmail.com"  # 본인 Gmail 계정
-EMAIL_HOST_PASSWORD = "your-app-password"  # 구글 '앱 비밀번호' (일반 비밀번호 X)
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = "your-email@gmail.com"  # 본인 Gmail 계정
+# EMAIL_HOST_PASSWORD = "your-app-password"  # 구글 '앱 비밀번호' (일반 비밀번호 X)
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
