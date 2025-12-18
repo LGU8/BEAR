@@ -125,58 +125,70 @@
     color: #3C3C43;
 }
 
-/* =========================
-   Summary Page Wrapper
-   ========================= */
-/* 달력과 첫 카드 간격 */
-.report-datepicker{
+/* ─────────────────────────────
+   리포트 상단 탭
+   ───────────────────────────── */
+.report-period-tabs .bear-tabs-inner {
+  display: flex;
+}
+
+.report-period-tabs .bear-tab-box {
+  flex: 1 1 0;
+}
+
+.report-period-tabs + .report-datepicker {
+  margin-top: 16px;
+}
+
+/* ─────────────────────────────
+   Datepicker
+   ───────────────────────────── */
+.report-datepicker {
   margin-bottom: 16px;
 }
 
-/* 카드들 사이 간격만 summary-page가 담당 */
-.summary-page {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+.report-datepicker input.form-control {
+  width: 190px;
+  background-color: #FFF2DD;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  color: #3C3C43;
 }
 
-/* 기분 카드 아래 간격 */
-.mood-card{
-  margin-bottom: 100px;
-}
-
-/* =========================
-   Summary Card (영양소 / 기분 공통)
-   ========================= */
-
+/* ─────────────────────────────
+   공통 카드 스타일
+   ───────────────────────────── */
 .summary-card {
-  background: #FFECCF;           /* ✅ 카드 색상 변경 */
+  background: #FFECCF;
   border-radius: 18px;
   padding: 24px;
 
   display: flex;
   flex-direction: column;
+
+  margin-bottom: 16px;   /* 🔥 카드 간 간격 */
 }
 
-/* =========================
-   Card Title (카드 안 제목)
-   ========================= */
+/* 마지막 카드 여백 */
+.summary-card.mood-card {
+  margin-bottom: 100px;
+}
 
-.summary-card .summary-title {
+/* 카드 제목 */
+.summary-title {
   margin-bottom: 14px;
 }
 
-.summary-card .summary-title span {
-  font-weight: 700;
+.summary-title span {
   font-size: 18px;
+  font-weight: 700;
 }
 
-/* =========================
-   Feedback Card
-   ========================= */
+/* ─────────────────────────────
+   Feedback 카드
+   ───────────────────────────── */
 .feedback-card {
   background: #FFFFFF;
   padding: 20px;
@@ -184,107 +196,84 @@
 
   display: grid;
   grid-template-columns: 150px 1fr;
-  column-gap: 16px;
-
+  gap: 16px;
   align-items: center;
 }
 
-/* 이미지 */
 .feedback-ico {
   width: 150px;
-  height: auto;
   object-fit: contain;
 }
 
-/* 텍스트 */
 .feedback-text {
   font-size: 16px;
-  font-weight: 500;
   line-height: 1.8;
-  padding-right: 30px;
 }
 
-/* =========================
-   Nutrition Card
-   ========================= */
-
-.nutrition-card {
+/* ─────────────────────────────
+   Nutrition 카드
+   ───────────────────────────── */
+.nutrition-toggle {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
-/* 한 영양소 row */
+.nutrition-toggle button {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button_active {
+  font-weight: 700;
+}
+
 .nut-row {
   display: grid;
-  grid-template-columns: 1fr auto; /* title | value */
-  grid-template-rows: auto auto;   /* text row | bar row */
-  column-gap: 10px;
-  row-gap: 6px;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 6px;
   padding: 10px 0;
 }
 
-/* 제목 (왼쪽) */
 .nut-title {
-  font-weight: 500;
   font-size: 14px;
-  line-height: 1.35;
-  text-align: left;
-  padding-left: 6px;
 }
 
-/* 수치 (오른쪽) */
 .nut-text {
-  font-weight: 500;
   font-size: 14px;
-  line-height: 1.35;
   text-align: right;
-  padding-right: 6px;
-  white-space: nowrap;
 }
 
-/* 바는 두 번째 줄에서 전체 차지 */
 .nut-bar {
   grid-column: 1 / -1;
-
-  width: 100%;
   height: 14px;
-  border-radius: 999px;
   background: #FFFFFF;
+  border-radius: 999px;
   border: 1px solid rgba(244, 121, 0, 0.35);
   overflow: hidden;
 }
 
-.nut-bar > span {
+.nut-bar span {
   display: block;
   height: 100%;
   background: #F47900;
-  border-radius: 999px;
 }
 
-/* row 간 미세 간격 */
-.nutrition-card .nut-row + .nut-row {
-  margin-top: 4px;
-}
-
-/* =========================
-   Mood Card
-   ========================= */
-
-.mood-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* 도넛 차트 placeholder */
+/* ─────────────────────────────
+   Mood 카드
+   ───────────────────────────── */
 .mood-chart-placeholder {
   width: 150px;
   height: 150px;
   margin: 0 auto;
 
-  border-radius: 50%;
   background: #FFFFFF;
+  border-radius: 50%;
   border: 2px dashed rgba(244, 121, 0, 0.35);
 
   display: flex;
@@ -292,6 +281,5 @@
   justify-content: center;
 
   font-size: 10px;
-  font-weight: 400;
   color: #8F8F8F;
 }
