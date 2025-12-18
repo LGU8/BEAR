@@ -17,7 +17,17 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings  # settings.LOGIN_REDIRECT_URL 사용을 위해 필요
 
 # settings.py에 LOGIN_REDIRECT_URL = 'profile' 설정을 추가했다고 가정
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
+class AccountActivationTokenGenerator(PasswordResetTokenGenerator):
+    def _make_hash_value(self, user, timestamp):
+        # last_login 대신 유저의 고유 ID와 가입 시간(또는 업데이트 시간)을 사용합니다.
+        # user.password가 평문이라면 그대로 사용하고, 해싱된 상태라면 해시값을 넣습니다.
+        return (
+            str(user.pk) + str(timestamp) + str(user.password)
+        )
+
+account_activation_token = AccountActivationTokenGenerator()
 
 # cust_id를 생성하는 도우미 함수 (cust_id가 VARCHAR이므로 문자열로 처리)
 def generate_new_cust_id():
@@ -165,11 +175,56 @@ def home(request):
 import secrets
 import string
 
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from .models import Cust
 
-def password_reset():
-    return "".join(
-        secrets.choice(string.ascii_letters + string.digits) for _ in range(10)
-    )
+def password_reset(request):  # request 인자 필수 추가!
+    if request.method == "POST":
+        email = request.POST.get("email")
+        try:
+            user = Cust.objects.get(email=email)
+            # 보안 토큰 생성
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = account_activation_token.make_token(user)
+
+            # 비밀번호 변경 링크 생성 (도메인은 실제 환경에 맞게 수정)
+            reset_link = f"http://127.0.0.1:8000/accounts/password-reset-confirm/{uid}/{token}/"
+
+            # 이메일 발송
+            send_mail(
+                '[BEAR] 비밀번호 재설정 안내',
+                f'아래 링크를 클릭하여 비밀번호를 변경하세요.\n\n{reset_link}',
+                from_email=None, # settings.DEFAULT_FROM_EMAIL 사용
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            return render(request, "accounts/password_reset_done.html")
+        except Cust.DoesNotExist:
+            return render(request, "accounts/password_reset.html", {"error": "존재하지 않는 이메일입니다."})
+    return render(request, "accounts/password_reset.html")
+
+
+# 2. 링크 클릭 시 실제 변경 뷰
+def password_reset_confirm(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = Cust.objects.get(pk=uid)
+    except:
+        user = None
+    # 검증 시에도 account_activation_token 사용
+    if user and account_activation_token.check_token(user, token):
+        if request.method == "POST":
+            new_pw = request.POST.get("new_password")
+            user.password = new_pw  # 실제 구현 시 해싱 처리 권장
+            user.save()
+            return redirect("accounts_app:user_login")
+        return render(request, "accounts/password_reset_confirm.html")
+    else:
+        return render(request, "accounts/password_reset_error.html")
 
 
 import hashlib
