@@ -15,7 +15,7 @@ from django.shortcuts import render, redirect
 # ------------------------------------------------------------
 
 @login_required
-def _dummy_user() -> Dict[str, Any]:
+def _dummy_user(request) -> Dict[str, Any]:
     return {
         # CUST_TM 유사
         "cust_id": "1000000001",
@@ -117,8 +117,8 @@ def _segments_10(value_0_10: int) -> List[bool]:
     return [i < v for i in range(10)]
 
 
-def _base_ctx(active_tab: str = "") -> Dict[str, Any]:
-    user = _dummy_user()
+def _base_ctx(request, active_tab: str = "") -> Dict[str, Any]:
+    user = _dummy_user(request)
     profile = _dummy_profile()
 
     # 배지(프로필 이미지)
@@ -266,25 +266,25 @@ def settings_activity_goal_edit(request):  # S4
 # ----------------------------
 # Views (S0~S5)
 # ----------------------------
+@login_required
 def settings_index(request):  # S0
-    return render(request, "settings/settings_index.html", _base_ctx(active_tab="settings"))
-
+    return render(request, "settings/settings_index.html", _base_ctx(request, active_tab="settings"))
 
 def settings_account(request):  # S1
-    return render(request, "settings/settings_account.html", _base_ctx(active_tab="settings"))
+    # _base_ctx 뒤에 (request, ...)를 반드시 추가하세요
+    return render(request, "settings/settings_account.html", _base_ctx(request, active_tab="settings"))
 
 
 def settings_profile_edit(request):  # S2
-    return render(request, "settings/settings_profile_edit.html", _base_ctx(active_tab="settings"))
+    return render(request, "settings/settings_profile_edit.html", _base_ctx(request, active_tab="settings"))
 
 
 def settings_preferences_edit(request):  # S3
-    return render(request, "settings/settings_preferences_edit.html", _base_ctx(active_tab="settings"))
+    return render(request, "settings/settings_preferences_edit.html", _base_ctx(request, active_tab="settings"))
 
 
 def settings_activity_goal_edit(request):  # S4
-    return render(request, "settings/settings_activity_goal_edit.html", _base_ctx(active_tab="settings"))
-
+    return render(request, "settings/settings_activity_goal_edit.html", _base_ctx(request, active_tab="settings"))
 
 def settings_password(request):  # S5
     ctx = _base_ctx(active_tab="settings")
