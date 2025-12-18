@@ -16,6 +16,33 @@
   {% block extra_css %}{% endblock %}
   </head>
 
+  <style>
+      /* 로그아웃 버튼 스타일 개선 */
+        .logout-btn {
+            background: none;
+            border: 1px solid #F38218; /* 오렌지 테두리 */
+            color: #F38218;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: #F38218;
+            color: white;
+        }
+
+        /* 설정 아이콘 크기 통일 */
+        .settings-logo {
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+        }
+       </style>
+
   <body>
     <!-- 1줄: 곰돌이 로고 + 설정 아이콘 -->
     <nav class="bear-navbar">
@@ -30,15 +57,6 @@
             <a href="/settings">
                 <img src="{% static 'nav_img/settings.png' %}" alt="settings logo" class="settings-logo">
             </a>
-
-            {% if user.is_authenticated %}
-            <form action="{% url 'accounts_app:user_logout' %}" method="post" style="margin: 0;">
-                {% csrf_token %}
-                <button type="submit" class="logout-btn">
-                    로그아웃
-                </button>
-            </form>
-            {% endif %}
         </div>
       </div>
 </nav>

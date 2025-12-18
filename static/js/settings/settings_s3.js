@@ -81,7 +81,6 @@
   }
 
   function isValid() {
-    // 합=10 강제 정책이므로, 최종 체크도 10으로
     return sum() === 10;
   }
 
@@ -91,8 +90,6 @@
   }
 
   // ✅ 합=10 강제 보정
-  // - key를 newValue로 바꾼 뒤,
-  // - 나머지 두 값을 합이 10이 되도록 조정(큰 값부터 줄이기/늘리기)
   function rebalance(key, newValue) {
     newValue = clamp(newValue, 0, 10);
     state[key] = newValue;
@@ -101,11 +98,9 @@
     const a = keys[0];
     const b = keys[1];
 
-    // 현재 합이 10이 되도록 a/b 조정
     let curSum = sum();
     let diff = 10 - curSum; // +면 늘려야, -면 줄여야
 
-    // helper: (targetKey) 한 칸씩 조정
     function addOne(k) {
       if (state[k] < 10) { state[k] += 1; return true; }
       return false;
@@ -115,17 +110,13 @@
       return false;
     }
 
-    // diff가 +면 a/b를 늘려야 함, diff가 -면 a/b를 줄여야 함
-    // “큰 값부터 줄이기”, “작은 값부터 늘리기”가 자연스러움
     while (diff !== 0) {
       if (diff > 0) {
-        // 늘리기: 더 작은 쪽부터 채우기
         const first = state[a] <= state[b] ? a : b;
         const second = first === a ? b : a;
         if (!addOne(first) && !addOne(second)) break;
         diff -= 1;
       } else {
-        // 줄이기: 더 큰 쪽부터 줄이기
         const first = state[a] >= state[b] ? a : b;
         const second = first === a ? b : a;
         if (!subOne(first) && !subOne(second)) break;
@@ -133,10 +124,23 @@
       }
     }
 
-    // 안전: 범위 클램프
     state.carb = clamp(state.carb, 0, 10);
     state.protein = clamp(state.protein, 0, 10);
     state.fat = clamp(state.fat, 0, 10);
+  }
+
+  // 초기 합이 10이 아닐 때 자동 보정(서버 값이 깨져도 UI는 정상)
+  function normalizeOnLoad() {
+    state.carb = clamp(state.carb, 0, 10);
+    state.protein = clamp(state.protein, 0, 10);
+    state.fat = clamp(state.fat, 0, 10);
+
+    const s = sum();
+    if (s === 10) return;
+
+    // 우선 fat을 기준으로 맞추고, 범위 넘어가면 rebalance로 안전 처리
+    const targetFat = clamp(state.fat + (10 - s), 0, 10);
+    rebalance("fat", targetFat);
   }
 
   // 이벤트 바인딩
@@ -148,7 +152,7 @@
       const key = slider.dataset.key;
       const idx = parseInt(btn.dataset.idx || "0", 10);
 
-      if (!key || !idx) return;
+      if (!key) return;
 
       rebalance(key, idx);
       renderAll();
@@ -157,10 +161,11 @@
   });
 
   // 초기 렌더
+  normalizeOnLoad();
   renderAll();
   updateSaveBtn();
 
-  // 제출 직전 최종 검증(서버에서도 동일 검증 권장)
+  // 제출 직전 최종 검증
   form.addEventListener("submit", (e) => {
     if (!isValid()) {
       e.preventDefault();

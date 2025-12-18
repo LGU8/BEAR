@@ -1,9 +1,10 @@
 /* =========================
-   settings_s4.js
-   - 활동량/목표 선택 토글
-   - hidden input에 값 반영
+   settings_s4.js (FINAL)
+   - 활동량/목표 단일 선택
+   - hidden input 반영
    - 변경 시 저장 버튼 활성화
-   - 둘 중 하나라도 미선택이면 저장 비활성
+   - 유효성: activity & purpose 모두 선택
+   - a11y: aria-pressed
    ========================= */
 
 (function () {
@@ -25,7 +26,11 @@
   const state = { ...initial };
 
   function setActive(btns, value) {
-    btns.forEach((b) => b.classList.toggle("is-active", b.dataset.value === value));
+    btns.forEach((b) => {
+      const on = (b.dataset.value || "") === value;
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
   }
 
   function syncHidden() {
@@ -42,12 +47,18 @@
   }
 
   function updateSave() {
-    saveBtn.disabled = !(isChanged() && isValid());
+    saveBtn.disabled = !(isValid() && isChanged());
   }
 
   activityBtns.forEach((btn) => {
+    btn.setAttribute("aria-pressed", "false");
     btn.addEventListener("click", () => {
-      state.activity = String(btn.dataset.value || "");
+      const v = String(btn.dataset.value || "");
+      if (!v) return;
+
+      // 단일 선택 유지 (재클릭으로 해제 X)
+      state.activity = v;
+
       setActive(activityBtns, state.activity);
       syncHidden();
       updateSave();
@@ -55,8 +66,13 @@
   });
 
   purposeBtns.forEach((btn) => {
+    btn.setAttribute("aria-pressed", "false");
     btn.addEventListener("click", () => {
-      state.purpose = String(btn.dataset.value || "");
+      const v = String(btn.dataset.value || "");
+      if (!v) return;
+
+      state.purpose = v;
+
       setActive(purposeBtns, state.purpose);
       syncHidden();
       updateSave();
@@ -66,10 +82,11 @@
   // init
   setActive(activityBtns, state.activity);
   setActive(purposeBtns, state.purpose);
+  syncHidden();
   updateSave();
 
   form.addEventListener("submit", (e) => {
-    if (!isValid()) {
+    if (!isValid() || !isChanged()) {
       e.preventDefault();
       updateSave();
     }

@@ -28,6 +28,11 @@ from pathlib import Path
 @csrf_exempt
 @require_POST
 def api_barcode_scan(request):
+
+    # ✅ 1) mode를 가장 먼저 읽는다
+    mode = request.POST.get("mode", "barcode")  # "barcode" | "nutrition"
+    print("[SCAN] mode =", mode)
+
     image = request.FILES.get("image")
     date = request.POST.get("date", "").strip()
     meal = request.POST.get("meal", "").strip()
@@ -49,6 +54,17 @@ def api_barcode_scan(request):
             barcode = barcode[0] if barcode else ""
         barcode = str(barcode).strip()
 
+        if not barcode:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "reason": "SCAN_FAIL",
+                    "barcode": "",
+                    "message": "바코드를 인식하지 못했어요. 바코드를 네모칸 안에 맞추고 다시 시도해 주세요.",
+                },
+                status=400,
+            )
+
     except Exception as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=500)
 
@@ -60,13 +76,12 @@ def api_barcode_scan(request):
     candidates = [_normalize_candidate(x) for x in (raw_candidates or [])]
 
     if not candidates:
-        # ✅ (추가 2) 프론트가 분기하기 쉬운 형태로 반환
         return JsonResponse(
             {
                 "ok": False,
                 "reason": "NO_MATCH",
-                "barcode": barcode,  # ✅ 이제 항상 문자열
-                "message": "해당 바코드로 조회되는 제품이 없습니다.",
+                "barcode": barcode,
+                "message": "해당 바코드로 조회되는 제품이 없습니다. 검색으로 추가해 주세요.",
             },
             status=404,
         )

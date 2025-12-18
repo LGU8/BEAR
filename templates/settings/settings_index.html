@@ -17,7 +17,13 @@
       </div>
 
       <div class="profile-meta">
-        <div class="profile-title">{{ nickname|default:"BEAR" }}</div>
+        <div class="profile-title">
+          {% if nickname_is_empty %}
+            BEAR에게 이름을 알려주세요
+          {% else %}
+            {{ nickname }}
+          {% endif %}
+        </div>
         {% if created_dt_label %}
           <div class="profile-sub">(가입일: {{ created_dt_label }})</div>
         {% else %}
@@ -46,7 +52,6 @@
       </div>
     </div>
   </article>
-
   <!-- (S0-2) 메뉴 카드 -->
   <article class="settings-card menu-card">
 
@@ -55,8 +60,6 @@
         <img class="menu-ico" src="{% static 'settings_img/icon_account.png' %}" alt="account">
         <div class="menu-text">계정 관리</div>
       </div>
-      {# 시안에는 chevron이 약하거나 없음 → 필요하면 아래 주석 해제 #}
-      {# <div class="menu-right">›</div> #}
     </a>
 
     <div class="menu-divider"></div>
@@ -66,10 +69,25 @@
         <img class="menu-ico" src="{% static 'settings_img/icon_password.png' %}" alt="password">
         <div class="menu-text">비밀번호 관리</div>
       </div>
-      {# <div class="menu-right">›</div> #}
     </a>
 
-  </article>
+    {% if user.is_authenticated %}
+      <div class="menu-divider"></div>
 
+      <form class="menu-item menu-item-form"
+            action="{% url 'accounts_app:user_logout' %}"
+            method="post">
+        {% csrf_token %}
+
+        <button type="submit" class="menu-item-btn">
+          <div class="menu-left">
+            <img class="menu-ico" src="{% static 'settings_img/bear_logout.png' %}" alt="logout">
+            <div class="menu-text">로그아웃</div>
+          </div>
+        </button>
+      </form>
+    {% endif %}
+
+  </article>
 </section>
 {% endblock %}

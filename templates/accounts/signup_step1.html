@@ -4,26 +4,191 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>회원가입 - Step 1</title>
+    {% load static %}
     <style>
-        body { font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; }
-        input[type="email"], input[type="password"] { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        /* 전체 배경 설정 */
+        body {
+            background-color: #FFFBE6;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 상단 로고 및 진행 바 섹션 */
+        .header-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 20px 20px;
+            text-align: center;
+        }
+
+        .bear-logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        /* 프로그래스 바 (Step 1/4 = 25%) */
+        .progress-container {
+            width: 80%;
+            height: 12px;
+            background-color: #F0EAD6;
+            border-radius: 10px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 25%; /* Step 1 이므로 25% */
+            height: 100%;
+            background-color: #F38218;
+            border-radius: 10px;
+        }
+
+        /* 카드형 컨텐츠 영역 */
+        .card {
+            background-color: white;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+
+        .sub-title {
+            color: #F38218;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 30px;
+        }
+
+        /* 폼 스타일 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #E0E0E0;
+            border-radius: 10px;
+            background-color: #FAFAFA;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #F38218;
+            background-color: #fff;
+        }
+
+        /* 하단 유의사항 */
+        .notice {
+            font-size: 0.85rem;
+            color: #888;
+            line-height: 1.5;
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+
+        /* 버튼 스타일 */
+        button {
+            width: 100%;
+            padding: 16px;
+            background-color: #F38218;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #D66D0E;
+        }
+
+        .error-msg {
+            color: #e74c3c;
+            background-color: #fdecea;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
-    <h2>Step 1/4. 이메일 및 비밀번호 설정</h2>
 
-    {% if error %}
-        <p style="color:red; text-align: center;">{{ error }}</p>
-    {% endif %}
+    <div class="header-container">
+        <a href="/">
+                <img src="{% static 'nav_img/logo.png' %}" alt="BEAR logo" class="bear-logo">
+            </a>
 
-    <form method="post">
-        {% csrf_token %}
-        <input type="email" name="email" placeholder="이메일 주소" required><br>
-        <input type="password" name="password" placeholder="비밀번호 (8자 이상)" required minlength="8"><br>
-        <input type="password" name="password_confirm" placeholder="비밀번호 확인" required minlength="8"><br>
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+    </div>
 
-        <button type="submit">다음 단계 (기본 정보 입력)</button>
-    </form>
+    <div class="card">
+        <h2>Step 1/4. 이메일 및 비밀번호 설정</h2>
+        <div class="sub-title">빠른 가입으로 시작해보세요</div>
+
+        {% if error %}
+            <div class="error-msg">{{ error }}</div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label>이메일 주소</label>
+                <input type="email" name="email" placeholder="example@mail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>비밀번호 (8자 이상)</label>
+                <input type="password" name="password" placeholder="비밀번호를 입력하세요" required minlength="8">
+            </div>
+
+            <div class="form-group">
+                <label>비밀번호 확인</label>
+                <input type="password" name="password_confirm" placeholder="한 번 더 입력하세요" required minlength="8">
+            </div>
+
+            <div class="notice">
+                • 비밀번호는 영문, 숫자를 포함하여 8자 이상 설정해주세요.<br>
+                • 입력하신 정보는 본인 확인 및 서비스 이용을 위해 사용됩니다.
+            </div>
+
+            <button type="submit">다음 단계</button>
+        </form>
+    </div>
+
 </body>
 </html>

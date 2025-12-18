@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="home">
+
+  <!-- 1) 메뉴 추천 -->
+  <section class="home-section" id="section-menu-reco">
+    <div class="section-head">
+      <h4 class="section-title">메뉴 추천</h4>
+      <!-- 필요하면: 더보기 링크 -->
+      {# <a class="section-more" href="{% url 'menu_reco' %}">더보기</a> #}
+    </div>
+
+    <div class="section-card">
+      {% comment %}
+        context 예시:
+        menu_reco = {
+          "items": [
+            {"title":"...", "reason":"...", "score":0.92},
+            ...
+          ],
+          "empty": True/False
+        }
+      {% endcomment %}
+
+      {% if menu_reco and menu_reco.items %}
+        <ul class="reco-list">
+          {% for item in menu_reco.items %}
+            <li class="reco-item">
+              <div class="reco-title">{{ item.title }}</div>
+              {% if item.reason %}
+                <div class="reco-reason">{{ item.reason }}</div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty-state">
+          <p class="empty-text">오늘의 추천 메뉴가 아직 없어요.</p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+
+  <!-- 2) 일일 리포트 -->
+  <section class="home-section" id="section-daily-report">
+    <div class="section-head">
+      <h4 class="section-title">일일 리포트</h4>
+      {% if daily_report and daily_report.rgs_dt %}
+        <span class="section-subtitle">{{ daily_report.rgs_dt }}</span>
+      {% endif %}
+    </div>
+
+    <div class="section-card">
+      {% comment %}
+        context 예시:
+        daily_report = {
+          "rgs_dt": "20250408",
+          "content": "..."
+        }
+      {% endcomment %}
+
+      {% if daily_report and daily_report.content %}
+        <p class="report-content">{{ daily_report.content }}</p>
+      {% else %}
+        <div class="empty-state">
+          <p class="empty-text">오늘 리포트가 아직 생성되지 않았어요.</p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+
+  <!-- 3) 긍정 도넛 차트 -->
+  <section class="home-section" id="section-positive-donut">
+    <div class="section-head">
+      <h4 class="section-title">긍정 도넛 차트</h4>
+      {% if donut and donut.rgs_dt %}
+        <span class="section-subtitle">{{ donut.rgs_dt }}</span>
+      {% endif %}
+    </div>
+
+    <div class="section-card donut-card">
+      {% comment %}
+        context 예시:
+        donut = {
+          "rgs_dt": "20250408",
+          "pos_count": 8,
+          "neu_count": 1,
+          "neg_count": 1,
+          "pos_ratio": 0.82,   # 0~1
+          "pos_pct": 82        # 0~100
+        }
+      {% endcomment %}
+
+      <div class="donut-wrap">
+        <!-- Chart.js 등으로 붙일 canvas -->
+        <canvas id="positiveDonutChart" width="240" height="240"></canvas>
+
+        <!-- 중앙 숫자(차트 없이도 보이게) -->
+        <div class="donut-center">
+          <div class="donut-number">
+            {% if donut and donut.pos_pct is not None %}
+              {{ donut.pos_pct }}%
+            {% else %}
+              0%
+            {% endif %}
+          </div>
+          <div class="donut-caption">오늘의 긍정 비율</div>
+        </div>
+      </div>
+
+      <div class="donut-legend">
+        <div class="legend-item">
+          <span class="legend-dot legend-pos"></span>
+          <span class="legend-text">긍정</span>
+          <span class="legend-value">{% if donut %}{{ donut.pos_count|default:0 }}{% else %}0{% endif %}</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot legend-neu"></span>
+          <span class="legend-text">중립</span>
+          <span class="legend-value">{% if donut %}{{ donut.neu_count|default:0 }}{% else %}0{% endif %}</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot legend-neg"></span>
+          <span class="legend-text">부정</span>
+          <span class="legend-value">{% if donut %}{{ donut.neg_count|default:0 }}{% else %}0{% endif %}</span>
+        </div>
+      </div>
+
+      {% if not donut %}
+        <div class="empty-state">
+          <p class="empty-text">오늘 감정 기록이 아직 없어요.</p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+
+  <!-- 4) 오늘 먹은 것들 -->
+  <section class="home-section" id="section-today-meals">
+    <div class="section-head">
+      <h4 class="section-title">오늘 먹은 것들</h4>
+      {% if today_meals and today_meals.rgs_dt %}
+        <span class="section-subtitle">{{ today_meals.rgs_dt }}</span>
+      {% endif %}
+    </div>
+
+    <div class="section-card">
+      {% comment %}
+        context 예시(아직 DB 미완성이라 placeholder 구조만):
+        today_meals = {
+          "rgs_dt": "20250408",
+          "rows": [
+            {"label":"아침", "kcal":610, "carb_g":100, "prot_g":30, "fat_g":10},
+            {"label":"점심", "kcal":300, "carb_g":80,  "prot_g":20, "fat_g":8},
+            {"label":"저녁", "kcal":90,  "carb_g":20,  "prot_g":5,  "fat_g":2},
+          ]
+        }
+      {% endcomment %}
+
+      {% if today_meals and today_meals.rows %}
+        <div class="macro-head">
+          <span class="macro-label"> </span>
+          <span class="macro-pill">탄(Carbs)</span>
+          <span class="macro-pill">단(Protein)</span>
+          <span class="macro-pill">지(Fat)</span>
+        </div>
+
+        <ul class="meal-list">
+          {% for r in today_meals.rows %}
+            <li class="meal-row">
+              <div class="meal-left">
+                <div class="meal-label">{{ r.label }}</div>
+                <div class="meal-kcal">{{ r.kcal|default:0 }}kcal</div>
+              </div>
+
+              <div class="meal-bars">
+                <!-- 여기 막대는 나중에 CSS width%로 붙이거나 JS로 계산 -->
+                <div class="bar-group">
+                  <div class="bar bar-carb" data-value="{{ r.carb_g|default:0 }}"></div>
+                  <div class="bar bar-prot" data-value="{{ r.prot_g|default:0 }}"></div>
+                  <div class="bar bar-fat"  data-value="{{ r.fat_g|default:0 }}"></div>
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty-state">
+          <p class="empty-text">오늘 식단 기록이 아직 없어요.</p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+{# 차트/막대 렌더링 JS는 나중에 디테일 단계에서 붙이자 #}
+<script src="{% static 'js/home.js' %}"></script>
+{% endblock %}

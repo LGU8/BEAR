@@ -179,6 +179,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const date = getActiveDate();
   const meal = getActiveMeal();
 
+  // ✅ (추가) camera에서 focus=search로 돌아온 경우 검색창에 커서
+  const params = new URLSearchParams(location.search);
+  if (params.get("focus") === "search") {
+    const input = document.getElementById("food-search-input");
+    if (input) {
+      input.focus();
+      input.scrollIntoView({ block: "center", behavior: "smooth" });
+    } else {
+      console.warn("[record] #food-search-input not found");
+    }
+  }
+
   const buttons = document.querySelectorAll(".meal-btn");
   buttons.forEach(b => b.classList.remove("is-active"));
   const initBtn = document.querySelector(`.meal-btn[data-meal="${meal}"]`);
@@ -322,3 +334,15 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   });
 })();
+
+// 바코드 인식 -> record page로 돌아와서 검색창에 focus.
+(function () {
+  const params = new URLSearchParams(location.search);
+  if (params.get("focus") !== "search") return;
+
+  const input = document.getElementById("food-search-input");
+  if (!input) return;
+
+  input.focus();
+})();
+
