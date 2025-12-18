@@ -1,15 +1,20 @@
 /* static/css/settings/settings_s5.css */
-/* S5 Password page only */
+/* =========================
+   S5 Password page only (final)
+   - settings_s2.css의 카드/헤더 톤과 통일
+   ========================= */
 
-.back-ico{
-  width: 18px;
-  height: 18px;
-  display: block;
+.password-card{
+  padding: 18px;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
-/* 카드 패딩은 기존 유지 */
-.password-card {
-  padding: 18px;
+.back-ico{
+  width: 22px;
+  height: 22px;
+  display: block;
+  object-fit: contain;
 }
 
 .password-form {
@@ -18,7 +23,7 @@
   gap: 14px;
 }
 
-/* ✅ S5 내부에서만 input/button 기본 appearance 오염 방지 */
+/* S5 내부에서만 appearance 오염 방지 */
 .password-card input,
 .password-card button {
   appearance: none;
@@ -33,46 +38,41 @@
 }
 
 .field-label {
-  font-weight: 700;
+  font-weight: 800;
   font-size: 12px;
   color: var(--text);
 }
 
-/* ✅ 네가 원한 “white bg + rounded + border” 유지 */
+/* input: white bg + rounded + border */
 .field-input {
-  height: 42px;
+  height: 44px;
   border-radius: var(--radius-md);
   border: 1px solid rgba(0, 0, 0, 0.12);
   background: #fff;
   padding: 0 12px;
 
-  font-weight: 500;
+  font-weight: 600;
   font-size: 12px;
 
-  /* ✅ 검은 pill/그림자 오염 제거(우선순위 강제) */
   box-shadow: none !important;
 }
 
-/* focus */
 .field-input:focus {
   outline: none;
   border-color: rgba(244, 121, 0, 0.45);
 }
 
-/* placeholder */
 .field-input::placeholder {
   color: var(--text-sub);
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
-/* ✅ Chrome/Edge autofill이 검은 배경/오버레이 느낌 만드는 것 방지 */
+/* autofill 방지 */
 .password-card input:-webkit-autofill,
 .password-card input:-webkit-autofill:hover,
 .password-card input:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--text);
   transition: background-color 9999s ease-out 0s;
-
-  /* autofill 배경 덮어쓰기 */
   box-shadow: 0 0 0px 1000px #fff inset !important;
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: var(--radius-md);
@@ -87,10 +87,10 @@
   line-height: 1.35;
 }
 
-/* error box (S3처럼 메시지 박스 톤) */
+/* error box */
 .error-box{
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   color: rgba(0,0,0,0.75);
   min-height: 0;
 }
@@ -105,18 +105,26 @@
 /* save button */
 .password-save-btn {
   height: 44px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   background: var(--orange-1);
   color: #fff;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
   border: 0;
   margin-top: 6px;
+  box-shadow: var(--shadow);
 }
+
 .password-save-btn:hover { filter: brightness(0.98); }
 
 .password-save-btn:disabled{
   background: rgba(244, 121, 0, 0.35);
-  color: rgba(255,255,255,0.9);
+  color: rgba(255,255,255,0.92);
+  box-shadow: none;
   cursor: not-allowed;
+}
+
+/* mobile */
+@media (max-width: 420px) {
+  .password-card { padding: 16px; }
 }

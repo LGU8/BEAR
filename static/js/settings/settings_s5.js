@@ -22,9 +22,7 @@
   }
 
   function hasLetterAndNumber(pw) {
-    const hasLetter = /[A-Za-z]/.test(pw);
-    const hasNumber = /[0-9]/.test(pw);
-    return hasLetter && hasNumber;
+    return /[A-Za-z]/.test(pw) && /[0-9]/.test(pw);
   }
 
   function validate() {
@@ -32,38 +30,46 @@
     const b = (newPw.value || "").trim();
     const c = (newPw2.value || "").trim();
 
-    // 아무것도 입력 안 했으면 비활성
+    // 0) 모두 비면 초기 상태
     if (!a && !b && !c) {
       showError("");
       saveBtn.disabled = true;
       return false;
     }
 
-    // 기본 required 체크
+    // 1) required
     if (!a || !b || !c) {
       showError("모든 항목을 입력해주세요.");
       saveBtn.disabled = true;
       return false;
     }
 
+    // 2) 길이
     if (b.length < 8) {
       showError("새 비밀번호는 8자 이상으로 입력해주세요.");
       saveBtn.disabled = true;
       return false;
     }
 
-    // 권장 룰(필수로 하고 싶으면 조건을 return false로 고정)
-    if (!hasLetterAndNumber(b)) {
-      showError("새 비밀번호는 영문과 숫자를 함께 포함하는 것을 권장해요.");
-      // 권장은 버튼은 켜주되, 메시지는 유지
-      saveBtn.disabled = false;
-      return true;
-    }
-
+    // 3) 확인 일치 (✅ 권장 룰보다 먼저)
     if (b !== c) {
       showError("새 비밀번호와 확인이 일치하지 않아요.");
       saveBtn.disabled = true;
       return false;
+    }
+
+    // 4) 현재 비밀번호와 동일 금지(권장/필수는 선택)
+    if (a === b) {
+      showError("새 비밀번호는 현재 비밀번호와 다르게 입력해주세요.");
+      saveBtn.disabled = true;
+      return false;
+    }
+
+    // 5) 권장 룰(영문+숫자) — 통과는 허용, 메시지만 유지
+    if (!hasLetterAndNumber(b)) {
+      showError("새 비밀번호는 영문과 숫자를 함께 포함하는 것을 권장해요.");
+      saveBtn.disabled = false;
+      return true;
     }
 
     showError("");
@@ -71,15 +77,12 @@
     return true;
   }
 
-  ["input", "change", "keyup"].forEach((evt) => {
-    form.addEventListener(evt, validate);
-  });
+  ["input", "change", "keyup"].forEach((evt) => form.addEventListener(evt, validate));
 
   form.addEventListener("submit", (e) => {
     const ok = validate();
     if (!ok) e.preventDefault();
   });
 
-  // 초기
   validate();
 })();

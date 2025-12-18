@@ -26,7 +26,7 @@
             {% endif %}
           </div>
           {% if created_dt_label %}
-            <div class="profile-sub">{{ nickname|default:"BEAR" }}(가입일: {{ created_dt_label }})</div>
+            <div class="profile-sub">(가입일: {{ created_dt_label }})</div>
           {% else %}
             <div class="profile-sub"></div>
           {% endif %}
@@ -50,7 +50,7 @@
     <div class="section-head">
       <div class="section-title">
         <img class="section-ico" src="{% static 'settings_img/icon_rice.png' %}" alt="preferences">
-        <span>{{ nickname|default:"BEAR" }}의 먹을거</span>
+        <span>{{ nickname|default:"BEAR" }}의 좋아하는 영양소</span>
       </div>
       <a class="btn-edit" href="{% url 'settings_app:preferences_edit' %}">수정</a>
     </div>
@@ -98,7 +98,7 @@
     <div class="section-head">
       <div class="section-title">
         <img class="section-ico" src="{% static 'settings_img/bear_maintain.png' %}" alt="activity">
-        <span>{{ nickname|default:"BEAR" }}의 움직임</span>
+        <span>{{ nickname|default:"BEAR" }} 얼마나 움직여요?</span>
       </div>
       <a class="btn-edit" href="{% url 'settings_app:activity_goal_edit' %}">수정</a>
     </div>

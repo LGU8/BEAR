@@ -1,15 +1,27 @@
+/* static/css/settings/settings_s3.css */
+
 /* =========================
-   settings_s3.css (S3 전용)
-   - 시안의 "10칸 segmented" + 가운데 정렬 느낌
+   Settings S3 (선호도 수정) 전용
+   - 공용(카드/헤더/저장버튼)은 settings_s2.css 재사용
+   - 여기서는 "문항 레이아웃 + 10칸 segmented slider"만 담당
    ========================= */
 
+/* ---------------------------------
+   0) 문항 블록을 "한 덩어리"로 중앙 정렬
+   - 데스크탑에서 아이콘은 왼쪽 끝, 텍스트는 가운데 뜨는 현상 방지
+---------------------------------- */
 .pref-edit-block {
-  padding: 10px 0;  /* 12 -> 10 */
+  max-width: 720px;     /* S2 edit-card 폭과 정렬감 맞춤 */
+  margin: 0 auto;       /* 블록 자체 중앙 */
+  padding: 14px 0;      /* 문항 간 간격 */
 }
 
+/* ---------------------------------
+   1) 문항 상단(아이콘 + 질문)
+---------------------------------- */
 .pref-edit-top {
   display: grid;
-  grid-template-columns: 76px 1fr;  /* 아이콘 영역 살짝 넓힘 */
+  grid-template-columns: 76px 1fr; /* 아이콘 컬럼 + 컨텐츠 컬럼 */
   gap: 12px;
   align-items: center;
   margin-bottom: 10px;
@@ -20,92 +32,68 @@
   height: 54px;
   object-fit: contain;
   display: block;
-  margin-left: 6px; /* 너무 왼쪽 벽에 붙는 느낌 완화 */
+  margin: 0 auto;       /* 아이콘 컬럼 중앙 */
 }
 
-/* 질문 텍스트: 중앙 정렬 유지하되 조금 더 타이트 */
 .pref-edit-q {
   font-weight: 600;
   font-size: 15px;
   line-height: 1.35;
+
+  /* 텍스트는 컨텐츠 컬럼 안에서만 중앙 정렬 */
   text-align: center;
   max-width: 520px;
-  margin: 0 auto;
+  margin: 0 auto;       /* 컨텐츠 컬럼 내 중앙 */
 }
 
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: transparent;
-}
-
-.back-btn img {
-  width: 18px;
-  height: 18px;
-  display: block;
-}
-
-/* 10칸 segmented slider */
+/* ---------------------------------
+   2) 10칸 segmented slider
+   - S1의 seg-bar 톤과 통일
+---------------------------------- */
 .seg-slider {
-  width: 520px;       /* PC에서 너무 짧지 않게 */
-  max-width: 100%;
-  margin: 0 auto;
+  max-width: 520px;     /* 질문 폭과 동일 */
+  width: 100%;
+  margin: 0 auto;       /* 컨텐츠 컬럼 기준 중앙 */
 
   display: grid;
   grid-template-columns: repeat(10, 1fr);
-  gap: 8px;           /* 시안처럼 일정한 간격 */
+  gap: 8px;
 }
 
-.seg {
-  height: 24px;       /* 납작하게: 18 -> 22~24 권장 */
+.seg-slider .seg {
+  appearance: none;
+  -webkit-appearance: none;
+
+  height: 24px;
+  padding: 0;
+
   border-radius: 7px;
   border: 2px solid rgba(244,121,0,0.45);
-  background: rgba(255,255,255,0.55);
-  padding: 0;
+  background: rgba(255,255,255,0.70);
+
   cursor: pointer;
+  outline: none;
 }
 
-.seg.is-on {
+.seg-slider .seg.is-on {
   background: var(--orange-1);
   border-color: var(--orange-1);
 }
 
-.seg:hover { filter: brightness(0.99); }
-.seg:active { transform: translateY(1px); }
-
-/* 저장 영역: 시안처럼 우측 아래에 정렬 */
-.edit-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 18px;
+/* 접근성: 키보드 포커스 */
+.seg-slider .seg:focus-visible {
+  box-shadow: 0 0 0 3px rgba(244,121,0,0.18);
 }
 
-/* 저장 버튼: pill + orange */
-.save-btn {
-  border: 0;
-  border-radius: 999px;
-  padding: 12px 16px;
-  font-weight: 800;
-  font-size: 13px;
-  background: var(--orange-1);
-  color: #fff;
-  box-shadow: 0 6px 14px rgba(244, 121, 0, 0.25);
-  cursor: pointer;
-}
+.seg-slider .seg:hover { filter: brightness(0.995); }
+.seg-slider .seg:active { transform: translateY(1px); }
 
-.save-btn:disabled {
-  background: rgba(244, 121, 0, 0.35);
-  box-shadow: none;
-  cursor: not-allowed;
-}
-
-/* 합계 안내 */
+/* ---------------------------------
+   3) 합계 안내
+---------------------------------- */
 .sum-hint {
-  margin-top: 10px;
+  max-width: 720px;
+  margin: 12px auto 0;
   text-align: center;
   font-size: 13px;
   font-weight: 600;
@@ -117,11 +105,36 @@
   color: var(--orange-1);
 }
 
-/* 모바일 */
+/* ---------------------------------
+   4) 모바일 최적화
+---------------------------------- */
 @media (max-width: 420px) {
-  .seg-slider { width: 300px; gap: 6px; }
-  .seg { height: 20px; border-radius: 6px; }
-  .pref-edit-q { font-size: 13px; max-width: 280px; }
-  .pref-edit-top { grid-template-columns: 64px 1fr; }
-  .pref-edit-icon { width: 44px; height: 44px; }
+  .pref-edit-block {
+    padding: 12px 0;
+  }
+
+  .pref-edit-top {
+    grid-template-columns: 64px 1fr;
+    gap: 10px;
+  }
+
+  .pref-edit-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .pref-edit-q {
+    font-size: 13px;
+    max-width: 280px;
+  }
+
+  .seg-slider {
+    max-width: 300px;
+    gap: 6px;
+  }
+
+  .seg-slider .seg {
+    height: 20px;
+    border-radius: 6px;
+  }
 }

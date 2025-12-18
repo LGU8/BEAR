@@ -1,7 +1,10 @@
 /* =========================
-   settings_s4.css (S4 전용 - final)
+   settings_s4.css (S4 전용 - FINAL)
+   - 전역 button reset 제거(스코프 제한)
+   - sticky 저장 버튼 겹침/깨짐 방지
    ========================= */
 
+/* back icon */
 .back-ico {
   width: 22px;
   height: 22px;
@@ -9,8 +12,8 @@
   object-fit: contain;
 }
 
-/* ✅ 브라우저 기본 버튼 스타일 제거(회색 버튼 방지) */
-button {
+/* ✅ S4 페이지 내부에서만 버튼 reset (전역 금지) */
+.settings-page .edit-card button {
   -webkit-appearance: none;
   appearance: none;
   background: none;
@@ -46,12 +49,13 @@ button {
   display: grid;
   grid-template-columns: 56px 1fr;
   gap: 12px;
+
+  /* ✅ 줄바꿈/문장 길이 변화에도 안정 */
   align-items: center;
 
   cursor: pointer;
 }
 
-/* hover */
 .select-item:hover { filter: brightness(0.99); }
 
 /* ✅ 선택 강조(시안 톤) */
@@ -89,7 +93,29 @@ button {
   margin: 18px 0;
 }
 
-/* ✅ 저장 버튼(시안과 동일한 pill) */
+/* ✅ 하단 고정 저장 영역
+   - sticky가 콘텐츠 위로 떠 보이지 않게 배경/패딩 처리
+   - safe-area 반영
+*/
+.edit-footer--sticky {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+
+  /* ✅ 떠 있는 느낌 제거 */
+  background: rgba(255, 245, 233, 0.92);
+
+  /* ✅ 하단 safe-area 대응 */
+  padding: 14px 0 calc(10px + env(safe-area-inset-bottom));
+}
+
+/* ✅ 카드 본문에 footer 만큼 하단 여백 확보 (겹침 방지) */
+.edit-card {
+  padding-bottom: 66px; /* save-btn height(44) + 여백 */
+}
+
+/* ✅ 저장 버튼(시안 pill) */
 .save-btn {
   display: inline-flex;
   align-items: center;
@@ -110,20 +136,13 @@ button {
   box-shadow: var(--shadow);
 }
 
+.save-btn:hover { filter: brightness(0.98); }
+
 .save-btn:disabled {
   background: rgba(244, 121, 0, 0.28);
   color: rgba(255,255,255,0.95);
   box-shadow: none;
   cursor: not-allowed;
-}
-
-/* ✅ 하단 고정(한 화면 저장 UX) */
-.edit-footer--sticky {
-  position: sticky;
-  bottom: 10px;
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 14px;
 }
 
 /* 모바일 최적화 */
@@ -135,5 +154,11 @@ button {
   .select-icon {
     width: 46px;
     height: 46px;
+  }
+
+  /* 모바일에서는 footer 배경이 과하게 두꺼워 보일 수 있어 톤 살짝 유지 */
+  .edit-footer--sticky {
+    background: rgba(255, 245, 233, 0.96);
+    padding: 12px 0 calc(10px + env(safe-area-inset-bottom));
   }
 }
