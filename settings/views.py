@@ -345,30 +345,87 @@ def settings_password(request):  # S5
     cust_id = ctx["cust_id"]
 
     if request.method == "POST":
-        pw1 = request.POST.get("password1") or ""
-        pw2 = request.POST.get("password2") or ""
+        cur_pw = (request.POST.get("current_password") or "").strip()
+        new_pw = (request.POST.get("new_password") or "").strip()
+        new_pw2 = (request.POST.get("new_password_confirm") or "").strip()
 
-        if len(pw1) < 4:
-            ctx["error"] = "비밀번호가 너무 짧습니다."
+        # 1) required
+        if not cur_pw or not new_pw or not new_pw2:
+            ctx["error"] = "모든 항목을 입력해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        if pw1 != pw2:
-            ctx["error"] = "비밀번호가 일치하지 않습니다."
+        # 2) 길이(프론트는 8자 기준이므로 서버도 동일 권장)
+        if len(new_pw) < 8:
+            ctx["error"] = "새 비밀번호는 8자 이상으로 입력해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        hashed = hashlib.sha256(pw1.encode("utf-8")).hexdigest()
+        # 3) 확인 일치
+        if new_pw != new_pw2:
+            ctx["error"] = "새 비밀번호와 확인이 일치하지 않습니다."
+            return render(request, "settings/settings_password.html", ctx)
 
+        # 4) 현재 비밀번호와 동일 방지
+        if cur_pw == new_pw:
+            ctx["error"] = "새 비밀번호는 현재 비밀번호와 다르게 입력해주세요."
+            return render(request, "settings/settings_password.html", ctx)
+
+        # 5) 현재 상태 조회(password/retry/lock)
+        cust_auth = _fetch_one(
+            """
+            SELECT password, retry_cnt, lock_yn
+            FROM CUST_TM
+            WHERE cust_id = %s
+            """,
+            (cust_id,),
+        )
+
+        if not cust_auth:
+            ctx["error"] = "사용자 정보를 찾을 수 없습니다."
+            return render(request, "settings/settings_password.html", ctx)
+
+        lock_yn = (cust_auth.get("lock_yn") or "N").strip()
+        retry_cnt = int(cust_auth.get("retry_cnt") or 0)
+        db_hash = (cust_auth.get("password") or "").strip()
+
+        # 6) 잠금이면 차단
+        if lock_yn == "Y":
+            ctx["error"] = "계정이 잠겨 있어요. 관리자에게 문의해주세요."
+            return render(request, "settings/settings_password.html", ctx)
+
+        # 7) 현재 비밀번호 검증(SHA256)
+        cur_hash = hashlib.sha256(cur_pw.encode("utf-8")).hexdigest()
+        if cur_hash != db_hash:
+            retry_cnt += 1
+            new_lock = "Y" if retry_cnt >= 5 else "N"
+            upd_dt = _now_yyyymmdd()
+            upd_time = _now_yyyymmddhhmmss()
+
+            _execute(
+                """
+                UPDATE CUST_TM
+                SET retry_cnt=%s, lock_yn=%s, updated_dt=%s, updated_time=%s
+                WHERE cust_id=%s
+                """,
+                (retry_cnt, new_lock, upd_dt, upd_time, cust_id),
+            )
+
+            ctx["error"] = "현재 비밀번호가 올바르지 않습니다."
+            return render(request, "settings/settings_password.html", ctx)
+
+        # 8) 변경 저장
+        new_hash = hashlib.sha256(new_pw.encode("utf-8")).hexdigest()
         upd_dt = _now_yyyymmdd()
         upd_time = _now_yyyymmddhhmmss()
 
         _execute(
             """
             UPDATE CUST_TM
-            SET password=%s, updated_dt=%s, updated_time=%s
+            SET password=%s, retry_cnt=%s, lock_yn=%s, updated_dt=%s, updated_time=%s
             WHERE cust_id=%s
             """,
-            (hashed, upd_dt, upd_time, cust_id),
+            (new_hash, 0, "N", upd_dt, upd_time, cust_id),
         )
+
         return redirect("settings_app:settings_index")
 
     return render(request, "settings/settings_password.html", ctx)
