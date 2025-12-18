@@ -18,7 +18,13 @@
         </div>
 
         <div class="profile-meta">
-          <div class="profile-title">{{ nickname|default:"BEAR" }}</div>
+          <div class="profile-title">
+            {% if nickname_is_empty %}
+              BEAR에게 이름을 알려주세요
+            {% else %}
+              {{ nickname }}
+            {% endif %}
+          </div>
           {% if created_dt_label %}
             <div class="profile-sub">{{ nickname|default:"BEAR" }}(가입일: {{ created_dt_label }})</div>
           {% else %}

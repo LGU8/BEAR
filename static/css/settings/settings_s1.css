@@ -1,98 +1,138 @@
 /* =========================
-   settings_s1.css (S1 전용)
-   목표:
-   - 시안처럼 카드톤/여백/seg bar 느낌 맞추기
+   S1 "움직임" 카드 컴팩트화 (시안 맞춤)
    ========================= */
 
-/* 1) 카드 배경을 시안처럼 조금 더 밝게 */
-.settings-page .settings-card {
-  background: rgba(255, 242, 221, 0.75); /* 기존보다 살짝 밝고 가벼움 */
+/* (A) 움직임 카드 내부 여백을 줄이고, 타이틀 아래 간격 줄이기 */
+.section-card .section-head { margin-bottom: 8px; }
+
+/* (B) 활동량 박스: 큰 흰 박스 느낌 제거 + 한 줄 카피 중심 */
+.move-box {
+  background: rgba(255,255,255,0.55); /* 기존 0.65보다 살짝 약하게 */
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-top: 8px;
+
+  /* 시안처럼 “라벨(좌) + 내용(우)” 느낌 */
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  column-gap: 10px;
+  align-items: center;
+
+  position: relative;
 }
 
-/* 2) 섹션 카드 간격/타이틀 라인 타이트하게 */
-.section-card .section-head {
-  margin-bottom: 6px;
+/* 왼쪽 오렌지 라인(시안의 얇은 포인트) */
+.move-box::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: var(--orange-1);
+  border-radius: 2px;
+  opacity: 0.9;
 }
 
-/* 3) 프로필 카드: 이메일 pill(시안 느낌) */
-.profile-email,
-.profile-email-pill {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 209, 124, 0.35);
-  font-size: 11px;
-  font-weight: 500;
-  color: rgba(0,0,0,0.65);
+/* 기존 구조(.move-left)를 grid 배치에 맞추기 */
+.move-left { grid-column: 2; }
+
+/* 라벨은 더 작고 단단하게 */
+.move-label {
+  grid-column: 1;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.1;
 }
 
-/* 4) Stats 단위(cm/kg)는 값 옆에 붙여도 “시안처럼 약하게” */
-.stat-value .unit {
-  font-weight: 500;
-  font-size: 11px;
-  color: rgba(0,0,0,0.55);
-  margin-left: 3px;
+/* 활동량 텍스트: 시안처럼 “짧고 컴팩트” */
+.move-value {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
 }
 
-/* 5) Preference: 질문 텍스트가 가운데 정렬에 가까워 보이도록 */
-.pref-row {
-  padding: 12px 0;
-  row-gap: 10px;
+/* 보조문구(설명) 더 작고 2줄 내로 */
+.move-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.25;
+  color: var(--text-sub);
+  white-space: pre-line;
 }
 
-/* 질문 텍스트 폭을 줄이고 중앙에 정렬되게 */
-.pref-text {
-  max-width: 330px;
-  margin: 0 auto;
-  text-align: center;
-  font-weight: 500;
-}
-
-/* 6) Preference: 10칸 segmented bar (시안 핵심) */
-.seg-bar {
-  /* 화면이 넓어져도 시안처럼 "고정된 덩어리"로 보이게 */
-  width: 320px;
-  max-width: 100%;
-  margin: 0 auto;
+/* (C) 목표 영역: 큰 선택 박스 제거 + 3아이콘 균등 배치 */
+.goal-box {
+  margin-top: 10px;
+  background: rgba(255,255,255,0.40);
+  border-radius: 14px;
+  padding: 10px 12px;
 
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 6px;                 /* 시안처럼 칸 간격 조금 */
+  grid-template-columns: 54px 1fr;
+  column-gap: 10px;
+  align-items: center;
+
+  position: relative;
 }
 
-.seg-bar .seg {
-  height: 18px;
-  border-radius: 4px;
-  background: #fff;
-  border: 1px solid rgba(244,121,0,0.45);
-}
-
-.seg-bar .seg.is-on {
+/* 목표 영역에도 왼쪽 라인 */
+.goal-box::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
   background: var(--orange-1);
-  border-color: var(--orange-1);
+  border-radius: 2px;
+  opacity: 0.9;
 }
 
-/* 7) Move box: 시안처럼 내부 박스 더 "하얗고" 여백 타이트 */
-.move-box {
-  background: rgba(255,255,255,0.65);
-  padding: 12px;
-}
+/* goal-box 안의 첫 라벨(목표)을 왼쪽 컬럼으로 고정 */
+.goal-box > .move-label { grid-column: 1; margin: 0; }
 
-/* 8) Goal: 선택 강조 박스가 너무 커 보이는 문제 축소 */
+/* goal-row를 오른쪽 컬럼에 */
 .goal-row {
-  margin-top: 8px;
+  grid-column: 2;
+  margin-top: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 10px;
 }
 
+/* goal-item: 박스형 강조 제거(시안은 “아이콘+텍스트” 중심) */
 .goal-item {
-  padding: 10px 6px;
-  border-radius: 14px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  text-align: center;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
 }
 
-/* 선택 상태(유지/다이어트/벌크업) 강조를 "텍스트 중심"으로 */
+/* 아이콘 크기: 시안처럼 작게 */
+.goal-item img {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 6px;
+}
+
+/* 텍스트도 작게 */
+.goal-item div {
+  font-size: 10px;
+  color: var(--text-sub);
+  font-weight: 400;
+}
+
+/* 활성만 진하게 */
 .goal-item.is-active {
-  background: rgba(244,121,0,0.10);
-  outline: 1px solid rgba(244,121,0,0.35);
+  opacity: 1;
 }
 
 .goal-item.is-active div {
@@ -100,8 +140,11 @@
   font-weight: 700;
 }
 
-/* 9) 모바일에서 타이틀/버튼 위치 안정 */
+/* (D) 모바일 폭에서 카드 내부 여백 더 줄이기 */
 @media (max-width: 420px) {
-  .pref-text { max-width: 280px; }
-  .seg-bar { width: 280px; }
+  .move-box, .goal-box {
+    padding: 10px 10px;
+    grid-template-columns: 48px 1fr;
+  }
+  .goal-item img { width: 32px; height: 32px; }
 }
