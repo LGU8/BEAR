@@ -16,4 +16,6 @@ urlpatterns = [
     path("signup_step4/", views.signup_step4, name="signup_step4"),
     # 3. 프로필 URL (views.profile 함수와 연결)
     path("profile/", views.profile, name="profile"),
+    path('password-reset/', views.password_reset, name='password_reset'),
+    path('test-login/', views.test_login_view, name='test_login'),
 ]

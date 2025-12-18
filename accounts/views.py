@@ -450,6 +450,28 @@ def signup_step4(request):
 
     return render(request, "accounts/signup_step4.html")
 
+from django.contrib.auth import authenticate, login
+from django.shortcuts import redirect
+from django.contrib import messages
+
+def test_login_view(request):
+    # 1. 테스트 계정 정보 설정 (DB에 이미 해당 정보가 있어야 합니다)
+    test_email = "test@test"
+    test_password = "11111111"
+
+    # 2. 사용자 인증 (Django 기본 auth를 사용하는 경우 기준)
+    # 만약 Cust 모델을 커스텀하여 사용 중이라면 해당 모델에 맞춰 인증 로직을 조정하세요.
+    user = authenticate(request, username=test_email, password=test_password)
+
+    if user is not None:
+        # 3. 인증 성공 시 세션 로그인 처리
+        login(request, user)
+        # 4. 'home' 페이지로 이동 (urls.py에 정의된 name='home' 기준)
+        return redirect('home')
+    else:
+        # 5. 테스트 계정이 DB에 없을 경우 에러 메시지와 함께 로그인 페이지로 리다이렉트
+        messages.error(request, "테스트 계정이 존재하지 않습니다. 관리자에게 문의하세요.")
+        return redirect('accounts_app:user_login')
 
 # accounts/views.py
 from django.contrib.auth.decorators import login_required

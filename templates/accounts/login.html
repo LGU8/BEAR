@@ -122,8 +122,10 @@
         <a href="{% url 'accounts_app:signup_step1' %}" class="btn btn-signup">회원가입</a>
 
         <div class="footer-links">
-            <a href="#">비밀번호를 잊으셨나요?</a>
+            <a href="{% url 'accounts_app:password_reset' %}">비밀번호를 잊으셨나요?</a>
+            <br><br> <a href="{% url 'accounts_app:test_login' %}" style="font-size: 0.8rem; text-decoration: underline;">둘러보기 (테스트 계정으로 로그인)</a>
         </div>
     </div>
 </div>
+
 {% endblock %}
