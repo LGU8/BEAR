@@ -52,8 +52,7 @@ $(function () {
   <div class="feedback-card">
     <img class="feedback-ico" src="{% static 'icons_img/bear_report.png' %}" alt="bear feedback">
     <div class="feedback-text">
-      오늘은 조금 힘들었겠지만, 긍정적인 기운이 더 많았어.
-      단백질이 풍부한 식사로 힘을 보충해보자!
+      오늘은 조금 힘들었겠지만, 긍정적인 기운이 더 많았어. 단백질이 풍부한 식사로 힘을 보충해보자!
       햇살 가득한 저녁이 너를 따뜻하게 감싸줬을 거야.
     </div>
   </div>
@@ -67,35 +66,48 @@ $(function () {
     <span>영양소</span>
   </div>
 
+  <!-- 토글 버튼 -->
   <div class="nutrition-toggle">
-    <button class="button_active" data-target="summary">요약</button>
-    <span>|</span>
-    <button data-target="detail">자세히</button>
+    <button class="toggle-btn active" data-target="summary">요약</button>
+    <span class="divider">|</span>
+    <button class="toggle-btn" data-target="detail">자세히</button>
   </div>
 
-  <div class="nut-row">
-    <div class="nut-title">칼로리</div>
-    <div class="nut-text">1000 / 2000 kcal</div>
-    <div class="nut-bar"><span style="width:40%"></span></div>
+  <!-- 요약 내용 (기본 노출) -->
+  <div class="nutrition-content summary-content">
+      <div class="nut-row">
+        <div class="nut-title">칼로리</div>
+        <div class="nut-text">1000 / 2000 kcal</div>
+        <div class="nut-bar"><span style="width:40%"></span></div>
+      </div>
+
+      <div class="nut-row">
+        <div class="nut-title">탄수화물</div>
+        <div class="nut-text">180 / 300 g</div>
+        <div class="nut-bar"><span style="width:60%"></span></div>
+      </div>
+
+      <div class="nut-row">
+        <div class="nut-title">단백질</div>
+        <div class="nut-text">90 / 120 g</div>
+        <div class="nut-bar"><span style="width:75%"></span></div>
+      </div>
+
+      <div class="nut-row">
+        <div class="nut-title">지방</div>
+        <div class="nut-text">40 / 60 g</div>
+        <div class="nut-bar"><span style="width:66%"></span></div>
+      </div>
   </div>
 
-  <div class="nut-row">
-    <div class="nut-title">탄수화물</div>
-    <div class="nut-text">180 / 300 g</div>
-    <div class="nut-bar"><span style="width:60%"></span></div>
+  <!-- 자세히 내용 (기본 숨김) -->
+  <div class="nutrition-content detail-content">
+    자세히 내용
   </div>
+</div>
 
-  <div class="nut-row">
-    <div class="nut-title">단백질</div>
-    <div class="nut-text">90 / 120 g</div>
-    <div class="nut-bar"><span style="width:75%"></span></div>
-  </div>
 
-  <div class="nut-row">
-    <div class="nut-title">지방</div>
-    <div class="nut-text">40 / 60 g</div>
-    <div class="nut-bar"><span style="width:66%"></span></div>
-  </div>
+
 </div>
 
 <!-- =========================
@@ -110,5 +122,31 @@ $(function () {
     Donut Chart
   </div>
 </div>
+
+<script>
+  document.querySelectorAll('.nutrition-toggle .toggle-btn')
+    .forEach(button => {
+
+      button.addEventListener('click', () => {
+
+        // 1️⃣ 버튼 상태 초기화
+        document.querySelectorAll('.nutrition-toggle .toggle-btn')
+          .forEach(btn => btn.classList.remove('active'));
+
+        // 2️⃣ 클릭한 버튼 활성화
+        button.classList.add('active');
+
+        // 3️⃣ 어떤 내용 보여줄지 결정
+        const target = button.dataset.target;
+
+        document.querySelector('.summary-content').style.display =
+          target === 'summary' ? 'block' : 'none';
+
+        document.querySelector('.detail-content').style.display =
+          target === 'detail' ? 'block' : 'none';
+      });
+
+    });
+</script>
 
 {% endblock %}
