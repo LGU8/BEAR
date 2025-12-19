@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/locales/bootstrap-datepicker.ko.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- 일일 / 주간 탭 -->
 <div class="bear-tabs-bar report-period-tabs">
@@ -114,12 +115,24 @@ $(function () {
         <div class="meal-menu-title">메뉴</div>
         <div class="meal-menu-text">계란후라이, 토스트</div>
       </div>
+
+    <!-- 칼로리 + 탄단지 그래프 -->
+    <div class="meal-nutrition-row">
+      <!-- 왼쪽: 칼로리 텍스트 -->
+      <div class="meal-calorie-text">
+        520 kcal
+      </div>
+
+      <!-- 오른쪽: 가로 누적 막대 -->
+      <div class="meal-macro-chart">
+        <canvas id="macroChart"></canvas>
+      </div>
+    </div>
+
   </div>
 </div>
 
 
-
-</div>
 
 <!-- =========================
      기분 카드
@@ -135,43 +148,94 @@ $(function () {
 </div>
 
 <script>
-  document.querySelectorAll('.nutrition-toggle .toggle-btn')
-    .forEach(button => {
+  document.addEventListener("DOMContentLoaded", () => {
 
-      button.addEventListener('click', () => {
+    /*  요약 / 자세히 토글 */
+    document.querySelectorAll('.nutrition-toggle .toggle-btn')
+      .forEach(button => {
+        button.addEventListener('click', () => {
 
-        // 1️⃣ 버튼 상태 초기화
-        document.querySelectorAll('.nutrition-toggle .toggle-btn')
-          .forEach(btn => btn.classList.remove('active'));
+          document.querySelectorAll('.nutrition-toggle .toggle-btn')
+            .forEach(btn => btn.classList.remove('active'));
+          button.classList.add('active');
 
-        // 2️⃣ 클릭한 버튼 활성화
-        button.classList.add('active');
+          const target = button.dataset.target;
 
-        // 3️⃣ 어떤 내용 보여줄지 결정
-        const target = button.dataset.target;
-
-        document.querySelector('.summary-content').style.display =
-          target === 'summary' ? 'block' : 'none';
-
-        document.querySelector('.detail-content').style.display =
-          target === 'detail' ? 'block' : 'none';
+          document.querySelector('.summary-content').style.display =
+            target === 'summary' ? 'block' : 'none';
+          document.querySelector('.detail-content').style.display =
+            target === 'detail' ? 'block' : 'none';
+        });
       });
 
+
+    /*  자세히 - 더미 데이터  */
+    const mealMacroData = {
+      morning: { carb: 260, protein: 120, fat: 140, kcal: 520 },
+      lunch:   { carb: 300, protein: 180, fat: 160, kcal: 640 },
+      dinner:  { carb: 200, protein: 220, fat: 180, kcal: 600 }
+    };
+
+
+    /* 가로 누적 막대그래프 */
+    let macroChart = null;
+
+    function renderMacroChart(data) {
+      const canvas = document.getElementById("macroChart");
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+
+      if (macroChart) macroChart.destroy();
+
+      macroChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["macro"],
+          datasets: [
+            { data: [data.carb],    backgroundColor: "#FFD07C", stack: "macro" },
+            { data: [data.protein], backgroundColor: "#FFE2B6", stack: "macro" },
+            { data: [data.fat],     backgroundColor: "#FFB845", stack: "macro" }
+          ]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { stacked: true, display: false },
+            y: { stacked: true, display: false }
+          }
+        }
+      });
+    }
+
+
+    /* meal-btn 클릭 + 초기 상태 */
+
+    // 초기 상태: 아침
+    renderMacroChart(mealMacroData.morning);
+    document.querySelector('.meal-calorie-text').textContent = "520 kcal";
+
+    document.querySelectorAll('.meal-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+
+        document.querySelectorAll('.meal-btn')
+          .forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const meal = btn.dataset.meal;
+
+        document.querySelector('.meal-calorie-text').textContent =
+          `${mealMacroData[meal].kcal} kcal`;
+
+        renderMacroChart(mealMacroData[meal]);
+      });
     });
 
-  document.querySelectorAll('.meal-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-
-      // 1️⃣ 모든 식사 이미지 비활성화
-      document.querySelectorAll('.meal-btn')
-        .forEach(b => b.classList.remove('active'));
-
-      // 2️⃣ 클릭한 이미지 활성화
-      btn.classList.add('active');
-
-      // (메뉴 텍스트 변경은 나중에 추가)
-    });
   });
 </script>
+
 
 {% endblock %}

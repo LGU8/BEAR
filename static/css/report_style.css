@@ -168,7 +168,7 @@
   display: flex;
   flex-direction: column;
 
-  margin-bottom: 16px;   /* 🔥 카드 간 간격 */
+  margin-bottom: 16px;   /* 카드 간 간격 */
 }
 
 /* 마지막 카드 여백 */
@@ -309,7 +309,7 @@
 
 /* 메뉴 영역 전체 */
 .meal-menu {
-  margin-top: 20px;
+  margin-top: 40px;
   text-align: left;
   padding-left: 30px;
 }
@@ -326,6 +326,45 @@
   font-size: 14px;
   line-height: 1.6;
 }
+
+/* 칼로리 + 그래프 한 줄 */
+.meal-nutrition-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 40px;
+  padding-left: 30px;
+  width: 100%;
+}
+
+.nut-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 6px;
+  padding: 10px 20px;
+}
+
+/* 칼로리 텍스트 */
+.meal-calorie-text {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 그래프 영역 */
+.meal-macro-chart {
+  height: 16px;         /* 가로 막대 높이 */
+  padding-right: 20px;
+  box-sizing: border-box;
+}
+
+.meal-macro-chart canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 
 /* ─────────────────────────────
    Mood 카드
