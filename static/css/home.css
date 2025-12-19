@@ -4,7 +4,7 @@
 
 .home {
   width: 100%;
-  max-width: 960px;      /* 필요하면 1024px도 OK */
+  max-width: 960px;
   margin: 0 auto;
   padding: 16px 14px 80px;
   box-sizing: border-box;
@@ -61,6 +61,21 @@
   margin: 0;
 }
 
+/* ✅ 추가: empty-state 링크 */
+.empty-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFB845;             /* 긍정 색상과 동일 톤 */
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.empty-link:hover {
+  opacity: 0.9;
+}
+
 
 /* ==============================
    메뉴 추천
@@ -102,7 +117,7 @@
   font-size: 13px;
   line-height: 1.6;
   color: #444;
-  white-space: pre-line;   /* 줄바꿈 유지 */
+  white-space: pre-line;
   margin: 0;
 }
 
@@ -118,8 +133,8 @@
 .donut-wrap {
   position: relative;
   width: clamp(180px, 40vw, 260px);
-  aspect-ratio: 1 / 1;     /* 정사각 유지 */
-  height: auto;            /* aspect-ratio로 높이 관리 */
+  aspect-ratio: 1 / 1;
+  height: auto;
   margin: 0 auto;
 }
 
@@ -156,7 +171,7 @@
   justify-content: space-around;
   gap: 8px;
   margin-top: 12px;
-  flex-wrap: wrap; /* 작은 화면에서 줄바꿈 허용 */
+  flex-wrap: wrap;
 }
 
 .legend-item {
@@ -173,9 +188,9 @@
   border-radius: 50%;
 }
 
-.legend-pos { background-color: #F6C453; }
-.legend-neu { background-color: #DDD; }
-.legend-neg { background-color: #F28B82; }
+/* ✅ 변경: 2조각 색상 규칙 */
+.legend-pos  { background-color: #FFB845; }
+.legend-rest { background-color: #FFD07C; }
 
 
 /* ==============================
@@ -189,7 +204,7 @@
   font-size: 11px;
   color: #999;
   margin-bottom: 8px;
-  flex-wrap: wrap; /* 좁아지면 줄바꿈 */
+  flex-wrap: wrap;
 }
 
 .macro-label {
@@ -233,7 +248,7 @@
 
 .meal-bars {
   flex: 1 1 auto;
-  min-width: 0; /* flex overflow 방지 */
+  min-width: 0;
 }
 
 .bar-group {
@@ -249,15 +264,13 @@
   min-width: 0;
 }
 
-/* 실제 값은 JS에서 width %로 제어해도 되고,
-   지금은 일단 균등 막대(placeholder) */
 .bar-carb { background-color: #F6C453; }
 .bar-prot { background-color: #7BC96F; }
 .bar-fat  { background-color: #F28B82; }
 
 
 /* =========================================================
-   ✅ 반응형: Tablet (<=768px)  — 네비바 방식과 동일 톤
+   ✅ 반응형: Tablet (<=768px)
    ========================================================= */
 
 @media (max-width: 768px) {
@@ -283,44 +296,47 @@
     font-size: 11px;
   }
 
-  /* 메뉴 추천 */
   .reco-title {
     font-size: 13px;
   }
+
   .reco-reason {
     font-size: 11.5px;
   }
 
-  /* 리포트 */
   .report-content {
     font-size: 12.5px;
   }
 
-  /* 도넛 크기 축소 */
   .donut-wrap {
     width: 210px;
     height: 210px;
   }
+
   .donut-number {
     font-size: 24px;
   }
+
   .donut-caption {
     font-size: 11.5px;
   }
+
   .legend-item {
     font-size: 11.5px;
   }
 
-  /* 식단 */
   .meal-left {
     width: 66px;
   }
+
   .meal-label {
     font-size: 12.5px;
   }
+
   .meal-kcal {
     font-size: 10.5px;
   }
+
   .bar {
     height: 9px;
   }
@@ -328,7 +344,7 @@
 
 
 /* =========================================================
-   ✅ 반응형: Mobile (<=480px) — 네비바 방식과 동일 톤
+   ✅ 반응형: Mobile (<=480px)
    ========================================================= */
 
 @media (max-width: 480px) {
@@ -354,68 +370,78 @@
     font-size: 11px;
   }
 
-  /* 메뉴 추천 */
   .reco-item {
     padding: 7px 0;
   }
+
   .reco-title {
     font-size: 12.8px;
   }
+
   .reco-reason {
     font-size: 11px;
   }
 
-  /* 리포트 */
   .report-content {
     font-size: 12px;
     line-height: 1.55;
   }
 
-  /* 도넛 더 작게 */
   .donut-wrap {
     width: 180px;
     height: 180px;
   }
+
   .donut-center {
     width: 75%;
   }
+
   .donut-number {
     font-size: 22px;
   }
+
   .donut-caption {
     font-size: 11px;
   }
+
   .donut-legend {
     margin-top: 10px;
   }
+
   .legend-item {
     font-size: 11px;
   }
+
   .legend-dot {
     width: 7px;
     height: 7px;
   }
 
-  /* 식단: 폭이 좁으니 왼쪽 폭도 줄이고 gap 축소 */
   .meal-row {
     gap: 8px;
   }
+
   .meal-left {
     width: 60px;
   }
+
   .meal-label {
     font-size: 12px;
   }
+
   .meal-kcal {
     font-size: 10px;
   }
+
   .macro-head {
     font-size: 10.5px;
     gap: 5px;
   }
+
   .macro-label {
     width: 44px;
   }
+
   .macro-pill {
     padding: 2px 5px;
   }
@@ -423,8 +449,30 @@
   .bar-group {
     gap: 5px;
   }
+
   .bar {
     height: 8px;
     border-radius: 5px;
   }
+}
+
+.donut-wrap {
+  position: relative;
+  width: clamp(180px, 40vw, 260px);
+  aspect-ratio: 1 / 1;
+  min-height: 180px; /* ✅ 추가: 0 높이 방지 */
+  margin: 0 auto;
+  min-height: 180px;
+}
+.legend-pos  { background-color: #FFB845; }
+.legend-rest { background-color: #FFD07C; }
+
+.empty-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFB845;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

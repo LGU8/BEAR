@@ -12,7 +12,6 @@
   <section class="home-section" id="section-menu-reco">
     <div class="section-head">
       <h4 class="section-title">메뉴 추천</h4>
-      <!-- 필요하면: 더보기 링크 -->
       {# <a class="section-more" href="{% url 'menu_reco' %}">더보기</a> #}
     </div>
 
@@ -77,7 +76,7 @@
   </section>
 
 
-  <!-- 3) 긍정 도넛 차트 -->
+  <!-- 3) 긍정 도넛 차트 (2조각: pos vs neu+neg) -->
   <section class="home-section" id="section-positive-donut">
     <div class="section-head">
       <h4 class="section-title">긍정 도넛 차트</h4>
@@ -88,55 +87,53 @@
 
     <div class="section-card donut-card">
       {% comment %}
-        context 예시:
+        ✅ 변경된 context 권장 형태:
         donut = {
           "rgs_dt": "20250408",
-          "pos_count": 8,
-          "neu_count": 1,
-          "neg_count": 1,
-          "pos_ratio": 0.82,   # 0~1
-          "pos_pct": 82        # 0~100
+
+          "pos_count": 1,
+          "neu_count": 1,   # 있어도 되고
+          "neg_count": 0,   # 있어도 됨
+
+          "rest_count": 1,  # neu+neg 합 (권장)
+          "total": 2,       # pos+neu+neg 합 (권장)
+
+          "pos_pct": 50     # 정수 0~100 (반올림)
         }
       {% endcomment %}
 
-      <div class="donut-wrap">
-        <!-- Chart.js 등으로 붙일 canvas -->
-        <canvas id="positiveDonutChart" width="240" height="240"></canvas>
+      {% if donut and donut.total %}
+        <!-- 기록 있음: 차트 + legend 표시 -->
+        <div class="donut-wrap">
+          <canvas id="positiveDonutChart" width="240" height="240"></canvas>
 
-        <!-- 중앙 숫자(차트 없이도 보이게) -->
-        <div class="donut-center">
-          <div class="donut-number">
-            {% if donut and donut.pos_pct is not None %}
-              {{ donut.pos_pct }}%
-            {% else %}
-              0%
-            {% endif %}
+          <div class="donut-center">
+            <div class="donut-number">
+              긍정 {% if donut.pos_pct is not None %}{{ donut.pos_pct }}{% else %}0{% endif %}%
+            </div>
+            <div class="donut-caption">오늘의 긍정 비율</div>
           </div>
-          <div class="donut-caption">오늘의 긍정 비율</div>
         </div>
-      </div>
 
-      <div class="donut-legend">
-        <div class="legend-item">
-          <span class="legend-dot legend-pos"></span>
-          <span class="legend-text">긍정</span>
-          <span class="legend-value">{% if donut %}{{ donut.pos_count|default:0 }}{% else %}0{% endif %}</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-dot legend-neu"></span>
-          <span class="legend-text">중립</span>
-          <span class="legend-value">{% if donut %}{{ donut.neu_count|default:0 }}{% else %}0{% endif %}</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-dot legend-neg"></span>
-          <span class="legend-text">부정</span>
-          <span class="legend-value">{% if donut %}{{ donut.neg_count|default:0 }}{% else %}0{% endif %}</span>
-        </div>
-      </div>
+        <div class="donut-legend">
+          <div class="legend-item">
+            <span class="legend-dot legend-pos"></span>
+            <span class="legend-text">긍정</span>
+            <span class="legend-value">{{ donut.pos_count|default:0 }}</span>
+          </div>
 
-      {% if not donut %}
+          <div class="legend-item">
+            <span class="legend-dot legend-rest"></span>
+            <span class="legend-text">중립+부정</span>
+            <span class="legend-value">{{ donut.rest_count|default:0 }}</span>
+          </div>
+        </div>
+
+      {% else %}
+        <!-- 기록 없음: 문구 + 링크만 표시 -->
         <div class="empty-state">
           <p class="empty-text">오늘 감정 기록이 아직 없어요.</p>
+          <a class="empty-link" href="/record">오늘 감정 기록하러 가기</a>
         </div>
       {% endif %}
     </div>
@@ -182,7 +179,6 @@
               </div>
 
               <div class="meal-bars">
-                <!-- 여기 막대는 나중에 CSS width%로 붙이거나 JS로 계산 -->
                 <div class="bar-group">
                   <div class="bar bar-carb" data-value="{{ r.carb_g|default:0 }}"></div>
                   <div class="bar bar-prot" data-value="{{ r.prot_g|default:0 }}"></div>
@@ -204,6 +200,12 @@
 {% endblock %}
 
 {% block extra_js %}
-{# 차트/막대 렌더링 JS는 나중에 디테일 단계에서 붙이자 #}
-<script src="{% static 'js/home.js' %}"></script>
+  {# 1) donut 데이터를 안전한 JSON으로 HTML에 심기 #}
+  {{ donut|default:None|json_script:"donut-data" }}
+
+  {# 2) Chart.js 먼저 로딩 #}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  {# 3) 그 다음 home.js #}
+  <script src="{% static 'js/home.js' %}"></script>
 {% endblock %}

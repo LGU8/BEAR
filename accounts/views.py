@@ -96,6 +96,8 @@ def user_login(request):
             # 1. 장고 세션 로그인
             login(request, user)
 
+            request.session["cust_id"] = user.cust_id
+            print("DEBUG session cust_id set:", request.session["cust_id"])
             # 2. 로그인 이력 생성을 위한 정보 준비
             max_seq = LoginHistory.objects.filter(cust=user).aggregate(Max('seq'))['seq__max'] or 0
             new_seq = max_seq + 1
