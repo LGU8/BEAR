@@ -102,7 +102,18 @@ $(function () {
 
   <!-- 자세히 내용 (기본 숨김) -->
   <div class="nutrition-content detail-content">
-    자세히 내용
+      <!-- 식사 시간 선택 -->
+      <div class="meal-toggle">
+        <img src="/static/icons_img/morning.png" class="meal-btn active" data-meal="morning" alt="아침">
+        <img src="/static/icons_img/lunch.png" class="meal-btn" data-meal="lunch" alt="점심">
+        <img src="/static/icons_img/dinner.png" class="meal-btn" data-meal="dinner" alt="저녁">
+      </div>
+
+      <!-- 메뉴명 표시 -->
+      <div class="meal-menu">
+        <div class="meal-menu-title">메뉴</div>
+        <div class="meal-menu-text">계란후라이, 토스트</div>
+      </div>
   </div>
 </div>
 
@@ -147,6 +158,20 @@ $(function () {
       });
 
     });
+
+  document.querySelectorAll('.meal-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+
+      // 1️⃣ 모든 식사 이미지 비활성화
+      document.querySelectorAll('.meal-btn')
+        .forEach(b => b.classList.remove('active'));
+
+      // 2️⃣ 클릭한 이미지 활성화
+      btn.classList.add('active');
+
+      // (메뉴 텍스트 변경은 나중에 추가)
+    });
+  });
 </script>
 
 {% endblock %}

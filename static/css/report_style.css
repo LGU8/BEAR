@@ -178,7 +178,7 @@
 
 /* 카드 제목 */
 .summary-title {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .summary-title span {
@@ -218,7 +218,8 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-bottom: 8px;
+  padding-right:20px;
+  margin-bottom: 10px;
 }
 /* 버튼 기본 상태 (선택 안 됨) */
 .toggle-btn {
@@ -255,7 +256,7 @@
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto;
   gap: 6px;
-  padding: 10px 0;
+  padding: 10px 20px;
 }
 
 .nut-title {
@@ -280,6 +281,50 @@
   display: block;
   height: 100%;
   background: #F47900;
+}
+
+/* 식사 선택 영역 */
+.meal-toggle {
+  display: flex;
+  justify-content: left;
+  gap: 25px;
+  padding-left: 20px;
+}
+
+/* 기본 이미지 */
+.meal-btn {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  opacity: 0.4;          /* 선택 안 됨 */
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* 선택된 식사 */
+.meal-btn.active {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* 메뉴 영역 전체 */
+.meal-menu {
+  margin-top: 20px;
+  text-align: left;
+  padding-left: 30px;
+}
+
+/* "메뉴" 타이틀 */
+.meal-menu-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+/* 실제 메뉴명 */
+.meal-menu-text {
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 /* ─────────────────────────────
