@@ -53,9 +53,7 @@
          data-has-report="{% if daily_report and daily_report.content %}1{% else %}0{% endif %}">
   <div class="section-head">
     <h4 class="section-title">일일 리포트</h4>
-    {% if daily_report and daily_report.rgs_dt %}
-      <span class="section-subtitle">{{ daily_report.rgs_dt }}</span>
-    {% endif %}
+    
   </div>
 
   <div class="section-card daily-report-card">

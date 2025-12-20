@@ -114,7 +114,7 @@
 
 .daily-report-inner {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
 }
 
@@ -122,6 +122,10 @@
 .daily-report-date {
   width: 110px;               /* ✅ 고정 폭 */
   flex: 0 0 110px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;  
 }
 
 .daily-report-date-top {
@@ -144,6 +148,8 @@
   flex: 1;
   padding-left: 12px;
   border-left: 1px solid rgba(0, 0, 0, 0.10); /* ✅ 구분선 */
+  display: flex;
+  align-items: center;  
 }
 
 .report-content {
@@ -153,8 +159,7 @@
   line-height: 1.55;
 
   /* ✅ content 일정 높이 이상 스크롤 */
-  max-height: 160px;
-  overflow-y: auto;
+  
   white-space: pre-line;  /* content에 \n 있으면 줄바꿈 유지 */
 }
 
@@ -169,22 +174,25 @@
 
 @media (max-width: 480px) {
   .daily-report-inner {
-    flex-direction: column; /* ✅ 위/아래 세로 스택 */
-    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .daily-report-date {
     width: 100%;
-    flex: 0 0 auto;
+    align-items: center;   /* 모바일에서는 날짜 가운데 정렬 */
+    text-align: center;
   }
 
   .daily-report-body {
-    border-left: none;         /* 세로 스택에서는 좌측 divider 제거 */
+    border-left: none;
     padding-left: 0;
     padding-top: 10px;
-    border-top: 1px solid rgba(0, 0, 0, 0.10); /* 구분선 역할을 위쪽으로 */
+    border-top: 1px solid rgba(0, 0, 0, 0.10);
+    justify-content: center;  /* content 세로 중앙 */
   }
 }
+
 
 
 /* ==============================
