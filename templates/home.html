@@ -105,13 +105,13 @@
       {% if donut and donut.total %}
         <!-- 기록 있음: 차트 + legend 표시 -->
         <div class="donut-wrap">
-          <canvas id="positiveDonutChart" width="240" height="240"></canvas>
+          <canvas id="positiveDonutChart" width="200" height="200"></canvas>
 
           <div class="donut-center">
+            <div class="donut-caption">오늘의 긍정 비율</div>
             <div class="donut-number">
               긍정 {% if donut.pos_pct is not None %}{{ donut.pos_pct }}{% else %}0{% endif %}%
             </div>
-            <div class="donut-caption">오늘의 긍정 비율</div>
           </div>
         </div>
 
@@ -119,13 +119,11 @@
           <div class="legend-item">
             <span class="legend-dot legend-pos"></span>
             <span class="legend-text">긍정</span>
-            <span class="legend-value">{{ donut.pos_count|default:0 }}</span>
           </div>
 
           <div class="legend-item">
             <span class="legend-dot legend-rest"></span>
-            <span class="legend-text">중립+부정</span>
-            <span class="legend-value">{{ donut.rest_count|default:0 }}</span>
+            <span class="legend-text">긍정 외</span>
           </div>
         </div>
 

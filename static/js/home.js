@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const chart = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: ["긍정", "중립+부정"],
+      labels: ["긍정", "긍정 외"],
       datasets: [
         {
           data: [pos_count, rest_count],
@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: "70%",
+      cutout: "55%",
       plugins: {
         legend: { display: false },
         tooltip: {

@@ -10,7 +10,6 @@
   box-sizing: border-box;
 }
 
-
 /* ==============================
    섹션 공통
    ============================== */
@@ -45,7 +44,6 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 
-
 /* ==============================
    Empty State
    ============================== */
@@ -61,13 +59,12 @@
   margin: 0;
 }
 
-/* ✅ 추가: empty-state 링크 */
 .empty-link {
   display: inline-block;
   margin-top: 8px;
   font-size: 13px;
   font-weight: 700;
-  color: #FFB845;             /* 긍정 색상과 동일 톤 */
+  color: #FFB845;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -75,7 +72,6 @@
 .empty-link:hover {
   opacity: 0.9;
 }
-
 
 /* ==============================
    메뉴 추천
@@ -108,7 +104,6 @@
   margin-top: 2px;
 }
 
-
 /* ==============================
    일일 리포트
    ============================== */
@@ -120,7 +115,6 @@
   white-space: pre-line;
   margin: 0;
 }
-
 
 /* ==============================
    긍정 도넛 차트
@@ -135,6 +129,7 @@
   width: clamp(180px, 40vw, 260px);
   aspect-ratio: 1 / 1;
   height: auto;
+  min-height: 180px; /* ✅ 0 높이 방지 */
   margin: 0 auto;
 }
 
@@ -150,11 +145,11 @@
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  width: 70%;
+  width: 50%;
 }
 
 .donut-number {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 800;
   color: #333;
   line-height: 1.1;
@@ -188,10 +183,8 @@
   border-radius: 50%;
 }
 
-/* ✅ 변경: 2조각 색상 규칙 */
 .legend-pos  { background-color: #FFB845; }
 .legend-rest { background-color: #FFD07C; }
-
 
 /* ==============================
    오늘 먹은 것들
@@ -268,7 +261,6 @@
 .bar-prot { background-color: #7BC96F; }
 .bar-fat  { background-color: #F28B82; }
 
-
 /* =========================================================
    ✅ 반응형: Tablet (<=768px)
    ========================================================= */
@@ -310,7 +302,6 @@
 
   .donut-wrap {
     width: 210px;
-    height: 210px;
   }
 
   .donut-number {
@@ -341,7 +332,6 @@
     height: 9px;
   }
 }
-
 
 /* =========================================================
    ✅ 반응형: Mobile (<=480px)
@@ -389,7 +379,7 @@
 
   .donut-wrap {
     width: 180px;
-    height: 180px;
+    min-height: 180px; /* 모바일에서도 안전 */
   }
 
   .donut-center {
@@ -454,25 +444,4 @@
     height: 8px;
     border-radius: 5px;
   }
-}
-
-.donut-wrap {
-  position: relative;
-  width: clamp(180px, 40vw, 260px);
-  aspect-ratio: 1 / 1;
-  min-height: 180px; /* ✅ 추가: 0 높이 방지 */
-  margin: 0 auto;
-  min-height: 180px;
-}
-.legend-pos  { background-color: #FFB845; }
-.legend-rest { background-color: #FFD07C; }
-
-.empty-link {
-  display: inline-block;
-  margin-top: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #FFB845;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
