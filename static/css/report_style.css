@@ -144,7 +144,7 @@
    Datepicker
    ───────────────────────────── */
 .report-datepicker {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .report-datepicker input.form-control {
@@ -168,7 +168,7 @@
   display: flex;
   flex-direction: column;
 
-  margin-bottom: 16px;   /* 카드 간 간격 */
+  margin-bottom: 20px;   /* 카드 간 간격 */
 }
 
 /* 마지막 카드 여백 */
@@ -178,7 +178,7 @@
 
 /* 카드 제목 */
 .summary-title {
-  margin-bottom: 12px;
+  padding: 10px 12px;
 }
 
 .summary-title span {
@@ -191,6 +191,7 @@
    ───────────────────────────── */
 .feedback-card {
   background: #FFFFFF;
+  margin: 10px;
   padding: 20px;
   border-radius: 18px;
 
@@ -214,18 +215,30 @@
 /* ─────────────────────────────
    Nutrition 카드
    ───────────────────────────── */
+/* 영양소 카드 헤더 */
+.nutrition-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+/* 영양소 제목 */
+.nutrition-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
 .nutrition-toggle {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  padding-right:20px;
-  margin-bottom: 10px;
 }
+
 /* 버튼 기본 상태 (선택 안 됨) */
 .toggle-btn {
   background: transparent;
   border: none;
-  padding: 0;
   font-size: 14px;
   color: #9B9B9B;            /*  회색 */
   cursor: pointer;
@@ -245,6 +258,7 @@
 /* 콘텐츠 기본 상태 */
 .summary-content {
   display: block;
+  margin-top: 12px
 }
 
 .detail-content {
@@ -256,16 +270,18 @@
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto;
   gap: 6px;
-  padding: 10px 20px;
+  padding: 12px 30px;
 }
 
 .nut-title {
   font-size: 14px;
+  font-weight: 500;
 }
 
 .nut-text {
   font-size: 14px;
   text-align: right;
+  color: #3C3C43;
 }
 
 .nut-bar {
@@ -277,24 +293,41 @@
   overflow: hidden;
 }
 
+/* 실제 그래프 */
 .nut-bar span {
   display: block;
   height: 100%;
-  background: #F47900;
+  width: 0%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+/* DETAIL GRID */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  padding: 24px 20px;
+}
+
+/* LEFT */
+.detail-left {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #FFB845;
+  padding-right: 80px;
 }
 
 /* 식사 선택 영역 */
 .meal-toggle {
   display: flex;
-  justify-content: left;
-  gap: 25px;
+  justify-content: space-between;
   padding-left: 20px;
 }
 
 /* 기본 이미지 */
 .meal-btn {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
   opacity: 0.4;          /* 선택 안 됨 */
   cursor: pointer;
@@ -311,7 +344,7 @@
 .meal-menu {
   margin-top: 40px;
   text-align: left;
-  padding-left: 30px;
+  padding-left: 40px;
 }
 
 /* "메뉴" 타이틀 */
@@ -327,44 +360,25 @@
   line-height: 1.6;
 }
 
-/* 칼로리 + 그래프 한 줄 */
-.meal-nutrition-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+/* RIGHT */
+.detail-right {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  margin-top: 40px;
-  padding-left: 30px;
-  width: 100%;
+  justify-content: center;
+  padding-left: 25px;
 }
 
-.nut-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
-  gap: 6px;
-  padding: 10px 20px;
+/* 도넛 차트 영역 */
+.meal-donut-wrap {
+  width: 200px;
+  height: 200px;
 }
 
-/* 칼로리 텍스트 */
-.meal-calorie-text {
-  font-size: 14px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-/* 그래프 영역 */
-.meal-macro-chart {
-  height: 16px;         /* 가로 막대 높이 */
-  padding-right: 20px;
-  box-sizing: border-box;
-}
-
-.meal-macro-chart canvas {
+.meal-donut-wrap canvas {
   width: 100% !important;
   height: 100% !important;
 }
-
 
 /* ─────────────────────────────
    Mood 카드
