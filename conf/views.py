@@ -42,10 +42,13 @@
 
 from django.shortcuts import render, redirect
 from datetime import date, datetime
+from django.utils import timezone
+
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 
 from record.models import CusFeelTh
+from record.models import ReportTh
 def _safe_get_cust_id(request) -> str:
     """
     ✅ 로그인 구현을 건드리지 않고,
@@ -75,6 +78,28 @@ def _safe_get_cust_id(request) -> str:
         return str(request.user.cust_id)
 
     return ""
+
+def _build_daily_report_chart(cust_id: str, today_ymd: str) -> dict:
+    """
+    Home - 일일 리포트 섹션용 데이터 빌더.
+    조건: type='D' AND rgs_dt=today_ymd AND cust_id=cust_id
+    다건이면 updated_time 최신 1건.
+    """
+    if not cust_id:
+        return {"rgs_dt": today_ymd, "content": ""}
+
+    row = (
+        ReportTh.objects
+        .filter(cust_id=cust_id, type="D", rgs_dt=today_ymd)
+        .order_by("-updated_time")
+        .first()
+    )
+
+    if not row or not getattr(row, "content", None):
+        return {"rgs_dt": today_ymd, "content": ""}
+
+    return {"rgs_dt": row.rgs_dt, "content": row.content}
+
 
 
 def _build_today_donut(cust_id: str, yyyymmdd: str):
@@ -123,13 +148,16 @@ def index(request):
 
     today_str = datetime.now().strftime("%Y%m%d")
     cust_id = _safe_get_cust_id(request)
+    today_ymd = timezone.localdate().strftime("%Y%m%d")
 
     donut = _build_today_donut(cust_id=cust_id, yyyymmdd=today_str)
+    daily_report = _build_daily_report_chart(cust_id, today_ymd)
 
     context = {
         # home.html이 기대하는 값들 (아직 미구현이면 None이어도 OK)
         "menu_reco": None,
-        "daily_report": None,
+        "today_ymd": today_ymd,
+        "daily_report": daily_report,
         "today_meals": None,
 
         # ✅ 도넛
@@ -142,10 +170,6 @@ def index(request):
     }
 
 
-    print("DEBUG cust_id:", cust_id)
-    print("DEBUG today:", today_str)
-    print("DEBUG cnt by current:", CusFeelTh.objects.filter(cust_id=cust_id, rgs_dt=today_str).count())
-    print("DEBUG cnt by sample:", CusFeelTh.objects.filter(cust_id="0000000011", rgs_dt="20251219").count())
     return render(request, "home.html", context)
 
 

@@ -48,32 +48,37 @@
 
 
   <!-- 2) 일일 리포트 -->
-  <section class="home-section" id="section-daily-report">
-    <div class="section-head">
-      <h4 class="section-title">일일 리포트</h4>
-      {% if daily_report and daily_report.rgs_dt %}
-        <span class="section-subtitle">{{ daily_report.rgs_dt }}</span>
-      {% endif %}
-    </div>
+<section class="home-section" id="section-daily-report"
+         data-today-ymd="{{ today_ymd }}"
+         data-has-report="{% if daily_report and daily_report.content %}1{% else %}0{% endif %}">
+  <div class="section-head">
+    <h4 class="section-title">일일 리포트</h4>
+    {% if daily_report and daily_report.rgs_dt %}
+      <span class="section-subtitle">{{ daily_report.rgs_dt }}</span>
+    {% endif %}
+  </div>
 
-    <div class="section-card">
-      {% comment %}
-        context 예시:
-        daily_report = {
-          "rgs_dt": "20250408",
-          "content": "..."
-        }
-      {% endcomment %}
+  <div class="section-card daily-report-card">
+    <div class="daily-report-inner">
+      <!-- Left: Date -->
+      <div class="daily-report-date" aria-label="Daily report date">
+        <div class="daily-report-date-top" id="dailyReportDateTop">April, 08</div>
+        <div class="daily-report-date-bottom">Daily Report</div>
+      </div>
 
-      {% if daily_report and daily_report.content %}
-        <p class="report-content">{{ daily_report.content }}</p>
-      {% else %}
-        <div class="empty-state">
-          <p class="empty-text">오늘 리포트가 아직 생성되지 않았어요.</p>
-        </div>
-      {% endif %}
+      <!-- Right: Content (divider is border-left here) -->
+      <div class="daily-report-body">
+        <!-- ✅ id 하나로 통일 -->
+        <p class="report-content" id="dailyReportContent">
+          {% if daily_report and daily_report.content %}
+            {{ daily_report.content }}
+          {% endif %}
+        </p>
+      </div>
     </div>
-  </section>
+  </div>
+</section>
+
 
 
   <!-- 3) 긍정 도넛 차트 (2조각: pos vs neu+neg) -->
