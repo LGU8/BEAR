@@ -142,8 +142,22 @@
     <span>기분</span>
   </div>
 
-  <div class="mood-chart-placeholder">
-    Donut Chart
+  <div class="detail-grid">
+    <!-- LEFT COLUMN -->
+    <div class="mood-left">
+      <!-- 기분 캐릭터 -->
+      <div class="mood_img"></div>
+      <!-- 오늘 감정 멘트 -->
+      <div class="mood_text"></div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="mood-right">
+      <!-- 도넛 차트 -->
+      <div class="mood-donut-wrap">
+        <canvas id="moodDonutChart"></canvas>
+      </div>
+    </div>
   </div>
 </div>
 

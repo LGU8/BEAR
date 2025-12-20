@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* 끼니 버튼 DOM */
   const mealButtons = document.querySelectorAll(".meal-btn");
 
-  /* 도넛 차트 */
+  /* 영양 도넛 차트 */
   let macroDonutChart = null;
 
   const centerTextPlugin = {
@@ -155,5 +155,97 @@ document.addEventListener("DOMContentLoaded", () => {
   // detail-content가 보인 이후에 호출하는 게 가장 안전
   renderMacroDonut(mealMacroData.morning);
 
+  /* 하루 감정 더미 데이터 */
+  const moodRatioData = {
+      positive: 0.5,
+      neutral: 0.3,
+      negative: 0.2
+    };
+
+  /* 하루 감정에 따른 캐릭터(이미지) 설정 */
+  function getDominantMood(moodData) {
+      return Object.entries(moodData)
+        .sort((a, b) => b[1] - a[1])[0][0];
+    }
+
+  const moodCharacterMap = {
+      positive: "/static/icons_img/긍정.png",
+      neutral:  "/static/icons_img/중립.png",
+      negative: "/static/icons_img/부정.png"
+    };
+
+  const moodTextMap = {
+      positive: "오늘은 긍정 감정을 많이 느꼈어요!",
+      neutral:  "오늘의 감정은 무난했어요!",
+      negative: "오늘은 부정 감정을 많이 느꼈어요!"
+    };
+
+  /* 기분 도넛 차트 render */
+  function renderMoodCharacterText(moodData) {
+      const dominantMood = getDominantMood(moodData);
+      const imgSrc = moodCharacterMap[dominantMood];
+      const text = moodTextMap[dominantMood];
+
+      const imgContainer = document.querySelector(".mood_img");
+      const textContainer = document.querySelector(".mood_text");
+
+      if (!imgContainer || !textContainer || !imgSrc || !text) return;
+
+      imgContainer.innerHTML = `
+        <img src="${imgSrc}" alt="${dominantMood} mood character">
+      `;
+
+      textContainer.textContent = text;
+  }
+
+  let moodDonutChart = null;
+
+  function renderMoodDonut(moodData) {
+      const canvas = document.getElementById("moodDonutChart");
+      if (!canvas || !window.Chart) return;
+
+      const ctx = canvas.getContext("2d");
+
+      if (moodDonutChart) moodDonutChart.destroy();
+
+      moodDonutChart = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels: ["긍정", "중립", "부정"],
+          datasets: [{
+            data: [
+              moodData.positive,
+              moodData.neutral,
+              moodData.negative
+            ],
+            backgroundColor: [
+              "#FFD07C",  // 긍정
+              "#FFE2B6",  // 중립
+              "#FFB845"   // 부정
+            ],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          cutout: "65%",
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx =>
+                  `${ctx.label}: ${(ctx.raw * 100).toFixed(1)}%`
+              }
+            },
+            centerText: {
+              text: `긍정 ${Math.round(moodRatioData.positive * 100)} %`
+            }
+          }
+        },
+        plugins: [centerTextPlugin]
+      });
+  }
+  /* 실행은 항상 맨 마지막 */
+  renderMoodCharacterText(moodRatioData);
+  renderMoodDonut(moodRatioData);
 });
 

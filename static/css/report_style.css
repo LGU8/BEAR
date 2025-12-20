@@ -383,19 +383,54 @@
 /* ─────────────────────────────
    Mood 카드
    ───────────────────────────── */
-.mood-chart-placeholder {
-  width: 150px;
-  height: 150px;
-  margin: 0 auto;
+/* Mood Card - LEFT  */
+.mood-left {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #FFB845;
+  padding-right: 40px;
+}
 
-  background: #FFFFFF;
-  border-radius: 50%;
-  border: 2px dashed rgba(244, 121, 0, 0.35);
+.mood_img {
+  width: 180px;
+  height: 180px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  font-size: 10px;
-  color: #8F8F8F;
+  margin: -16px auto 2px;
+}
+
+.mood_img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mood_text {
+  text-align: center;
+
+  font-size: 18px;
+  font-weight: 500;
+}
+
+/* Mood Card - RIGHT  */
+.mood-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-left: 25px;
+}
+
+/* 도넛 차트 영역 */
+.mood-donut-wrap {
+  width: 200px;
+  height: 200px;
+}
+
+.mood-donut-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
