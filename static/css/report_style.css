@@ -19,111 +19,62 @@
 /* ─────────────────────────────
    Datepicker Input
    ───────────────────────────── */
-.report-datepicker input.form-control {
-    width: 190px;
-    max-width: 100%;
+.report-datepicker {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  gap: 8px;
 
-    background-color: #FFF2DD;
-    border: none;
-    border-radius: 12px;
-    padding: 12px 14px;
-    font-size: 0.95rem;
-    color: #3C3C43;
-    box-shadow: none;
+  background-color: #FFF2DD;
+  border-radius: 12px;
+  padding: 8px 25px 8px 20px;
+
+  cursor: pointer;
+  user-select: none;
 }
 
-.report-datepicker input.form-control:focus {
-    outline: none;
-    box-shadow: none;
+.report-datepicker-icon{
+  font-size: 14px;
+}
+
+.report-datepicker-text{
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.report-datepicker-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  background: transparent;
+  border: none;
 }
 
 /* ─────────────────────────────
    Datepicker Calendar
    ───────────────────────────── */
-.datepicker {
-    background-color: #FFF7EC;   /* 옅은 주황 */
-    border-radius: 16px;
-    padding: 8px;
+.datepicker{
+  background-color: #FFF7EC;
+  border-radius: 16px;
+  padding: 8px;
 }
 
-/* ─────────────────────────────
-   Datepicker Color Override (Blue → Orange)
-   ───────────────────────────── */
-
-/* 기본 날짜 셀 */
-.datepicker table tr td {
-    background-color: transparent;
-    color: #3C3C43;
+/* 말풍선 삼각형 제거 */
+.datepicker-dropdown::before,
+.datepicker-dropdown::after {
+  display: none !important;
 }
 
-/* hover / focus */
-.datepicker table tr td:hover,
-.datepicker table tr td.focused {
-    background-color: #FFE2B6 !important;
-    color: #3C3C43 !important;
-    border-radius: 50%;
+.datepicker-dropdown .datepicker-days td:hover,
+.datepicker-dropdown .datepicker-months span:hover,
+.datepicker-dropdown .datepicker-years span:hover,
+.datepicker-dropdown th:hover {
+  background-color: #FFD17C !important;
 }
 
-/* Selected Date (FORCE OVERRIDE) */
-.datepicker table tr td.day.active,
-.datepicker table tr td.day.active:hover,
-.datepicker table tr td.day.active:focus,
-.datepicker table tr td.day.selected,
-.datepicker table tr td.day.selected:hover,
-.datepicker table tr td.day.selected:focus {
-    background-color: #F47900 !important;
-    color: #FFFFFF !important;
-    border-radius: 50% !important;
-}
-
-/* 오늘 날짜 (선택 안 된 상태) */
-.datepicker table tr td.day.today {
-    border: 1px solid #F47900;
-    background-color: transparent;
-}
-
-/* 오늘 날짜 + 선택됨 */
-.datepicker table tr td.day.today.active {
-    background-color: #F47900 !important;
-    color: #FFFFFF !important;
-    border-radius: 50% !important;
-    border: none !important;
-}
-
-/* bootstrap 내부 highlighted 상태 */
-.datepicker table tr td.day.highlighted {
-    background-color: #F47900 !important;
-    color: #FFFFFF !important;
-    border-radius: 50% !important;
-}
-
-/* range (future-proof) */
-.datepicker table tr td.range,
-.datepicker table tr td.range:hover {
-    background-color: #FFE2B6 !important;
-    color: #3C3C43 !important;
-}
-
-.datepicker table tr td.range-start,
-.datepicker table tr td.range-end {
-    background-color: #F47900 !important;
-    color: #FFFFFF !important;
-    border-radius: 50% !important;
-}
-
-/* 파란 outline / shadow 제거 */
-.datepicker table tr td:focus {
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-/* 달력 헤더 */
-.datepicker-switch,
-.datepicker .prev,
-.datepicker .next {
-    font-weight: 600;
-    color: #3C3C43;
-}
 
 /* ─────────────────────────────
    리포트 상단 탭

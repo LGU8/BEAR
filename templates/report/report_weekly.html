@@ -3,25 +3,49 @@
 
 {% block details %}
 <!-- 날짜 선택 -->
-<div class="report-datepicker">
-  <input type="text" id="date-picker" class="form-control" placeholder="날짜 선택">
+<div class="report-datepicker" id="week-picker-trigger">
+  <span class="report-datepicker-icon">📅</span>
+  <span class="report-datepicker-text">{{ week_start }} ~ {{ week_end }}</span>
+  <input type="text" id="week-picker" class="report-datepicker-input" placeholder="날짜 선택">
 </div>
 
 <script>
 $(function () {
-  const defaultDateStr = "{{ selected_date }}";
+  const weekStartStr = "{{ week_start }}";
+  const weekEndStr   = "{{ week_end }}";
 
-  $('#date-picker').datepicker({
-    format: 'yyyy-mm-dd',
+  // 이번주 날짜 선택 방지
+  const today = new Date();
+  const day = today.getDay(); // 일=0, 월=1, ..., 토=6
+  const mondayThisWeek = new Date(today);
+  const diffToMonday = (day === 0 ? -6 : 1 - day);
+  mondayThisWeek.setDate(today.getDate() + diffToMonday);
+  const lastSelectableDate = new Date(mondayThisWeek);
+  lastSelectableDate.setDate(mondayThisWeek.getDate() - 1);
+
+  // datepicker 초기화
+  $('#week-picker').datepicker({
+    format: 'yyyy-mm-dd',       // 서버에서 get_selected_date가 기대하는 형식
     language: 'ko',
     autoclose: true,
-    endDate: new Date(),
-    todayHighlight: false
+    endDate: lastSelectableDate,        // 미래 선택 방지 (원하면 제거)
+    todayHighlight: false,
+    orientation: 'bottom left'
   });
 
-  $('#date-picker').datepicker('update', defaultDateStr);
+  // 날짜 선택 시 → 서버로 date 하나만 전달
+  $('#week-picker').on('changeDate', function (e) {
+    const selectedDate = e.format('yyyy-mm-dd');
+
+    // 서버가 week_start / week_end 계산
+    window.location.search = `?date=${selectedDate}`;
   });
 
+  // 바 전체 클릭 시 달력 열기
+  $('#week-picker-trigger').on('click', function () {
+    $('#week-picker').datepicker('show');
+  });
+});
 </script>
 
 <!-- =========================
