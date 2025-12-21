@@ -145,30 +145,23 @@
   z-index: 9999 !important;
 }
 
-.datepicker table tr td:hover,
-.datepicker table tr td.focused{
+/* 말풍선 삼각형 제거 */
+.datepicker-dropdown::before,
+.datepicker-dropdown::after {
+  display: none !important;
+}
+
+.datepicker-dropdown .datepicker-days td:hover,
+.datepicker-dropdown .datepicker-months span:hover,
+.datepicker-dropdown .datepicker-years span:hover,
+.datepicker-dropdown th:hover {
   background-color: #FFE2B6 !important;
-  border-radius: 50%;
 }
 
-.datepicker table tr td.day.active,
-.datepicker table tr td.day.active:hover,
-.datepicker table tr td.day.active:focus{
-  background-color: #F47900 !important;
-  color: #FFFFFF !important;
-  border-radius: 50% !important;
-}
-
-.datepicker table tr td.day.today{
-  border: 1px solid #F47900;
-  background-color: transparent;
-}
-
-.datepicker table tr td.day.today.active{
-  background-color: #F47900 !important;
-  color: #FFFFFF !important;
-  border-radius: 50% !important;
-  border: none !important;
+/* month/year - 현재 포커스 */
+.datepicker-dropdown .datepicker-months span.month.focused,
+.datepicker-dropdown .datepicker-years span.year.focused {
+  background-color: #FFD17C !important;
 }
 
 /* 기본 arrow 숨김(너가 원하는 디자인이면 유지) */

@@ -72,6 +72,12 @@
 .datepicker-dropdown .datepicker-months span:hover,
 .datepicker-dropdown .datepicker-years span:hover,
 .datepicker-dropdown th:hover {
+  background-color: #FFE2B6 !important;
+}
+
+/* month/year - 현재 포커스 */
+.datepicker-dropdown .datepicker-months span.month.focused,
+.datepicker-dropdown .datepicker-years span.year.focused {
   background-color: #FFD17C !important;
 }
 
