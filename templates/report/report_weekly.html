@@ -84,76 +84,9 @@ $(function () {
     </div>
   </div>
 
-  <!-- 요약 내용 (기본 노출) -->
-  <div class="summary-content">
-
-    <div class="nut-row" data-nutrient="calorie">
-      <div class="nut-title">칼로리</div>
-      <div class="nut-text"></div>
-      <div class="nut-bar"><span></span></div>
-    </div>
-
-    <div class="nut-row" data-nutrient="carb">
-      <div class="nut-title">탄수화물</div>
-      <div class="nut-text"></div>
-      <div class="nut-bar"><span></span></div>
-    </div>
-
-    <div class="nut-row" data-nutrient="protein">
-      <div class="nut-title">단백질</div>
-      <div class="nut-text"></div>
-      <div class="nut-bar"><span></span></div>
-    </div>
-
-    <div class="nut-row" data-nutrient="fat">
-      <div class="nut-title">지방</div>
-      <div class="nut-text"></div>
-      <div class="nut-bar"><span></span></div>
-    </div>
-
-  </div>
-
-  <!-- 자세히 내용 -->
-  <div class="detail-content">
-
-    <div class="detail-grid">
-      <!-- LEFT COLUMN -->
-      <div class="detail-left">
-
-        <!-- 식사 선택 -->
-        <div class="meal-toggle">
-          <img src="/static/icons_img/morning.png"
-               class="meal-btn active"
-               data-meal="morning"
-               alt="아침">
-          <img src="/static/icons_img/lunch.png"
-               class="meal-btn"
-               data-meal="lunch"
-               alt="점심">
-          <img src="/static/icons_img/dinner.png"
-               class="meal-btn"
-               data-meal="dinner"
-               alt="저녁">
-        </div>
-
-        <!-- 메뉴명 -->
-        <div class="meal-menu">
-          <div class="meal-menu-title">메뉴</div>
-          <div class="meal-menu-text">계란후라이, 토스트</div>
-        </div>
-
-      </div>
-
-      <!-- RIGHT COLUMN -->
-      <div class="detail-right">
-
-        <!-- 도넛 차트 -->
-        <div class="meal-donut-wrap">
-          <canvas id="macroDonutChart"></canvas>
-        </div>
-
-      </div>
-    </div>
+  <!-- 주간 영양소 그래프 -->
+  <div class="weekly-chart">
+    <canvas id="weeklyNutritionChart"></canvas>
   </div>
 </div>
 
@@ -161,26 +94,18 @@ $(function () {
      기분 카드
      ========================= -->
 <div class="summary-card">
-  <div class="summary-title">
-    <span>기분</span>
+  <div class="mood-header">
+    <span class="mood-title">기분</span>
+
+    <div class="mood-legend">
+      <span class="legend-item legend-this-week">저번 주</span>
+      <span class="legend-item legend-prev-week">2주 전</span>
+    </div>
+
   </div>
 
-  <div class="detail-grid">
-    <!-- LEFT COLUMN -->
-    <div class="mood-left">
-      <!-- 기분 캐릭터 -->
-      <div class="mood_img"></div>
-      <!-- 오늘 감정 멘트 -->
-      <div class="mood_text"></div>
-    </div>
-
-    <!-- RIGHT COLUMN -->
-    <div class="mood-right">
-      <!-- 도넛 차트 -->
-      <div class="mood-donut-wrap">
-        <canvas id="moodDonutChart"></canvas>
-      </div>
-    </div>
+  <div class="weekly-chart">
+    <canvas id="weeklyMoodChart"></canvas>
   </div>
 </div>
 

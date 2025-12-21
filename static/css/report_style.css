@@ -147,7 +147,7 @@
    Feedback 카드
    ───────────────────────────── */
 .feedback-card {
-  background: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.9);
   margin: 10px;
   padding: 20px;
   border-radius: 18px;
@@ -196,7 +196,7 @@
   background: transparent;
   border: none;
   font-size: 14px;
-  color: #9B9B9B;            /*  회색 */
+  color: #6f6f6f;            /*  회색 */
   cursor: pointer;
 }
 
@@ -403,4 +403,86 @@
 
 .nut-type-toggle .divider{
   font-size: 14px;
+}
+
+.weekly-chart {
+  width: 100%;
+  height: 300px;
+  margin-top: 5px;
+  padding: 30px 40px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 18px;
+}
+
+/* 주간 감정 카드 헤더 */
+.mood-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+/* 주간 감정 제목 */
+.mood-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mood-legend {
+  display: flex;
+  gap: 20px;
+}
+
+.legend-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding-left: 50px;   /* 선+점 들어갈 공간 */
+  padding-right: 10px;
+  font-size: 14px;
+}
+
+/* 공통 선 */
+.legend-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 36px;
+  border-top-width: 3px;
+  border-top-style: solid;
+  transform: translateY(-50%);
+}
+
+.legend-item::after {
+  content: "";
+  position: absolute;
+  left: 14px;              /* 선 중앙 */
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: currentColor;
+  transform: translateY(-50%);
+}
+
+
+/* 저번 주: 진한 주황 실선 */
+.legend-this-week::before {
+  border-top-style: solid;
+  border-top-color: #FC9027;
+}
+
+.legend-this-week::after {
+  color: #FC9027;
+}
+
+/* 2주 전: 옅은 주황 점선 */
+.legend-prev-week::before {
+  border-top-style: dashed;
+  border-top-color: #FFD17C;
+}
+
+.legend-prev-week::after {
+  color: #FFD17C;
 }

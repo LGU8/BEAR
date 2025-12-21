@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* 요약/자세히 토글 */
-  const toggleButtons = document.querySelectorAll(".nutrition-toggle .toggle-btn");
+  const toggleButtons = document.querySelectorAll(".nut-sum-type-toggle .toggle-btn");
   const summaryContent = document.querySelector(".summary-content");
   const detailContent = document.querySelector(".detail-content");
 
@@ -118,6 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }]
         },
         options: {
+          animation: false,
           cutout: "65%",
           plugins: {
             legend: { display: false },
@@ -154,6 +155,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // detail-content가 보인 이후에 호출하는 게 가장 안전
   renderMacroDonut(mealMacroData.morning);
+
+/* ─────────────────────────────
+   감정 도넛 차트
+   ───────────────────────────── */
 
   /* 하루 감정 더미 데이터 */
   const moodRatioData = {
@@ -227,6 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }]
         },
         options: {
+          animation: false,
           cutout: "65%",
           plugins: {
             legend: { display: false },
