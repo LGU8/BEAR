@@ -2,12 +2,17 @@ from django.shortcuts import render
 from datetime import date, datetime, timedelta
 from django.db import connection
 import json
+from report.views import get_selected_date
 
 
 # Create your views here.
-def record_index(request):
-    return render(request, "record/record_index.html")
+def record_mood(request):
+    selected_date = get_selected_date(request)
+    context = {"selected_date": selected_date.strftime("%Y-%m-%d")}
+    return render(request, "record/record_mood.html", context)
 
+def record_meal(request):
+    return render(request, "record/record_meal.html")
 
 def recipe_search(request):
     return render(request, "record/recipe_search.html")

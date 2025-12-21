@@ -5,7 +5,8 @@ from . import views, views_api
 app_name = "record_app"
 
 urlpatterns = [
-    path("", views.record_index, name="record_index"),
+    path("", views.record_mood, name="record_mood"),
+    path("meal/", views.record_meal, name="record_meal"),
     path("recipes/", views.recipe_search, name="recipe_search"),
     path("recipes/new/", views.recipe_new, name="recipe_new"),
     path("camera/", views.camera, name="camera"),
