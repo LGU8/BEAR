@@ -25,7 +25,7 @@ urlpatterns = [
     path("timeline/", timeline, name="timeline"),
     path("badges/", conf_views.badges, name="badges"),
 
-    # report_daily가 include 방식이라면, 해당 앱의 views.py에도 @login_required가 있어야 합니다.
-    path("report_daily/", include("report.urls")),
+    # report가 include 방식이라면, 해당 앱의 views.py에도 @login_required가 있어야 합니다.
+    path("report/", include("report.urls")),
 ]
 

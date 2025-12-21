@@ -229,9 +229,8 @@
   font-weight: 700;
 }
 
-.nutrition-toggle {
+.nut-sum-type-toggle {
   display: flex;
-  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -251,7 +250,7 @@
 }
 
 /* | 구분자 */
-.nutrition-toggle .divider {
+.nut-sum-type-toggle .divider {
   font-size: 14px;
 }
 
@@ -433,4 +432,18 @@
 .mood-donut-wrap canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+/* ─────────────────────────────
+   주간 리포트
+   ───────────────────────────── */
+
+/* 주간 영양소 */
+.nut-type-toggle{
+  display: flex;
+  gap: 12px;
+}
+
+.nut-type-toggle .divider{
+  font-size: 14px;
 }

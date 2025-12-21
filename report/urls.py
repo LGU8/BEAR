@@ -6,5 +6,6 @@ from report import views
 app_name = "report_app"
 
 urlpatterns = [
-    path("", views.report_daily, name="report_daily"),
+    path("daily/", views.report_daily, name="report_daily"),
+    path("weekly/", views.report_weekly, name="report_weekly"),
 ]
