@@ -1,5 +1,5 @@
-from django.urls import path, include
-from conf.views import index
+# record/urls.py
+from django.urls import path
 from . import views, views_api
 
 app_name = "record_app"

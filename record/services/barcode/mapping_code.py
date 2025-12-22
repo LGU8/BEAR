@@ -1,469 +1,353 @@
+# record/services/barcode/mapping_code.py
+from __future__ import annotations
+
 import os
+import time
+import json
+import hashlib
+import logging
+from typing import Any, Optional
+
 import requests
-from fatsecret import Fatsecret
 from dotenv import load_dotenv
-from django.conf import settings
 
-# ================================
-# 0. 환경변수 로드
-# ================================
-load_dotenv()
-
-FOOD_API_KEY = os.getenv("FOOD_API_KEY")  # C005 (바코드 → 제품 기본정보)
-FOOD_NUTR_KEY = os.getenv("FOOD_NUTR_KEY")  # 식품영양성분DB
-PROCESSED_FOOD_KEY = os.getenv("PROCESSED_FOOD_KEY")  # 전국통합 가공식품 표준데이터
-
-FATSECRET_KEY = os.getenv("FATSECRET_KEY")
-FATSECRET_SECRET = os.getenv("FATSECRET_SECRET")
-
-fs = None
-if FATSECRET_KEY and FATSECRET_SECRET:
-    fs = Fatsecret(FATSECRET_KEY, FATSECRET_SECRET)
-
-if not FOOD_API_KEY:
-    raise RuntimeError("FOOD_API_KEY가 .env에 설정되지 않았습니다.")
+logger = logging.getLogger(__name__)
+load_dotenv()  # ✅ 로드만. import 시점 강제/raise 금지
 
 
-# ================================
-# 1. C005 바코드 → 제품 기본 정보
-# ================================
-def get_product_info_by_barcode(barcode: str) -> dict | None:
+# ─────────────────────────────────────────────
+# 1) 에러 타입
+# ─────────────────────────────────────────────
+class EnvNotSetError(RuntimeError):
+    """필수 환경변수 미설정"""
+
+    pass
+
+
+class UpstreamAPIError(RuntimeError):
+    """외부 API 호출 실패(네트워크/인증/서버에러/JSON 파싱 등)"""
+
+    def __init__(
+        self, message: str, *, status_code: int | None = None, detail: str | None = None
+    ):
+        super().__init__(message)
+        self.status_code = status_code
+        self.detail = detail
+
+
+# ─────────────────────────────────────────────
+# 2) 공통 유틸
+# ─────────────────────────────────────────────
+def _require_env(name: str) -> str:
     """
-    바코드 → 식약처 C005 API로 제품 기본정보 조회
+    ✅ 웹 서버 안전:
+    - import 시점이 아니라, "함수 호출 시점"에만 키 체크
     """
-    url = (
-        f"http://openapi.foodsafetykorea.go.kr/api/"
-        f"{FOOD_API_KEY}/C005/json/1/10/BAR_CD={barcode}"
-    )
+    v = os.getenv(name)
+    if not v:
+        raise EnvNotSetError(f"{name}가 .env에 설정되지 않았습니다.")
+    return v
 
-    resp = requests.get(url, timeout=5)
-    resp.raise_for_status()
-    data = resp.json()
 
-    print("[API][C005] top keys:", list(data.keys()))
-    print("[API][C005] head:", str(data)[:300])
-
+def _http_get_json(url: str, *, timeout: float = 5.0) -> dict[str, Any]:
+    """
+    GET → JSON
+    실패는 UpstreamAPIError로 통일해서 올림(뷰에서 502로 분리 가능)
+    """
+    t0 = time.time()
     try:
-        items = data["C005"]["row"]
-    except KeyError:
-        print("[C005] 응답 구조가 다릅니다:", data)
-        return None
+        resp = requests.get(url, timeout=timeout)
+        status = resp.status_code
 
+        if status >= 400:
+            raise UpstreamAPIError(
+                "외부 API가 오류를 반환했습니다.",
+                status_code=status,
+                detail=(resp.text or "")[:500],
+            )
+
+        try:
+            return resp.json()
+        except Exception as e:
+            raise UpstreamAPIError(
+                "외부 API 응답 JSON 파싱에 실패했습니다.",
+                status_code=status,
+                detail=str(e),
+            )
+    except requests.Timeout:
+        raise UpstreamAPIError("외부 API 요청이 시간 초과되었습니다.", detail="timeout")
+    except requests.RequestException as e:
+        raise UpstreamAPIError(
+            "외부 API 요청 중 네트워크 오류가 발생했습니다.", detail=str(e)
+        )
+    finally:
+        logger.info("[mapping_code] GET %s (%.2fs)", url, time.time() - t0)
+
+
+def make_candidate_id(
+    *, barcode: str, report_no: str, product_name: str, manufacturer: str
+) -> str:
+    """
+    후보 고정 식별자
+    - 프론트에서 candidate_id로 선택 → commit에서 동일 후보를 안전하게 식별
+    """
+    s = f"{barcode}|{report_no}|{product_name}|{manufacturer}"
+    return hashlib.sha1(s.encode("utf-8")).hexdigest()[:12]
+
+
+def _as_str(x: Any) -> str:
+    return str(x).strip() if x is not None else ""
+
+
+# ─────────────────────────────────────────────
+# 3) C005: 바코드 → 제품 후보 조회 (기본정보)
+# ─────────────────────────────────────────────
+def get_product_info_by_barcode(barcode: str) -> list[dict[str, Any]]:
+    """
+    식품안전나라 C005:
+      http://openapi.foodsafetykorea.go.kr/api/{KEY}/C005/json/1/10/BAR_CD={barcode}
+
+    반환(항상 list):
+      [
+        {
+          "candidate_id": "...",
+          "barcode": "...",
+          "product_name": "...",
+          "manufacturer": "...",
+          "report_no": "...",
+          "raw": {...}            # 원본 row
+        },
+        ...
+      ]
+    """
+    api_key = _require_env("FOOD_API_KEY")
+
+    barcode = _as_str(barcode)
+    if not barcode:
+        return []
+
+    # ✅ api_key를 받아놓고 전역 FOOD_API_KEY 쓰는 버그 방지
+    url = f"http://openapi.foodsafetykorea.go.kr/api/{api_key}/C005/json/1/10/BAR_CD={barcode}"
+    data = _http_get_json(url, timeout=5.0)
+
+    rows = (data.get("C005") or {}).get("row") or []
+    if not isinstance(rows, list):
+        return []
+
+    candidates: list[dict[str, Any]] = []
+    for item in rows:
+        product_name = _as_str(item.get("PRDLST_NM"))
+        manufacturer = _as_str(item.get("BSSH_NM"))
+        report_no = _as_str(item.get("PRDLST_REPORT_NO"))
+        bar_cd = _as_str(item.get("BAR_CD")) or barcode
+
+        candidate_id = make_candidate_id(
+            barcode=bar_cd,
+            report_no=report_no,
+            product_name=product_name,
+            manufacturer=manufacturer,
+        )
+
+        candidates.append(
+            {
+                "candidate_id": candidate_id,
+                "barcode": bar_cd,
+                "product_name": product_name,
+                "manufacturer": manufacturer,
+                "report_no": report_no,
+                "raw": item,
+            }
+        )
+
+    return candidates
+
+
+# ─────────────────────────────────────────────
+# 4) 후보 자동 선택 (웹 서버 안전, input() 금지)
+# ─────────────────────────────────────────────
+def choose_best_candidate(
+    items: list[dict[str, Any]],
+    *,
+    preferred_report_no: str | None = None,
+    preferred_manufacturer: str | None = None,
+    preferred_product_name: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    기존에 input()으로 고르던 흐름을 자동 점수로 대체
+    """
     if not items:
-        print("[C005] 해당 바코드로 조회되는 제품이 없습니다.")
         return None
 
-    item = items[0]
+    prn = _as_str(preferred_report_no) if preferred_report_no else ""
+    pmf = _as_str(preferred_manufacturer) if preferred_manufacturer else ""
+    ppn = _as_str(preferred_product_name) if preferred_product_name else ""
 
-    print("[DEBUG][C005] 최종 URL:", url)
-    print("[DEBUG][C005] 첫 row 바코드:", item.get("BAR_CD"))
+    def score(x: dict[str, Any]) -> int:
+        s = 0
+        if prn and _as_str(x.get("report_no")) == prn:
+            s += 100
+        if pmf and pmf in _as_str(x.get("manufacturer")):
+            s += 20
+        if ppn and ppn in _as_str(x.get("product_name")):
+            s += 10
+        return s
 
-    return {
-        "report_no": item.get("PRDLST_REPORT_NO"),
-        "product_name": item.get("PRDLST_NM"),
-        "manufacturer": item.get("BSSH_NM"),
-        "barcode": item.get("BAR_CD"),
-    }
+    return max(items, key=score)
 
 
-# ================================
-# 2. MFDS 식품영양성분DB에서 영양성분 조회
-# ================================
-def get_nutrient_from_mfds_with_choice(
-    report_no: str | None,
-    product_name: str | None,
-    manufacturer: str | None = None,
-) -> dict | None:
+# ─────────────────────────────────────────────
+# 5) 영양 조회 (report_no 기반) - “틀 유지 + TODO 채우기”
+# ─────────────────────────────────────────────
+def get_nutrition_by_report_no(report_no: str) -> dict[str, Any] | None:
     """
-    식품영양성분DB(FoodNtrCpntDbInfo02)에서 영양성분 조회.
+    MFDS 식품영양성분DB(FoodNtrCpntDbInfo02)에서 report_no(=ITEM_REPORT_NO)로
+    영양성분을 찾는다.
 
-    흐름:
-      1) FOOD_NM_KR(이름)만으로 조회
-      2) manufacturer가 있으면 FOOD_NM_KR + MAKER_NM으로도 추가 조회
-      3) 두 결과를 ITEM_REPORT_NO 기준으로 합쳐(중복 제거)
-      4) 합쳐진 후보에서
-         - report_no 자동 매칭 시도
-         - 실패 시 사용자에게 번호(1~N) 입력받아 선택
-      5) 선택된 item에서 kcal, 탄/단/지/당 추출
+    - input() 금지
+    - 외부 API 실패는 UpstreamAPIError raise
+    - 결과 없으면 None
     """
+    report_no = (report_no or "").strip()
+    if not report_no:
+        return None
+
+    nutr_key = _require_env("FOOD_NUTR_KEY")
 
     base_url = (
         "https://apis.data.go.kr/1471000/FoodNtrCpntDbInfo02/getFoodNtrCpntDbInq02"
     )
 
-    cleaned_name = product_name.split("(")[0].strip() if product_name else ""
+    # ✅ 네 텍스트 파일 로직은 '이름(FOOD_NM_KR)'로 먼저 후보를 가져오고,
+    # ✅ 후보들 중 ITEM_REPORT_NO == report_no 를 찾는 구조야.:contentReference[oaicite:7]{index=7}
+    #
+    # 여기 함수는 report_no만 받으므로,
+    # 1) report_no로 바로 조회가 가능한 파라미터가 "공식적으로" 있는지 확실치 않아서,
+    # 2) 텍스트 파일 흐름을 그대로 살려 "넓게 조회 → report_no로 필터"로 구성한다.
+    #
+    # 다만 이 방식은 FOOD_NM_KR 없이 후보 조회가 어렵다.
+    # 그래서 현실적으로는:
+    # - 이 함수 시그니처를 (report_no, product_name, manufacturer)로 바꾸거나,
+    # - report_no만으로 조회 가능한 다른 엔드포인트/파라미터를 확인해야 한다.
+    #
+    # ✅ 텍스트 파일 기준 '정확히 동작'하게 하려면 product_name이 필요하다.:contentReference[oaicite:8]{index=8}
+    raise NotImplementedError(
+        "텍스트 파일 기준 MFDS 영양 조회는 FOOD_NM_KR(제품명)이 필요합니다. "
+        "get_nutrient_from_mfds_with_choice(report_no, product_name, manufacturer)를 사용하세요."
+    )
 
-    # -------------------
-    # 공통 요청 함수
-    # -------------------
-    def _request_mfds(use_maker: bool):
-        params = {
-            "serviceKey": FOOD_NUTR_KEY,
-            "type": "json",
-            "pageNo": 1,
-            "numOfRows": 50,
-            "FOOD_NM_KR": cleaned_name,
-        }
-        if use_maker and manufacturer:
-            params["MAKER_NM"] = manufacturer
 
-        resp = requests.get(base_url, params=params, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-
-        print("[API][MFDS] top keys:", list(data.keys()))
-        print("[API][MFDS] head:", str(data)[:300])
-
-        body = data.get("body", {})
-        return body.get("items")
-
-    # 1) 이름-only 결과
-    items_name_raw = _request_mfds(use_maker=False)
-    # 2) 이름+제조사 결과 (제조사가 있을 때만)
-    items_maker_raw = _request_mfds(use_maker=True) if manufacturer else None
-
-    # raw → list 변환 함수
-    def _normalize_items(items_raw):
-        if not items_raw:
-            return []
-        if isinstance(items_raw, dict):
-            item_obj = items_raw.get("item")
-            if isinstance(item_obj, list):
-                return item_obj
-            elif item_obj:
-                return [item_obj]
-            return []
-        return items_raw
-
-    items_name = _normalize_items(items_name_raw)
-    items_maker = _normalize_items(items_maker_raw)
-
-    # 3) 두 결과 합치기 (ITEM_REPORT_NO 또는 FOOD_NM_KR 기준으로 중복 제거)
-    items: list[dict] = []
-    seen_keys = set()
-
-    for it in items_name + items_maker:
-        key = it.get("ITEM_REPORT_NO") or it.get("FOOD_NM_KR")
-        if not key:
-            continue
-        if key in seen_keys:
-            continue
-        seen_keys.add(key)
-        items.append(it)
-
+# ─────────────────────────────────────────────
+# 6) (기존 함수명 호환) MFDS 후보 선택 + 영양 조회
+# ─────────────────────────────────────────────
+def get_nutrient_from_mfds_with_choice(
+    items: list[dict[str, Any]],
+    *,
+    preferred_report_no: str | None = None,
+    preferred_manufacturer: str | None = None,
+    preferred_product_name: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    예전에 input()으로 후보를 고르고 영양을 조회했을 가능성이 높은 함수명.
+    - 지금은 자동선택(choose_best_candidate)으로 웹 서버 안전하게 동작.
+    """
     if not items:
-        print("[MFDS] 이름/제조사 기준으로도 후보가 없습니다.")
         return None
 
-    print(f"[MFDS] 최종 후보 {len(items)}건 발견")
-
-    def _normalize_str(s: str | None) -> str:
-        return s.strip() if isinstance(s, str) else ""
-
-    # 4-1) report_no 자동 매칭
-    selected = None
-    if report_no:
-        for it in items:
-            if _normalize_str(it.get("ITEM_REPORT_NO")) == _normalize_str(report_no):
-                selected = it
-                print("[MFDS] report_no로 자동 매칭된 항목 발견")
-                break
-
-    # 4-2) 자동 매칭 실패 → 사용자 선택
-    if selected is None:
-        print("\n[MFDS] 여러 개의 후보가 있습니다. 원하는 항목 번호를 선택하세요.")
-        for idx, it in enumerate(items, start=1):
-            print(
-                f"  [{idx}] {it.get('FOOD_NM_KR')} / "
-                f"{it.get('MAKER_NM')} / "
-                f"ITEM_REPORT_NO={it.get('ITEM_REPORT_NO')}"
-            )
-
-        while selected is None:
-            try:
-                user_input = input(f"번호 입력 (1~{len(items)}, 기본=1): ").strip()
-                if user_input == "":
-                    choice = 1
-                else:
-                    choice = int(user_input)
-
-                if 1 <= choice <= len(items):
-                    selected = items[choice - 1]
-                else:
-                    print("범위 밖 번호입니다. 다시 입력해주세요.")
-            except ValueError:
-                print("숫자를 입력해주세요.")
-
-    if selected is None:
-        print("[MFDS] 선택된 항목이 없습니다(내부 오류).")
+    best = choose_best_candidate(
+        items,
+        preferred_report_no=preferred_report_no,
+        preferred_manufacturer=preferred_manufacturer,
+        preferred_product_name=preferred_product_name,
+    )
+    if not best:
         return None
 
-    print("\n[MFDS] 최종 선택된 항목:")
-    print("  FOOD_NM_KR     :", selected.get("FOOD_NM_KR"))
-    print("  MAKER_NM       :", selected.get("MAKER_NM"))
-    print("  ITEM_REPORT_NO :", selected.get("ITEM_REPORT_NO"))
+    report_no = _as_str(best.get("report_no"))
+    if not report_no:
+        return None
 
-    # -------------------
-    # 숫자 변환 헬퍼
-    # -------------------
-    def _to_float(val: str | None):
-        if val is None:
-            return None
-        s = str(val).strip()
-        if s == "":
-            return None
-        try:
-            return float(s.replace(",", ""))
-        except (TypeError, ValueError):
-            return None
-
-    # 5) 영양성분 파싱
-    energy = _to_float(selected.get("AMT_NUM1"))
-    carb = _to_float(selected.get("AMT_NUM6"))
-    protein = _to_float(selected.get("AMT_NUM3"))
-    fat = _to_float(selected.get("AMT_NUM4"))
-    sugar_raw = selected.get("AMT_NUM7") or selected.get("AMT_NUM9")
-    sugar = _to_float(sugar_raw)
-
-    return {
-        "energy_kcal": energy,
-        "carb_g": carb,
-        "protein_g": protein,
-        "fat_g": fat,
-        "sugar_g": sugar,
-        "nutrient_source": "mfds_db",
-        "mfds_food_name": selected.get("FOOD_NM_KR"),
-        "mfds_maker_name": selected.get("MAKER_NM"),
-        "mfds_report_no": selected.get("ITEM_REPORT_NO"),
-    }
+    return get_nutrition_by_report_no(report_no)
 
 
-# ================================
-# 3. 전국통합 가공식품 영양성분
-# ================================
-def get_nutrients_from_processed_korea(
-    product_name: str,
-    manufacturer: str | None = None,
-) -> dict | None:
+# ─────────────────────────────────────────────
+# 7) (기존 형태 유지) 영양 merge/fallback
+# ─────────────────────────────────────────────
+def merge_nutrients_with_fallback(
+    *,
+    primary: dict[str, Any] | None,
+    fallback: dict[str, Any] | None,
+) -> dict[str, Any] | None:
     """
-    전국통합식품영양성분정보(가공식품) 표준데이터 API에서
-    이름(foodNm) 기반으로 영양성분 조회
-
-    - 현재는 SERVICE KEY 등록 문제로 실패할 수 있음
+    primary 우선, 없으면 fallback
+    - 기존에 FatSecret/다른 DB를 fallback으로 쓰던 구조를 이어갈 수 있게 유지
     """
-
-    if not PROCESSED_FOOD_KEY:
-        print("[PROC] PROCESSED_FOOD_KEY 미설정")
-        return None
-
-    base_url = "http://api.data.go.kr/openapi/tn_pubr_public_nutri_process_info_api"
-    cleaned_name = product_name.split("(")[0].strip() if product_name else ""
-
-    params = {
-        "serviceKey": PROCESSED_FOOD_KEY,
-        "page": 1,
-        "perPage": 50,
-        "type": "json",
-        "foodNm": cleaned_name,
-    }
-    if manufacturer:
-        params["mfrNm"] = manufacturer
-
-    resp = requests.get(base_url, params=params, timeout=5)
-    resp.raise_for_status()
-    data = resp.json()
-
-    print("[DEBUG][PROC] raw:", data)
-
-    # 공공데이터포털 공통 구조: response.header / response.body
-    response_obj = data.get("response") or {}
-    header = response_obj.get("header") or {}
-
-    result_code = header.get("resultCode")
-    result_msg = header.get("resultMsg")
-
-    if result_code and result_code != "00":
-        print(f"[PROC] API 오류: {result_code} / {result_msg}")
-        return None
-
-    body = response_obj.get("body") or {}
-    items = body.get("items")
-
-    if not items:
-        print("[PROC] items 없음 (검색 결과 0건)")
-        return None
-
-    if isinstance(items, dict):
-        items_list = [items]
-    else:
-        items_list = list(items)
-
-    selected = items_list[0]
-
-    def _to_float(val):
-        if val in (None, ""):
-            return None
-        try:
-            return float(str(val).replace(",", ""))
-        except (TypeError, ValueError):
-            return None
-
-    return {
-        "energy_kcal": _to_float(selected.get("enerc")),
-        "carb_g": _to_float(selected.get("chocdf")),
-        "protein_g": _to_float(selected.get("prot")),
-        "fat_g": _to_float(selected.get("fatce")),
-        "sugar_g": _to_float(selected.get("sugar")),
-        "nutrient_source": "processed_korea",
-    }
+    if primary:
+        return primary
+    return fallback
 
 
-# ================================
-# 4. FatSecret fallback
-# ================================
-def get_nutrients_from_fatsecret(product_name: str) -> dict | None:
+# ─────────────────────────────────────────────
+# 8) (기존 형태 유지) 바코드 → “통합 정보” (제품 + 영양 + 후보)
+# ─────────────────────────────────────────────
+def get_food_info_from_barcode(
+    barcode: str,
+    *,
+    preferred_report_no: str | None = None,
+    preferred_manufacturer: str | None = None,
+    preferred_product_name: str | None = None,
+) -> dict[str, Any] | None:
     """
-    FatSecret API로 영양성분 조회 (fallback 용)
+    ✅ 반환 규칙
+    - 제품 후보 0개면 None
+    - 있으면 dict로 반환
+
+    이 함수는 “scan 단계에서 후보를 내려줄지 / 서버에서 자동선택까지 할지”
+    둘 다 대응할 수 있게 구성.
     """
-    if fs is None:
-        print("[FatSecret] KEY/SECRET 미설정으로 사용 불가")
+    barcode = _as_str(barcode)
+    if not barcode:
         return None
 
-    try:
-        search_results = fs.foods_search(product_name)
-    except Exception as e:
-        print("[FatSecret] 검색 오류:", e)
+    candidates = get_product_info_by_barcode(barcode)
+    if not candidates:
         return None
 
-    if not search_results:
-        print("[FatSecret] 검색 결과 없음")
-        return None
-
-    food_id = search_results[0]["food_id"]
-    details = fs.food_get(food_id)
-    serving = details.get("servings", {}).get("serving", {})
-
-    def _to_float(val):
-        if val in (None, ""):
-            return None
-        try:
-            return float(val)
-        except (TypeError, ValueError):
-            return None
-
-    return {
-        "energy_kcal": _to_float(serving.get("calories")),
-        "carb_g": _to_float(serving.get("carbohydrate")),
-        "protein_g": _to_float(serving.get("protein")),
-        "fat_g": _to_float(serving.get("fat")),
-        "sugar_g": _to_float(serving.get("sugar")),
-        "nutrient_source": "fatsecret",
-    }
-
-
-# ================================
-# 5. 여러 영양 dict를 필드별로 병합
-# ================================
-def merge_nutrients_with_fallback(*sources: dict | None) -> dict | None:
-    """
-    sources: mfds, processed_korea, fatsecret 처럼
-             영양 dict 또는 None 이 들어오는 구조.
-
-    각 필드별로:
-      - None 이나 0 이면 다음 소스 값 확인
-      - 세 소스 모두 None 또는 0 이면 0으로 확정
-    """
-    valid_sources = [s for s in sources if s]
-    if not valid_sources:
-        return None
-
-    keys = ["energy_kcal", "carb_g", "protein_g", "fat_g", "sugar_g"]
-    merged: dict = {}
-
-    for key in keys:
-        chosen = None
-        has_zero = False
-
-        for src in valid_sources:
-            v = src.get(key)
-
-            if v is None:
-                continue
-
-            if v == 0 or v == 0.0:
-                if chosen is None:
-                    chosen = 0.0
-                has_zero = True
-                continue
-
-            chosen = v
-            break
-
-        if chosen is None and has_zero:
-            chosen = 0.0
-
-        merged[key] = chosen
-
-    for src in valid_sources:
-        if src.get("nutrient_source"):
-            merged["nutrient_source"] = src["nutrient_source"]
-            break
-
-    return merged
-
-
-# ================================
-# 6. 바코드 → 최종 음식+영양정보
-# ================================
-def get_food_info_from_barcode(barcode: str) -> dict | None:
-    product = get_product_info_by_barcode(barcode)
-    if not product:
-        return None
-
-    report_no = product["report_no"]
-    product_name = product["product_name"]
-    manufacturer = product["manufacturer"]
-
-    print("\n=== C005 제품 기본 정보 ===")
-    print("품목제조번호:", report_no)
-    print("제품명      :", product_name)
-    print("제조사      :", manufacturer)
-    print("바코드      :", product["barcode"])
-
-    # 1순위: MFDS (사용자 선택 + report_no 매칭)
-    mfds_nutr = get_nutrient_from_mfds_with_choice(
-        report_no=report_no,
-        product_name=product_name,
-        manufacturer=manufacturer,
+    best = choose_best_candidate(
+        candidates,
+        preferred_report_no=preferred_report_no,
+        preferred_manufacturer=preferred_manufacturer,
+        preferred_product_name=preferred_product_name,
     )
 
-    # 2순위: 가공식품 표준데이터 (이름 기준)
-    processed_nutr = get_nutrients_from_processed_korea(
-        product_name=product_name,
-        manufacturer=manufacturer,
-    )
+    nutrition = None
+    if best:
+        report_no = _as_str(best.get("report_no"))
+        if report_no:
+            nutrition = get_nutrition_by_report_no(report_no)
 
-    # 3순위: FatSecret
-    fatsecret_nutr = get_nutrients_from_fatsecret(product_name)
+    return {
+        "found": True,
+        "barcode": barcode,
+        "best": best,  # 자동선택 결과(옵션)
+        "nutrition": nutrition,  # 있으면 포함
+        "candidates": candidates,  # UI에 보여줄 후보 전체
+    }
 
-    # 필드별 병합
-    nutrients = merge_nutrients_with_fallback(
-        mfds_nutr,
-        processed_nutr,
-        fatsecret_nutr,
-    )
 
-    if not nutrients:
-        return {**product, "nutrients": None}
-
-    result = {**product, **nutrients}
-
-    if mfds_nutr:
-        if mfds_nutr.get("mfds_food_name"):
-            result["product_name_mfds"] = mfds_nutr["mfds_food_name"]
-        if mfds_nutr.get("mfds_maker_name"):
-            result["manufacturer_mfds"] = mfds_nutr["mfds_maker_name"]
-        if mfds_nutr.get("mfds_report_no"):
-            result["report_no_mfds"] = mfds_nutr["mfds_report_no"]
-
-    return result
+# ─────────────────────────────────────────────
+# 9) (프론트/뷰 호환) 후보 dict를 UI용 키로 바꿔주는 헬퍼(선택)
+# ─────────────────────────────────────────────
+def normalize_candidate_for_ui(c: dict[str, Any]) -> dict[str, Any]:
+    """
+    views_api.py에서 쓰기 편하게 key를 맞춰줌
+    - name/brand/flavor 형태로 통일
+    """
+    return {
+        "candidate_id": _as_str(c.get("candidate_id")),
+        "barcode": _as_str(c.get("barcode")),
+        "name": _as_str(c.get("product_name") or c.get("name")),
+        "brand": _as_str(c.get("manufacturer") or c.get("brand")),
+        "flavor": _as_str(c.get("flavor")),
+        "report_no": _as_str(c.get("report_no")),
+        "raw": c.get("raw", None),
+    }

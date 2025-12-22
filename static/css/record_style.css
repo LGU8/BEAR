@@ -23,7 +23,7 @@ a {
    ========================= */
 .record-wrap {
   width: 100%;
-  max-width: 960px;       /* 배너(.bear-navbar-inner/.bear-tabs-inner)와 동일 */
+  max-width: 980px;       /* 배너(.bear-navbar-inner/.bear-tabs-inner)와 동일 */
   margin: 0 auto;
   padding: 0 16px;        /* 배너와 동일 */
   box-sizing: border-box; /* 패딩 포함 폭 계산 안정화 */
@@ -35,7 +35,7 @@ a {
 .panel {
   background: #FFECCF;
   border-radius: 18px;
-  padding: 18px;
+  /* padding: 18px; */
   margin: 24px 0;
 }
 
