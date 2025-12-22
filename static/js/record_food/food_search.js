@@ -8,6 +8,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnEl = document.getElementById("food-search-btn");
   const tbody = document.getElementById("record-items-tbody");
 
+  // ✅ 한 번만 등록 (중복 등록 방지)
+  if (!tbody.dataset.clickBound) {
+    tbody.dataset.clickBound = "1";
+
+    tbody.addEventListener("click", (e) => {
+        const tr = e.target.closest("tr.food-row");
+        if (!tr) return;
+
+        tr.classList.toggle("is-selected");
+
+        // 디버깅용(선택 확인)
+        console.log("[select] food_id=", tr.dataset.foodId, "selected=", tr.classList.contains("is-selected"));
+    });
+}
+
   console.log("[food_search] elems", { inputEl, btnEl, tbody });
 
   if (!inputEl || !btnEl || !tbody) {
@@ -47,13 +62,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const items = data.items || [];
 
     tbody.innerHTML = items.map((it, idx) => `
-      <tr data-food-id="${it.food_id}">
+      <tr class="food-row" data-food-id="${it.food_id}">
         <td>${idx + 1}</td>
         <td>${it.name ?? ""}</td>
-        <td>${safeNum(it.kcal)}</td>
-        <td>${safeNum(it.carb_g)}</td>
-        <td>${safeNum(it.protein_g)}</td>
-        <td>${safeNum(it.fat_g)}</td>
+        <td>${it.kcal ?? 0}</td>
+        <td>${it.carb_g ?? 0}</td>
+        <td>${it.protein_g ?? 0}</td>
+        <td>${it.fat_g ?? 0}</td>
       </tr>
     `).join("");
   }
@@ -72,3 +87,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+function getSelectedFoodIds() {
+  return Array.from(document.querySelectorAll("tr.food-row.is-selected"))
+    .map(tr => Number(tr.dataset.foodId))
+    .filter(n => !Number.isNaN(n) && n > 0);
+}

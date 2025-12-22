@@ -15,7 +15,8 @@ from django.db.models.functions import Coalesce
 from .services.barcode.total import run_barcode_pipeline
 from .services.barcode.mapping_code import EnvNotSetError, UpstreamAPIError
 
-from .models import FoodTb
+from .models import FoodTb, CusFoodTh, CusFoodTs
+from .utils_time import now14
 
 
 def _normalize_candidate(raw: dict) -> dict:
@@ -351,3 +352,178 @@ def api_food_search(request):
         )
 
     return JsonResponse({"q": q, "count": len(items), "items": items}, status=200)
+
+
+def get_cust_id(request) -> int:
+    # ✅ 너 프로젝트 방식에 맞게 수정 (세션/로그인)
+    cust_id = request.session.get("cust_id")
+    if not cust_id:
+        raise ValueError("cust_id missing (session)")
+    return int(cust_id)
+
+
+@require_POST
+def api_meal_add(request):
+    """
+    payload:
+    {
+      "rgs_dt": "2025-12-17",
+      "time_slot": "M",
+      "food_ids": [101, 205, 333]
+    }
+    """
+    try:
+        cust_id = get_cust_id(request)
+        payload = json.loads(request.body.decode("utf-8"))
+
+        rgs_dt = (payload.get("rgs_dt") or "").strip()
+        time_slot = (payload.get("time_slot") or "").strip()
+        food_ids = payload.get("food_ids") or []
+
+        if not rgs_dt or not time_slot:
+            return JsonResponse(
+                {"ok": False, "error": "rgs_dt/time_slot required"}, status=400
+            )
+        if not isinstance(food_ids, list) or len(food_ids) == 0:
+            return JsonResponse({"ok": False, "error": "food_ids required"}, status=400)
+
+        # 중복 제거 + 정수화
+        food_ids = list(dict.fromkeys([int(x) for x in food_ids]))
+
+        t = now14()
+
+        with transaction.atomic():
+            # 1) 새 seq 발급 (cust_id 기준)
+            last_th = (
+                CusFoodTh.objects.select_for_update()
+                .filter(cust_id=cust_id)
+                .order_by("-seq")
+                .first()
+            )
+            new_seq = (last_th.seq if last_th else 0) + 1
+
+            # 2) FOOD_TB에서 영양정보 확정 조회 (서버 기준)
+            foods = list(
+                FoodTb.objects.filter(food_id__in=food_ids).values(
+                    "food_id", "kcal", "carb_g", "protein_g", "fat_g"
+                )
+            )
+            found = {f["food_id"] for f in foods}
+            missing = [fid for fid in food_ids if fid not in found]
+            if missing:
+                return JsonResponse(
+                    {"ok": False, "error": f"food_id not found: {missing}"}, status=400
+                )
+
+            # 3) totals 계산 (TH에 저장할 합계)
+            food_map = {f["food_id"]: f for f in foods}
+
+            total_kcal = 0
+            total_carb = 0
+            total_prot = 0
+            total_fat = 0
+
+            for fid in food_ids:
+                f = food_map[fid]
+                total_kcal += int(f["kcal"] or 0)
+                total_carb += int(f["carb_g"] or 0)
+                total_prot += int(f["protein_g"] or 0)
+                total_fat += int(f["fat_g"] or 0)
+
+            # 4) TH INSERT (한 끼 헤더)
+            CusFoodTh.objects.create(
+                created_time=t,
+                updated_time=t,
+                cust_id=cust_id,
+                rgs_dt=rgs_dt,
+                seq=new_seq,
+                time_slot=time_slot,
+                kcal=total_kcal,
+                carb_g=total_carb,
+                protein_g=total_prot,
+                fat_g=total_fat,
+            )
+
+            # 5) TS INSERT (끼니 음식 목록)
+            ts_rows = []
+            for idx, fid in enumerate(food_ids, start=1):
+                ts_rows.append(
+                    CusFoodTs(
+                        created_time=t,
+                        updated_time=t,
+                        cust_id=cust_id,
+                        rgs_dt=rgs_dt,
+                        seq=new_seq,
+                        food_seq=idx,
+                        food_id=fid,
+                    )
+                )
+            CusFoodTs.objects.bulk_create(ts_rows)
+
+        return JsonResponse(
+            {"ok": True, "seq": new_seq, "inserted": len(food_ids)}, status=200
+        )
+
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+
+@require_GET
+def api_meals_recent3(request):
+    try:
+        cust_id = get_cust_id(request)
+        rgs_dt = (request.GET.get("rgs_dt") or "").strip()
+        time_slot = (request.GET.get("time_slot") or "").strip()
+
+        if not rgs_dt:
+            return JsonResponse({"ok": False, "error": "rgs_dt required"}, status=400)
+
+        th_qs = CusFoodTh.objects.filter(cust_id=cust_id, rgs_dt=rgs_dt)
+        if time_slot:
+            th_qs = th_qs.filter(time_slot=time_slot)
+
+        th_rows = list(th_qs.order_by("-seq")[:3])
+        seqs = [r.seq for r in th_rows]
+
+        ts_rows = list(
+            CusFoodTs.objects.filter(cust_id=cust_id, rgs_dt=rgs_dt, seq__in=seqs)
+            .order_by("seq", "food_seq")
+            .values("seq", "food_seq", "food_id")
+        )
+
+        food_ids = list({x["food_id"] for x in ts_rows})
+        food_map = {
+            f.food_id: f.name for f in FoodTb.objects.filter(food_id__in=food_ids)
+        }
+
+        foods_by_seq = {}
+        for x in ts_rows:
+            foods_by_seq.setdefault(x["seq"], []).append(
+                {
+                    "food_seq": x["food_seq"],
+                    "food_id": x["food_id"],
+                    "name": food_map.get(x["food_id"], ""),
+                }
+            )
+
+        meals = []
+        for r in th_rows:
+            meals.append(
+                {
+                    "rgs_dt": r.rgs_dt,
+                    "seq": r.seq,
+                    "time_slot": r.time_slot,
+                    "totals": {
+                        "kcal": r.kcal or 0,
+                        "carb_g": r.carb_g or 0,
+                        "protein_g": r.protein_g or 0,
+                        "fat_g": r.fat_g or 0,
+                    },
+                    "foods": foods_by_seq.get(r.seq, []),
+                }
+            )
+
+        return JsonResponse({"ok": True, "meals": meals}, status=200)
+
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)

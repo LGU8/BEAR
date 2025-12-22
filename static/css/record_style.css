@@ -548,3 +548,8 @@ a {
 }
 .cand-meta{ opacity:0.8; font-size: 0.95rem; }
 .btn-save:disabled{ opacity:0.5; cursor:not-allowed; }
+
+.food-row.is-selected {
+  outline: 2px solid #ff8a00;
+  background: rgba(255, 138, 0, 0.12);
+}
