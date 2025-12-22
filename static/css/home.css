@@ -269,76 +269,110 @@
    오늘 먹은 것들
    ============================== */
 
-.macro-head {
+.food-card {
+  padding: 14px;
+}
+
+/* ---------- Legend ---------- */
+
+.food-legend {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #999;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.macro-label {
-  width: 48px;
-}
-
-.macro-pill {
-  background-color: #f3f3f3;
-  border-radius: 8px;
-  padding: 2px 6px;
-}
-
-.meal-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.meal-row {
-  display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
+  font-size: 12px;
+  color: #666;
+  flex-wrap: wrap;
 }
 
-.meal-left {
-  width: 70px;
-  flex: 0 0 auto;
-}
-
-.meal-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-}
-
-.meal-kcal {
-  font-size: 11px;
-  color: #999;
-}
-
-.meal-bars {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.bar-group {
-  display: flex;
+.food-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
 }
 
-.bar {
-  height: 10px;
-  border-radius: 6px;
-  background-color: #eee;
-  flex: 1 1 0;
-  min-width: 0;
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
 }
 
-.bar-carb { background-color: #F6C453; }
-.bar-prot { background-color: #7BC96F; }
-.bar-fat  { background-color: #F28B82; }
+.legend-dot.carb    { background-color: #FFB845; } /* 탄 */
+.legend-dot.protein { background-color: #FFD07C; } /* 단 */
+.legend-dot.fat     { background-color: #FFE2B6; } /* 지 */
+
+
+/* ---------- Rows ---------- */
+
+.food-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.food-row {
+  display: grid;
+  grid-template-columns: 56px 64px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Left: slot label */
+.food-slot {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+}
+
+/* Middle: kcal */
+.food-kcal {
+  font-size: 12px;
+  font-weight: 700;
+  color: #333;
+}
+
+.food-kcal.is-dash {
+  color: #999;
+  font-weight: 600;
+}
+
+/* ---------- Bar ---------- */
+
+.food-bar {
+  position: relative;
+  width: 100%;
+  height: 22px;
+  border-radius: 999px;
+  background-color: rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.food-bar.is-empty {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Segments */
+.food-seg {
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.food-seg.carb    { background-color: #FFB845; }
+.food-seg.protein { background-color: #FFD07C; }
+.food-seg.fat     { background-color: #FFE2B6; }
+
+/* 텍스트 숨김용 */
+.food-seg.no-text {
+  color: transparent;
+}
+
 
 /* =========================================================
    ✅ 반응형: Tablet (<=768px)
@@ -394,22 +428,36 @@
   .legend-item {
     font-size: 11.5px;
   }
-
-  .meal-left {
-    width: 66px;
+  .food-card {
+    padding: 12px;
   }
 
-  .meal-label {
+  .food-row {
+    grid-template-columns: 54px 60px 1fr;
+    gap: 9px;
+  }
+
+  .food-slot {
     font-size: 12.5px;
   }
 
-  .meal-kcal {
+  .food-kcal {
+    font-size: 11.5px;
+  }
+
+  .food-bar {
+    height: 20px;
+  }
+
+  .food-seg {
     font-size: 10.5px;
   }
 
-  .bar {
-    height: 9px;
+  .legend-dot {
+    width: 8px;
+    height: 8px;
   }
+
 }
 
 /* =========================================================
@@ -486,41 +534,38 @@
     height: 7px;
   }
 
-  .meal-row {
+  .food-card {
+    padding: 11px;
+  }
+
+  .food-row {
+    grid-template-columns: 50px 54px 1fr;
     gap: 8px;
   }
 
-  .meal-left {
-    width: 60px;
-  }
-
-  .meal-label {
+  .food-slot {
     font-size: 12px;
   }
 
-  .meal-kcal {
+  .food-kcal {
+    font-size: 10.5px;
+  }
+
+  .food-bar {
+    height: 18px;
+  }
+
+  .food-seg {
     font-size: 10px;
   }
 
-  .macro-head {
-    font-size: 10.5px;
-    gap: 5px;
+  .food-legend {
+    font-size: 11px;
+    gap: 8px;
   }
 
-  .macro-label {
-    width: 44px;
-  }
-
-  .macro-pill {
-    padding: 2px 5px;
-  }
-
-  .bar-group {
-    gap: 5px;
-  }
-
-  .bar {
-    height: 8px;
-    border-radius: 5px;
+  .legend-dot {
+    width: 7px;
+    height: 7px;
   }
 }

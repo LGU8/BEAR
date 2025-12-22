@@ -43,12 +43,16 @@
 from django.shortcuts import render, redirect
 from datetime import date, datetime
 from django.utils import timezone
+import json
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 
 from record.models import CusFeelTh
 from record.models import ReportTh
+from record.views import build_today_food_payload 
+
+
 def _safe_get_cust_id(request) -> str:
     """
     ✅ 로그인 구현을 건드리지 않고,
@@ -152,22 +156,23 @@ def index(request):
 
     donut = _build_today_donut(cust_id=cust_id, yyyymmdd=today_str)
     daily_report = _build_daily_report_chart(cust_id, today_ymd)
+    food_payload = build_today_food_payload(cust_id=cust_id, today_ymd=today_ymd)
 
     context = {
-        # home.html이 기대하는 값들 (아직 미구현이면 None이어도 OK)
-        "menu_reco": None,
-        "today_ymd": today_ymd,
-        "daily_report": daily_report,
-        "today_meals": None,
+    "menu_reco": None,
+    "today_ymd": today_ymd,
+    "daily_report": daily_report,
 
-        # ✅ 도넛
-        "donut": donut,
+    # ✅ 템플릿과 JS가 읽을 키
+    "food_payload_json": json.dumps(food_payload, ensure_ascii=False),
 
-        # ✅ (디버그용) 화면에서 확인하고 싶으면 home.html에 출력 가능
-        # "dbg_cust_id": cust_id,
-        # "dbg_today": today_str,
+    # (선택) 기존 키 유지하고 싶으면 같이 둬도 됨
+    "today_meals": json.dumps(food_payload, ensure_ascii=False),
 
-    }
+    "donut": donut,
+}
+
+
 
 
     return render(request, "home.html", context)
@@ -177,6 +182,8 @@ def index(request):
 @login_required(login_url="/")
 def badges(request):
     return render(request, "badges.html")
+
+
 
 
 # # report_daily 뷰
