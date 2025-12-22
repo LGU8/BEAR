@@ -44,3 +44,25 @@ class ReportTh(models.Model):
                 fields=["cust_id", "rgs_dt", "type"], name="uq_report_th_cust_rgs_type"
             )
         ]
+
+
+class FoodTb(models.Model):
+    created_time = models.CharField(max_length=14, null=True, blank=True)
+    updated_time = models.CharField(max_length=14, null=True, blank=True)
+    food_id = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=40, blank=True)
+
+    kcal = models.IntegerField(null=True, blank=True)
+    carb_g = models.IntegerField(null=True, blank=True)
+    protein_g = models.IntegerField(null=True, blank=True)
+    fat_g = models.IntegerField(null=True, blank=True)
+
+    Macro_ratio_c = models.IntegerField(null=True, blank=True)
+    Macro_ratio_p = models.IntegerField(null=True, blank=True)
+    Macro_ratio_f = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = "FOOD_TB"
+        managed = (
+            False  # 이미 DB에 테이블이 있으니 Django가 마이그레이션으로 건드리지 않게
+        )

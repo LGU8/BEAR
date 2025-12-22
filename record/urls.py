@@ -15,4 +15,5 @@ urlpatterns = [
     path("api/scan/barcode/", views_api.api_barcode_scan, name="api_barcode_scan"),
     path("api/scan/draft/", views_api.api_barcode_draft, name="api_barcode_draft"),
     path("api/scan/commit/", views_api.api_barcode_commit, name="api_barcode_commit"),
+    path("api/foods/search/", views_api.api_food_search, name="api_food_search"),
 ]

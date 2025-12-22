@@ -9,9 +9,13 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.db import connection, transaction
+from django.db.models import Value
+from django.db.models.functions import Coalesce
 
 from .services.barcode.total import run_barcode_pipeline
 from .services.barcode.mapping_code import EnvNotSetError, UpstreamAPIError
+
+from .models import FoodTb
 
 
 def _normalize_candidate(raw: dict) -> dict:
@@ -304,3 +308,46 @@ def api_barcode_commit(request):
         },
         status=200,
     )
+
+
+@require_GET
+def api_food_search(request):
+    q = (request.GET.get("q") or "").strip()
+
+    # 1) 검색어가 비면 빈 결과 (원하면 "전체" 또는 "상위 N개"로 정책 변경 가능)
+    if not q:
+        return JsonResponse({"q": q, "count": 0, "items": []}, status=200)
+
+    # 2) 검색: name에 q 포함
+    # - Coalesce로 NULL이면 0.0 처리 (표 렌더링 시 안정적)
+    qs = (
+        FoodTb.objects.filter(name__icontains=q)
+        .order_by("name")
+        .values(
+            "food_id",
+            "name",
+            "kcal",
+            "carb_g",
+            "protein_g",
+            "fat_g",
+        )[:200]
+    )
+
+    # 3) JSON 직렬화 안정화: None -> 0.0 (선택사항)
+    #    DB에 NULL이 없으면 이 블록은 없어도 됨.
+    items = []
+    for row in qs:
+        items.append(
+            {
+                "food_id": row["food_id"],
+                "name": row["name"],
+                "kcal": 0.0 if row["kcal"] is None else float(row["kcal"]),
+                "carb_g": 0.0 if row["carb_g"] is None else float(row["carb_g"]),
+                "protein_g": (
+                    0.0 if row["protein_g"] is None else float(row["protein_g"])
+                ),
+                "fat_g": 0.0 if row["fat_g"] is None else float(row["fat_g"]),
+            }
+        )
+
+    return JsonResponse({"q": q, "count": len(items), "items": items}, status=200)
