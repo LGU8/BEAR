@@ -29,66 +29,149 @@ def record_mood(request):
 
         # seq 가져오기
         sql = """
-        SELECT COALESCE(MAX(seq), 0) + 1
+        SELECT COALESCE(MAX(seq), 0) + 1, 
+            (SELECT COUNT(*) FROM CUS_FEEL_TH 
+                    WHERE cust_id = %s 
+                    AND rgs_dt = %s 
+                    AND time_slot = %s),
+            (SELECT seq FROM CUS_FEEL_TH 
+                    WHERE cust_id = %s 
+                    AND rgs_dt = %s 
+                    AND time_slot = %s)        
         FROM CUS_FEEL_TH
-        WHERE cust_id = %s
+        WHERE cust_id = %s;
         """
-        data = [cust_id]
+        data = [cust_id, rgs_dt, time_slot, cust_id, rgs_dt, time_slot, cust_id, ]
 
         with connection.cursor() as cursor:
             cursor.execute(sql, data)
-            seq = cursor.fetchone()[0]
+            row = cursor.fetchone()
+            next_seq = row[0]
+            needsUpdate = row[1]
+            seq = row[2]
 
-        # CUS_FEEL_TH 저장
-        sql = """
-        INSERT INTO CUS_FEEL_TH (
-            created_time, updated_time, cust_id, rgs_dt, seq, time_slot, mood, energy, cluster_val, stable_yn
-        )
-        VALUES(
-            %s, %s, %s, %s, %s, %s, %s, %s,
-            (SELECT cluster_val
-                FROM COM_FEEL_CLUSTER_TM
-                WHERE mood = %s AND energy = %s),
-            %s)
-        """
+            print(next_seq, needsUpdate, seq)
 
-        FEEL_TH = [
-            # FEEL_TH
-            date_time, date_time, cust_id, rgs_dt, seq, time_slot, mood, energy,
-            mood, energy,
-            stable_yn
-        ]
+        if needsUpdate == 0:
+            # CUS_FEEL_TH 저장
+            sql = """
+            INSERT INTO CUS_FEEL_TH (
+                created_time, updated_time, cust_id, rgs_dt, seq, time_slot, mood, energy, cluster_val, stable_yn
+            )
+            VALUES(
+                %s, %s, %s, %s, %s, %s, %s, %s,
+                (SELECT cluster_val
+                    FROM COM_FEEL_CLUSTER_TM
+                    WHERE mood = %s AND energy = %s),
+                %s)
+            """
 
-        with connection.cursor() as cursor:
-            cursor.execute(sql, FEEL_TH)
-
-        # CUS_FEEL_TS 저장
-        if keyword != ['']:
-            FEEL_TS = []
-            for i, k in enumerate(keyword):
-                keyword_seq = i+1
-                sql = """
-                INSERT INTO CUS_FEEL_TS (
-                    created_time, updated_time, cust_id, rgs_dt, seq, keyword_seq, feel_id
-                )
-                VALUES(
-                    %s, %s, %s, %s, %s, %s,
-                    (SELECT feel_id
-                        FROM COM_FEEL_TM
-                        WHERE word = %s))
-                """
-
-                row_data = (date_time, date_time, cust_id, rgs_dt, seq, keyword_seq, k)
-                FEEL_TS.append(row_data)
+            FEEL_TH = [
+                # FEEL_TH
+                date_time, date_time, cust_id, rgs_dt, next_seq, time_slot, mood, energy,
+                mood, energy,
+                stable_yn
+            ]
 
             with connection.cursor() as cursor:
-                cursor.executemany(sql, FEEL_TS)
+                cursor.execute(sql, FEEL_TH)
+
+            # CUS_FEEL_TS 저장
+            if keyword != ['']:
+                FEEL_TS = []
+                for i, k in enumerate(keyword):
+                    keyword_seq = i+1
+                    sql = """
+                    INSERT INTO CUS_FEEL_TS (
+                        created_time, updated_time, cust_id, rgs_dt, seq, keyword_seq, feel_id
+                    )
+                    VALUES(
+                        %s, %s, %s, %s, %s, %s,
+                        (SELECT feel_id
+                            FROM COM_FEEL_TM
+                            WHERE word = %s))
+                    """
+
+                    row_data = (date_time, date_time, cust_id, rgs_dt, next_seq, keyword_seq, k)
+                    FEEL_TS.append(row_data)
+
+                with connection.cursor() as cursor:
+                    cursor.executemany(sql, FEEL_TS)
+        elif needsUpdate > 0:
+            # CUS_FEEL_TH 업데이트
+            sql = """
+            UPDATE CUS_FEEL_TH
+            SET created_time = %s,
+                updated_time = %s,
+                mood = %s,
+                energy = %s,
+                cluster_val = (SELECT cluster_val
+                    FROM COM_FEEL_CLUSTER_TM
+                    WHERE mood = %s AND energy = %s),
+                stable_yn = %s
+            WHERE cust_id = %s
+            AND rgs_dt = %s
+            AND time_slot = %s;
+            """
+
+            FEEL_TH_UP = [
+                # FEEL_TH
+                date_time, date_time, mood, energy,
+                mood, energy,
+                stable_yn,
+                cust_id, rgs_dt, time_slot
+            ]
+
+            with connection.cursor() as cursor:
+                cursor.execute(sql, FEEL_TH_UP)
+
+            # CUS_FEEL_TS 삭제 후 재입력
+            sql = """
+            DELETE FROM CUS_FEEL_TS
+            WHERE cust_id = %s
+            AND rgs_dt = %s
+            AND seq = %s;
+            """
+
+            FEEL_TS_del = [cust_id, rgs_dt, seq]
+
+            with connection.cursor() as cursor:
+                cursor.execute(sql, FEEL_TS_del)
+
+            if keyword != ['']:
+                FEEL_TS = []
+                for i, k in enumerate(keyword):
+                    keyword_seq = i+1
+                    sql = """
+                    INSERT INTO CUS_FEEL_TS (
+                        created_time, updated_time, cust_id, rgs_dt, seq, keyword_seq, feel_id
+                    )
+                    VALUES(
+                        %s, %s, %s, %s, %s, %s,
+                        (SELECT feel_id
+                            FROM COM_FEEL_TM
+                            WHERE word = %s))
+                    """
+
+                    row_data = (date_time, date_time, cust_id, rgs_dt, seq, keyword_seq, k)
+                    FEEL_TS.append(row_data)
+
+                with connection.cursor() as cursor:
+                    cursor.executemany(sql, FEEL_TS)
+
+        request.session["rgs_dt"] = rgs_dt
+        request.session["seq"] = seq
+        request.session["time_slot"] = time_slot
         return redirect("/record/meal/")
     else:
         return render(request, "record/record_mood.html", context)
 
 
 def record_meal(request):
+    cust_id = request.user.cust_id
+    rgs_dt = request.session.get("rgs_dt")
+    seq = request.session.get("seq")
+    time_slot = request.session.get("time_slot")
     return render(request, "record/record_meal.html")
 
 

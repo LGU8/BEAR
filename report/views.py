@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
+from django.db import connection
 
 def get_selected_date(request):
     date_str = request.GET.get("date")
@@ -21,6 +22,29 @@ def report_daily(request):
     selected_date = get_selected_date(request)
     context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
                "active_tab": "report",}
+    cust_id = request.user.cust_id
+    rgs_dt = selected_date.strftime("%Y%m%d")
+    print(rgs_dt, cust_id)
+
+    # 영양소-요약 / 기분
+    sql = """
+    SELECT *
+    FROM CUS_FOOD_TH
+    WHERE cust_id = %s
+    AND rgs_dt = %s;
+    
+    SELECT *
+    FROM CUS_FEEL_TH
+    WHERE cust_id = %s
+    AND rgs_dt = %s;    
+    """
+
+    data = [cust_id, rgs_dt, cust_id, rgs_dt]
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, data)
+        print(cursor.fetchall())
+
     return render(request, "report/report_daily.html", context)
 
 def report_weekly(request):
