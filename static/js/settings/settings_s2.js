@@ -26,6 +26,7 @@
   const badgeTabs = Array.from(document.querySelectorAll(".badge-tab"));
   const badgePanes = Array.from(document.querySelectorAll(".badge-grid[data-pane]"));
   const badgeItems = Array.from(document.querySelectorAll(".badge-item"));
+  const badgeIdEl = document.getElementById("selected_badge_id");
 
   const genderBtns = Array.from(document.querySelectorAll(".seg-toggle-btn"));
 
@@ -81,25 +82,26 @@
     selectedBadgeInput.value = "";
   }
 
-  const initial = {
-    nickname: (nicknameEl?.value || "").trim(),
-    birth_dt: (birthDtEl?.value || "").trim(),
-    gender: (genderEl?.value || "").trim(),
-    height_cm: (heightEl?.value || "").trim(),
-    weight_kg: (weightEl?.value || "").trim(),
-    selected_badge_id: (selectedBadgeInput?.value || "").trim(),
-  };
-
-  function nowState() {
-    return {
+    const initial = {
       nickname: (nicknameEl?.value || "").trim(),
       birth_dt: (birthDtEl?.value || "").trim(),
       gender: (genderEl?.value || "").trim(),
       height_cm: (heightEl?.value || "").trim(),
       weight_kg: (weightEl?.value || "").trim(),
-      selected_badge_id: (selectedBadgeInput?.value || "").trim(),
+      selected_badge_id: (badgeIdEl?.value || "").trim(),
     };
-  }
+
+    function nowState() {
+      return {
+        nickname: (nicknameEl?.value || "").trim(),
+        birth_dt: (birthDtEl?.value || "").trim(),
+        gender: (genderEl?.value || "").trim(),
+        height_cm: (heightEl?.value || "").trim(),
+        weight_kg: (weightEl?.value || "").trim(),
+        selected_badge_id: (badgeIdEl?.value || "").trim(),
+  };
+}
+
 
   function isChanged() {
     const now = nowState();
