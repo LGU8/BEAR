@@ -4,6 +4,20 @@
   "img_base": "/static/badges_img",
   "items": [
     {
+      "badge_id": "E000000031",
+      "category": "E",
+      "sort_no": 31,
+      "img_file": "E000000031.png",
+      "title": "첫 로그인",
+      "desc": "BEAR에 오신 걸 환영해요. 오늘부터 당신의 기록이 시작돼요.",
+      "hint": "처음 로그인하면 자동으로 획득해요.",
+      "unlock_type": "login",
+      "unlock_rule": {
+        "event": "LOGIN_SUCCESS",
+        "once": true
+      }
+    },
+    {
       "badge_id": "E000000001",
       "category": "E",
       "sort_no": 1,
