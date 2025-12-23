@@ -20,22 +20,70 @@ def record_mood(request):
         date_time = selected_date.strftime("%Y%m%d%H%M%S")
         rgs_dt = selected_date.strftime("%Y%m%d")
         cust_id = request.user.cust_id
-        print(time_slot, mood, energy, keyword, date_time, rgs_dt, cust_id)
+        stable_yn = 1 if (mood in ('pos','neu') and energy in ('low', 'med')) else 0
 
         if not time_slot or not mood or not energy:
-            return HttpResponseBadRequest("시간, 감정, 활성화 정도는 필수 항목입니다.")
+            return HttpResponseBadRequest("시간, 감정, 활성도는 필수 항목입니다.")
+
+        # seq 가져오기
+        sql = """
+        SELECT COALESCE(MAX(seq), 0) + 1
+        FROM CUS_FEEL_TH
+        WHERE cust_id = %s
+        """
+        data = [cust_id]
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, data)
+            seq = cursor.fetchone()[0]
 
         sql = """
-        INSERT VALUES
-        FROM CUS_FEEL_TH
-        VALUES (%s, %s, %s, %s, %d, %s, %s, %s, %s, %s)
+        INSERT INTO CUS_FEEL_TH (
+            created_time, updated_time, cust_id, rgs_dt, seq, time_slot, mood, energy, cluster_val, stable_yn
+        )
+        VALUES(
+            %s, %s, %s, %s, %s, %s, %s, %s,
+            (SELECT cluster_val
+                FROM COM_FEEL_CLUSTER_TM
+                WHERE mood = %s AND energy = %s),
+            %s)
         """
 
-        #
-        # with connection.cursor() as cursor:
-        #     cursor.execute(sql, [cust_id, start, end])
-        #     rows = cursor.fetchall()
+        FEEL_TH = [
+            # FEEL_TH
+            date_time, date_time, cust_id, rgs_dt, seq, time_slot, mood, energy,
+            mood, energy,
+            stable_yn
+        ]
 
+        with connection.cursor() as cursor:
+            cursor.execute(sql, FEEL_TH)
+
+        if keyword != ['']:
+            for k in keyword:
+                sql = """
+                INSERT INTO CUS_FEEL_TS (
+                    created_time, updated_time, cust_id, rgs_dt, seq, keyword_seq, feel_id
+                )
+                SELECT
+                    %s, %s, %s, %s, %s,
+                    COALESCE(MAX(keyword_seq), 0) + 1,
+                    (SELECT feel_id
+                        FROM COM_FEEL_TM
+                        WHERE word = %s)
+                FROM CUS_FEEL_TS
+                WHERE cust_id = %s
+                AND seq = %s
+                """
+
+                FEEL_TS = [
+                    date_time, date_time, cust_id, rgs_dt, seq,
+                    k,
+                    cust_id, seq
+                ]
+
+                with connection.cursor() as cursor:
+                    cursor.execute(sql, FEEL_TS)
         return redirect("/record/meal/")
     else:
         return render(request, "record/record_mood.html", context)
