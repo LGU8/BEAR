@@ -8,10 +8,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnEl = document.getElementById("food-search-btn");
   const tbody = document.getElementById("record-items-tbody");
   const selectedBar = document.getElementById("selected-bar");
-  const addBtn = document.getElementById("btn-add-item");
+  const saveBtn = document.getElementById("btn-save-meal");
 
   console.log("[food_search] elems", { inputEl, btnEl, tbody, selectedBar });
-  console.log("[addBtn]", addBtn);
+  console.log("[meal_save] saveBtn", saveBtn);
 
   if (!inputEl || !btnEl || !tbody) {
     console.warn("[food_search] required elements not found");
@@ -131,19 +131,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
-  addBtn.addEventListener("click", async () => {
-    console.log("[ADD] click fired");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", async () => {
+      const foodIds = Array.from(selectedMap.keys());
+      console.log("[meal_save] selected foodIds =", foodIds);
 
-    const foodIds = Array.from(selectedMap.keys());
-    console.log("[ADD] selected foodIds =", foodIds);
+      if (foodIds.length === 0) {
+        alert("음식을 선택해주세요.");
+        return;
+      }
 
-    if (foodIds.length === 0) {
-      alert("음식을 선택해주세요.");
-      return;
-    }
+      const res = await fetch("/record/api/meal/save/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ food_ids: foodIds }),
+      });
 
-    alert("선택된 음식 개수: " + foodIds.length);
-  });
+      const data = await res.json().catch(() => null);
+      console.log("[meal_save] status=", res.status, "data=", data);
+
+      if (!res.ok || !data?.ok) {
+        alert("저장 실패");
+        return;
+      }
+      alert("저장 완료!");
+    });
+  }
 
   btnEl.addEventListener("click", (e) => {
     e.preventDefault();
