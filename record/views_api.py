@@ -18,6 +18,7 @@ from .services.barcode.mapping_code import EnvNotSetError, UpstreamAPIError
 from .models import FoodTb, CusFoodTh, CusFoodTs
 from .utils_time import now14
 
+
 # 감정 기록 키워드 api
 def keyword_api(request):
     """
@@ -26,20 +27,14 @@ def keyword_api(request):
     """
 
     if request.method != "GET":
-        return JsonResponse(
-            {"error": "GET method only"},
-            status=405
-        )
+        return JsonResponse({"error": "GET method only"}, status=405)
 
     # 파라미터 받기
     mood = request.GET.get("mood")
     energy = request.GET.get("energy")
 
     if not mood or not energy:
-        return JsonResponse(
-            {"error": "mood and energy are required"},
-            status=400
-        )
+        return JsonResponse({"error": "mood and energy are required"}, status=400)
 
     # SQL 작성
     sql = """
@@ -60,6 +55,7 @@ def keyword_api(request):
 
     # JSON 응답
     return JsonResponse(keywords, safe=False)
+
 
 def _normalize_candidate(raw: dict) -> dict:
     """
@@ -212,9 +208,13 @@ def api_barcode_scan(request):
     slim = [
         {
             "candidate_id": c["candidate_id"],
-            "name": c["name"],
-            "brand": c["brand"],
-            "flavor": c["flavor"],
+            "name": c.get("name", ""),
+            "brand": c.get("brand", ""),
+            "flavor": c.get("flavor", ""),
+            "kcal": c.get("kcal"),
+            "carb_g": c.get("carb_g"),
+            "protein_g": c.get("protein_g"),
+            "fat_g": c.get("fat_g"),
         }
         for c in candidates
     ]
@@ -247,9 +247,13 @@ def api_barcode_draft(request):
     slim = [
         {
             "candidate_id": c["candidate_id"],
-            "name": c["name"],
-            "brand": c["brand"],
-            "flavor": c["flavor"],
+            "name": c.get("name", ""),
+            "brand": c.get("brand", ""),
+            "flavor": c.get("flavor", ""),
+            "kcal": c.get("kcal"),
+            "carb_g": c.get("carb_g"),
+            "protein_g": c.get("protein_g"),
+            "fat_g": c.get("fat_g"),
         }
         for c in candidates
     ]
@@ -272,22 +276,38 @@ def api_barcode_draft(request):
 def api_barcode_commit(request):
     # FormData + JSON 둘 다 지원
     draft_id = (request.POST.get("draft_id") or "").strip()
+
+    # ✅ 단건 호환
     candidate_id = (request.POST.get("candidate_id") or "").strip()
 
-    if not draft_id or not candidate_id:
+    # ✅ 다건 호환
+    candidate_ids = request.POST.getlist("candidate_ids")  # FormData에서 여러 개
+    candidate_ids = [str(x).strip() for x in candidate_ids if str(x).strip()]
+
+    # JSON도 지원
+    if (not draft_id) or (not candidate_id and not candidate_ids):
         try:
             body = json.loads((request.body or b"{}").decode("utf-8"))
             draft_id = draft_id or str(body.get("draft_id", "")).strip()
+            if not candidate_ids:
+                candidate_ids = body.get("candidate_ids") or []
+                candidate_ids = [
+                    str(x).strip() for x in candidate_ids if str(x).strip()
+                ]
             candidate_id = candidate_id or str(body.get("candidate_id", "")).strip()
         except Exception:
             pass
 
-    if not draft_id or not candidate_id:
+    # ✅ 단건만 들어오면 리스트로 통일
+    if not candidate_ids and candidate_id:
+        candidate_ids = [candidate_id]
+
+    if not draft_id or not candidate_ids:
         return JsonResponse(
             {
                 "ok": False,
                 "error": "BAD_REQUEST",
-                "message": "draft_id와 candidate_id가 필요합니다.",
+                "message": "draft_id와 candidate_ids가 필요합니다.",
             },
             status=400,
         )
@@ -301,38 +321,38 @@ def api_barcode_commit(request):
         )
 
     candidates = data.get("candidates", [])
-    picked = next(
-        (
-            c
-            for c in candidates
-            if str(c.get("candidate_id", "")).strip() == candidate_id
-        ),
-        None,
-    )
-    if not picked:
+
+    # ✅ 선택된 후보들 찾기
+    picked_list = []
+    for cid in candidate_ids:
+        picked = next(
+            (c for c in candidates if str(c.get("candidate_id", "")).strip() == cid),
+            None,
+        )
+        if picked:
+            picked_list.append(picked)
+
+    if not picked_list:
         return JsonResponse(
-            {
-                "ok": False,
-                "error": "CANDIDATE_NOT_FOUND",
-                "message": "candidate not found",
-            },
-            status=404,
+            {"ok": False, "error": "DB_SAVE_FAILED", "detail": str(e)},
+            status=500,
         )
 
-    # ✅ 1) DB 저장 먼저 (실패 시 draft 유지)
+    # ✅ DB 저장(여러 건)
     try:
-        _insert_menu_recom_th_rawsql(
-            date=(data.get("date") or "").strip(),
-            meal=(data.get("meal") or "").strip(),
-            barcode=(data.get("barcode") or "").strip(),
-            picked=picked,
-        )
+        for picked in picked_list:
+            _insert_menu_recom_th_rawsql(
+                date=(data.get("date") or "").strip(),
+                meal=(data.get("meal") or "").strip(),
+                barcode=(data.get("barcode") or "").strip(),
+                picked=picked,
+            )
     except Exception as e:
         return JsonResponse(
             {"ok": False, "error": "DB_SAVE_FAILED", "detail": str(e)}, status=500
         )
 
-    # ✅ 2) 저장 성공 후 draft 제거
+    # ✅ 성공 시 draft 제거
     request.session.pop(session_key, None)
     request.session.modified = True
 
@@ -342,12 +362,19 @@ def api_barcode_commit(request):
             "date": data.get("date"),
             "meal": data.get("meal"),
             "barcode": data.get("barcode"),
-            "picked": {
-                "candidate_id": picked.get("candidate_id", ""),
-                "name": picked.get("name", ""),
-                "brand": picked.get("brand", ""),
-                "flavor": picked.get("flavor", ""),
-            },
+            "picked": [
+                {
+                    "candidate_id": p.get("candidate_id", ""),
+                    "name": p.get("name", ""),
+                    "brand": p.get("brand", ""),
+                    "flavor": p.get("flavor", ""),
+                    "kcal": p.get("kcal"),
+                    "carb_g": p.get("carb_g"),
+                    "protein_g": p.get("protein_g"),
+                    "fat_g": p.get("fat_g"),
+                }
+                for p in picked_list
+            ],
         },
         status=200,
     )

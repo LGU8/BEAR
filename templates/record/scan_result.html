@@ -4,96 +4,18 @@
 
 <section class="result-page">
 
-  <!-- 상단 이미지 프리뷰 -->
-  <div class="result-preview">
-    <img id="result-img" alt="scan preview">
-  </div>
-
   <!-- 바코드 인식 후보 -->
   <div id="candidate-list"></div>
-  <button id="btn-save" class="btn-save" disabled>저장</button>
-
+  
 
   <!-- ✅ mode에 따라 분기 -->
-  <div id="result-barcode" class="result-panel" style="display:none;">
-    <h3 class="result-title">바코드 인식 결과</h3>
-
-    <div class="field">
-      <label>브랜드명</label>
-      <input id="b-brand" class="input" type="text" placeholder="브랜드명">
-    </div>
-
-    <div class="field">
-      <label>제품명</label>
-      <input id="b-name" class="input" type="text" placeholder="제품명">
-    </div>
-
-    <div class="field">
-      <label>제공량</label>
-      <input id="b-serving" class="input" type="text" placeholder="예: 1회(30g)">
-    </div>
-
-    <div class="field-grid">
-      <div class="field">
-        <label>열량(kcal)</label>
-        <input id="b-kcal" class="input" type="text">
-      </div>
-      <div class="field">
-        <label>탄수화물(g)</label>
-        <input id="b-carb" class="input" type="text">
-      </div>
-      <div class="field">
-        <label>단백질(g)</label>
-        <input id="b-protein" class="input" type="text">
-      </div>
-      <div class="field">
-        <label>지방(g)</label>
-        <input id="b-fat" class="input" type="text">
-      </div>
-    </div>
-  </div>
-
-  <div id="result-nutrition" class="result-panel" style="display:none;">
-    <h3 class="result-title">영양성분(OCR) 인식 결과</h3>
-
-    <div class="field">
-      <label>브랜드명</label>
-      <input id="n-brand" class="input" type="text" placeholder="브랜드명">
-    </div>
-
-    <div class="field">
-      <label>제품명</label>
-      <input id="n-name" class="input" type="text" placeholder="제품명">
-    </div>
-
-    <div class="field">
-      <label>제공량</label>
-      <input id="n-serving" class="input" type="text" placeholder="예: 100g당 / 1회 제공량">
-    </div>
-
-    <div class="field-grid">
-      <div class="field">
-        <label>열량(kcal)</label>
-        <input id="n-kcal" class="input" type="text">
-      </div>
-      <div class="field">
-        <label>탄수화물(g)</label>
-        <input id="n-carb" class="input" type="text">
-      </div>
-      <div class="field">
-        <label>단백질(g)</label>
-        <input id="n-protein" class="input" type="text">
-      </div>
-      <div class="field">
-        <label>지방(g)</label>
-        <input id="n-fat" class="input" type="text">
-      </div>
-    </div>
-  </div>
+  <div id="result-barcode" class="result-panel" style="display:none;"></div>
+  <div id="result-nutrition" class="result-panel" style="display:none;"></div>
+  
 
   <!-- 저장 -->
   <div class="result-actions">
-    <button id="btn-save" class="btn-save">저장</button>
+    <button id="btn-save" class="btn-save" disabled>저장</button>
   </div>
 
 </section>

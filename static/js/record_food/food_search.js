@@ -131,6 +131,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
+  addBtn.addEventListener("click", async () => {
+    console.log("[ADD] click fired");
+
+    const foodIds = Array.from(selectedMap.keys());
+    console.log("[ADD] selected foodIds =", foodIds);
+
+    if (foodIds.length === 0) {
+      alert("음식을 선택해주세요.");
+      return;
+    }
+
+    alert("선택된 음식 개수: " + foodIds.length);
+  });
+
   btnEl.addEventListener("click", (e) => {
     e.preventDefault();
     console.log("[food_search] click fired");
