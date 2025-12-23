@@ -217,6 +217,8 @@
   cursor: not-allowed;
 }
 
+
+
 /* 모바일 */
 @media (max-width: 420px) {
   .settings-page .edit-card { padding: 16px; }

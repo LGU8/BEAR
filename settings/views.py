@@ -585,5 +585,6 @@ def settings_badges(request):
         "badge_total": total,
         "badge_acquired": acquired,
         "badge_rate": rate,
+        "active_tab": "collection",
     })
     return render(request, "settings/settings_badges.html", ctx)
