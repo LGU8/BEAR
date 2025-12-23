@@ -16,11 +16,11 @@ urlpatterns = [
     path("api/scan/draft/", views_api.api_barcode_draft, name="api_barcode_draft"),
     path("api/scan/commit/", views_api.api_barcode_commit, name="api_barcode_commit"),
     path("api/foods/search/", views_api.api_food_search, name="api_food_search"),
-<<<<<<< HEAD
+
     # record_mood - keyword 처리 API
     path("api/keywords/", views_api.keyword_api, name="keyword_api"),
-=======
+
     path("api/meals/add/", views_api.api_meal_add, name="api_meal_add"),
     path("api/meals/recent3/", views_api.api_meals_recent3, name="api_meals_recent3"),
->>>>>>> d4412facb8bf43bb8af2da6a7019a9bd9ce74027
+
 ]
