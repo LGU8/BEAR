@@ -8,38 +8,35 @@
 {% block content %}
 <main class="home">
 
-   <!-- 1) 메뉴 추천 -->
+    <!-- 1) 메뉴 추천 -->
   <section class="home-section" id="section-menu-reco">
     <div class="section-head">
       <h4 class="section-title">메뉴 추천</h4>
-      {# <a class="section-more" href="{% url 'menu_reco' %}">더보기</a> #}
     </div>
 
     <div class="section-card">
-      
+      {% comment %}
+        menu_reco = {
+          "is_done": True/False,
+          "status_text": "추천 준비 중" or "오늘 식사 기록이 모두 완료됐어요. 추천 준비 중",
+          "title": "아침/점심/저녁 메뉴 추천",
+          "line": "취향 기반: A / 균형(5:3:2): B / 새로운 메뉴: C"
+        }
+      {% endcomment %}
 
-      {% if menu_reco and menu_reco.is_done_today %}
+      {% if menu_reco and menu_reco.is_done %}
         <div class="empty-state">
-          <p class="empty-text">{{ menu_reco.done_title }}</p>
-          <p class="empty-text">{{ menu_reco.done_subtitle }}</p>
+          <p class="empty-text">{{ menu_reco.status_text }}</p>
         </div>
-
-        {% if menu_reco.line %}
-          <div style="padding: 10px 14px;">
-            <div style="font-weight: 700; margin-bottom: 6px;">{{ menu_reco.title }}</div>
-            <div style="line-height: 1.5;">{{ menu_reco.line }}</div>
-          </div>
-        {% else %}
-          <div class="empty-state">
-            <p class="empty-text">{{ menu_reco.status_text|default:"추천 준비 중" }}</p>
-          </div>
-        {% endif %}
-
       {% else %}
         {% if menu_reco and menu_reco.line %}
           <div style="padding: 10px 14px;">
-            <div style="font-weight: 700; margin-bottom: 6px;">{{ menu_reco.title }}</div>
-            <div style="line-height: 1.5;">{{ menu_reco.line }}</div>
+            <div style="font-weight: 700; margin-bottom: 6px;">
+              {{ menu_reco.title }}
+            </div>
+            <div style="line-height: 1.5;">
+              {{ menu_reco.line }}
+            </div>
           </div>
         {% else %}
           <div class="empty-state">
