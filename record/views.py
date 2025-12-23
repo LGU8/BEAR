@@ -53,6 +53,7 @@ def record_mood(request):
             print(next_seq, needsUpdate, seq)
 
         if needsUpdate == 0:
+            seq = next_seq
             # CUS_FEEL_TH 저장
             sql = """
             INSERT INTO CUS_FEEL_TH (
@@ -68,7 +69,7 @@ def record_mood(request):
 
             FEEL_TH = [
                 # FEEL_TH
-                date_time, date_time, cust_id, rgs_dt, next_seq, time_slot, mood, energy,
+                date_time, date_time, cust_id, rgs_dt, seq, time_slot, mood, energy,
                 mood, energy,
                 stable_yn
             ]
@@ -92,7 +93,7 @@ def record_mood(request):
                             WHERE word = %s))
                     """
 
-                    row_data = (date_time, date_time, cust_id, rgs_dt, next_seq, keyword_seq, k)
+                    row_data = (date_time, date_time, cust_id, rgs_dt, seq, keyword_seq, k)
                     FEEL_TS.append(row_data)
 
                 with connection.cursor() as cursor:
