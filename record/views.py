@@ -92,8 +92,6 @@ def record_mood(request):
 
 
 def record_meal(request):
-    data = request.POST['data']
-    print(data)
     return render(request, "record/record_meal.html")
 
 
