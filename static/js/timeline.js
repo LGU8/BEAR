@@ -100,6 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     return 0;
   }
+  
   function syncXLabelsToChartArea(chartInstance) {
     const wrap = document.getElementById("weeklyDateLabels");
     if (!wrap || !chartInstance) return;
@@ -107,18 +108,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const ca = chartInstance.chartArea;
     if (!ca) return;
 
-    const canvas = chartInstance.canvas;
+    // ✅ chartArea 폭/시작점 그대로 사용
+    const areaWidth = ca.right - ca.left;
 
-    // canvas의 내부 pixel 기준으로 padding 계산
-    const leftPad = ca.left;
-    const rightPad = canvas.width - ca.right;
-
-    // 날짜 그리드가 chartArea 폭과 동일해지도록 좌/우 padding을 맞춤
-    wrap.style.paddingLeft = `${leftPad}px`;
-    wrap.style.paddingRight = `${rightPad}px`;
-
-    // 혹시 이전 CSS에서 margin/transform이 있으면 영향 줄이기
     wrap.style.boxSizing = "border-box";
+    wrap.style.width = `${areaWidth}px`;
+    wrap.style.marginLeft = `${ca.left}px`;
+    wrap.style.marginRight = `0px`;
+
+    // 혹시 기존에 padding으로 남아있던 값 제거
+    wrap.style.paddingLeft = "0px";
+    wrap.style.paddingRight = "0px";
   }
 
   function renderWeeklyChart(payload) {
@@ -187,6 +187,8 @@ document.addEventListener("DOMContentLoaded", () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        onResize: (chart) => syncXLabelsToChartArea(chart),
+
         layout: { padding: { top: 8, left: 10, right: 10, bottom: 0 } },
         plugins: {
           legend: { display: false },
@@ -200,6 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
         scales: {
           x: {
             stacked: true,
+            offset : true,
             grid: { display: false, drawBorder: false },
             ticks: { display: false }, // ✅ DOM 날짜 사용
           },
