@@ -39,6 +39,7 @@ def record_mood(request):
             cursor.execute(sql, data)
             seq = cursor.fetchone()[0]
 
+        # CUS_FEEL_TH 저장
         sql = """
         INSERT INTO CUS_FEEL_TH (
             created_time, updated_time, cust_id, rgs_dt, seq, time_slot, mood, energy, cluster_val, stable_yn
@@ -61,31 +62,27 @@ def record_mood(request):
         with connection.cursor() as cursor:
             cursor.execute(sql, FEEL_TH)
 
+        # CUS_FEEL_TS 저장
         if keyword != ['']:
-            for k in keyword:
+            FEEL_TS = []
+            for i, k in enumerate(keyword):
+                keyword_seq = i+1
                 sql = """
                 INSERT INTO CUS_FEEL_TS (
                     created_time, updated_time, cust_id, rgs_dt, seq, keyword_seq, feel_id
                 )
-                SELECT
-                    %s, %s, %s, %s, %s,
-                    COALESCE(MAX(keyword_seq), 0) + 1,
+                VALUES(
+                    %s, %s, %s, %s, %s, %s,
                     (SELECT feel_id
                         FROM COM_FEEL_TM
-                        WHERE word = %s)
-                FROM CUS_FEEL_TS
-                WHERE cust_id = %s
-                AND seq = %s
+                        WHERE word = %s))
                 """
 
-                FEEL_TS = [
-                    date_time, date_time, cust_id, rgs_dt, seq,
-                    k,
-                    cust_id, seq
-                ]
+                row_data = (date_time, date_time, cust_id, rgs_dt, seq, keyword_seq, k)
+                FEEL_TS.append(row_data)
 
-                with connection.cursor() as cursor:
-                    cursor.execute(sql, FEEL_TS)
+            with connection.cursor() as cursor:
+                cursor.executemany(sql, FEEL_TS)
         return redirect("/record/meal/")
     else:
         return render(request, "record/record_mood.html", context)
