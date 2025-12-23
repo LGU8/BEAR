@@ -19,12 +19,14 @@ def get_week_range(target_date):
 
 def report_daily(request):
     selected_date = get_selected_date(request)
-    context = {"selected_date": selected_date.strftime("%Y-%m-%d")}
+    context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
+               "active_tab": "report",}
     return render(request, "report/report_daily.html", context)
 
 def report_weekly(request):
     selected_date = get_selected_date(request)
     week_start, week_end = get_week_range(selected_date)
     context = {"week_start": week_start.strftime("%Y-%m-%d"),
-               "week_end": week_end.strftime("%Y-%m-%d"),}
+               "week_end": week_end.strftime("%Y-%m-%d"),
+               "active_tab": "report",}
     return render(request, "report/report_weekly.html", context)
