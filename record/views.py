@@ -1,7 +1,7 @@
 from django.http import HttpResponseBadRequest
 from django.shortcuts import render, redirect
 from datetime import date, datetime, timedelta
-from django.db import connection
+from django.db import connection, transaction
 import json
 from report.views import get_selected_date
 from conf.views import _safe_get_cust_id
@@ -11,161 +11,154 @@ from django.utils import timezone
 # Create your views here.
 def record_mood(request):
     selected_date = get_selected_date(request)
-    context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
-               "active_tab": "record",}
+    context = {
+        "selected_date": selected_date.strftime("%Y-%m-%d"),
+        "active_tab": "record",
+    }
 
-    if request.method == "POST":
-        time_slot = request.POST["time_slot"]
-        mood = request.POST["mood"]
-        energy = request.POST["energy"]
-        keyword = request.POST["keyword"].split(",")
-        date_time = selected_date.strftime("%Y%m%d%H%M%S")
-        rgs_dt = selected_date.strftime("%Y%m%d")
-        cust_id = request.user.cust_id
-        stable_yn = 1 if (mood in ('pos','neu') and energy in ('low', 'med')) else 0
-
-        if not time_slot or not mood or not energy:
-            return HttpResponseBadRequest("시간, 감정, 활성도는 필수 항목입니다.")
-
-        # seq 가져오기
-        sql = """
-        SELECT COALESCE(MAX(seq), 0) + 1, 
-            (SELECT COUNT(*) FROM CUS_FEEL_TH 
-                    WHERE cust_id = %s 
-                    AND rgs_dt = %s 
-                    AND time_slot = %s),
-            (SELECT seq FROM CUS_FEEL_TH 
-                    WHERE cust_id = %s 
-                    AND rgs_dt = %s 
-                    AND time_slot = %s)        
-        FROM CUS_FEEL_TH
-        WHERE cust_id = %s;
-        """
-        data = [cust_id, rgs_dt, time_slot, cust_id, rgs_dt, time_slot, cust_id, ]
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql, data)
-            row = cursor.fetchone()
-            next_seq = row[0]
-            needsUpdate = row[1]
-            seq = row[2]
-
-            print(next_seq, needsUpdate, seq)
-
-        if needsUpdate == 0:
-            seq = next_seq
-            # CUS_FEEL_TH 저장
-            sql = """
-            INSERT INTO CUS_FEEL_TH (
-                created_time, updated_time, cust_id, rgs_dt, seq, time_slot, mood, energy, cluster_val, stable_yn
-            )
-            VALUES(
-                %s, %s, %s, %s, %s, %s, %s, %s,
-                (SELECT cluster_val
-                    FROM COM_FEEL_CLUSTER_TM
-                    WHERE mood = %s AND energy = %s),
-                %s)
-            """
-
-            FEEL_TH = [
-                # FEEL_TH
-                date_time, date_time, cust_id, rgs_dt, seq, time_slot, mood, energy,
-                mood, energy,
-                stable_yn
-            ]
-
-            with connection.cursor() as cursor:
-                cursor.execute(sql, FEEL_TH)
-
-            # CUS_FEEL_TS 저장
-            if keyword != ['']:
-                FEEL_TS = []
-                for i, k in enumerate(keyword):
-                    keyword_seq = i+1
-                    sql = """
-                    INSERT INTO CUS_FEEL_TS (
-                        created_time, updated_time, cust_id, rgs_dt, seq, keyword_seq, feel_id
-                    )
-                    VALUES(
-                        %s, %s, %s, %s, %s, %s,
-                        (SELECT feel_id
-                            FROM COM_FEEL_TM
-                            WHERE word = %s))
-                    """
-
-                    row_data = (date_time, date_time, cust_id, rgs_dt, seq, keyword_seq, k)
-                    FEEL_TS.append(row_data)
-
-                with connection.cursor() as cursor:
-                    cursor.executemany(sql, FEEL_TS)
-        elif needsUpdate > 0:
-            # CUS_FEEL_TH 업데이트
-            sql = """
-            UPDATE CUS_FEEL_TH
-            SET created_time = %s,
-                updated_time = %s,
-                mood = %s,
-                energy = %s,
-                cluster_val = (SELECT cluster_val
-                    FROM COM_FEEL_CLUSTER_TM
-                    WHERE mood = %s AND energy = %s),
-                stable_yn = %s
-            WHERE cust_id = %s
-            AND rgs_dt = %s
-            AND time_slot = %s;
-            """
-
-            FEEL_TH_UP = [
-                # FEEL_TH
-                date_time, date_time, mood, energy,
-                mood, energy,
-                stable_yn,
-                cust_id, rgs_dt, time_slot
-            ]
-
-            with connection.cursor() as cursor:
-                cursor.execute(sql, FEEL_TH_UP)
-
-            # CUS_FEEL_TS 삭제 후 재입력
-            sql = """
-            DELETE FROM CUS_FEEL_TS
-            WHERE cust_id = %s
-            AND rgs_dt = %s
-            AND seq = %s;
-            """
-
-            FEEL_TS_del = [cust_id, rgs_dt, seq]
-
-            with connection.cursor() as cursor:
-                cursor.execute(sql, FEEL_TS_del)
-
-            if keyword != ['']:
-                FEEL_TS = []
-                for i, k in enumerate(keyword):
-                    keyword_seq = i+1
-                    sql = """
-                    INSERT INTO CUS_FEEL_TS (
-                        created_time, updated_time, cust_id, rgs_dt, seq, keyword_seq, feel_id
-                    )
-                    VALUES(
-                        %s, %s, %s, %s, %s, %s,
-                        (SELECT feel_id
-                            FROM COM_FEEL_TM
-                            WHERE word = %s))
-                    """
-
-                    row_data = (date_time, date_time, cust_id, rgs_dt, seq, keyword_seq, k)
-                    FEEL_TS.append(row_data)
-
-                with connection.cursor() as cursor:
-                    cursor.executemany(sql, FEEL_TS)
-
-        request.session["rgs_dt"] = rgs_dt
-        request.session["seq"] = seq
-        request.session["time_slot"] = time_slot
-        return redirect("/record/meal/")
-    else:
+    if request.method != "POST":
         return render(request, "record/record_mood.html", context)
+
+    # 입력값 정리
+    time_slot = request.POST.get("time_slot")
+    mood = request.POST.get("mood")
+    energy = request.POST.get("energy")
+    keyword_raw = request.POST.get("keyword", "")
+    keywords = [k for k in keyword_raw.split(",") if k]
+
+    if not time_slot or not mood or not energy:
+        return HttpResponseBadRequest("시간, 감정, 활성도는 필수 항목입니다.")
+
+    cust_id = request.user.cust_id
+    rgs_dt = selected_date.strftime("%Y%m%d")
+    date_time = selected_date.strftime("%Y%m%d%H%M%S")
+    stable_yn = 1 if (mood in ("pos", "neu") and energy in ("low", "med")) else 0
+
+    # 트랜잭션 시작
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+
+                # 기존 기록 존재 여부 확인
+                cursor.execute(
+                    """
+                    SELECT seq
+                    FROM CUS_FEEL_TH
+                    WHERE cust_id = %s
+                      AND rgs_dt = %s
+                      AND time_slot = %s
+                    """,
+                    [cust_id, rgs_dt, time_slot]
+                )
+                row = cursor.fetchone()
+
+                # INSERT 경로
+                if row is None:
+                    cursor.execute(
+                        """
+                        SELECT COALESCE(MAX(seq), 0) + 1
+                        FROM CUS_FEEL_TH
+                        WHERE cust_id = %s
+                        """,
+                        [cust_id]
+                    )
+                    seq = cursor.fetchone()[0]
+
+                    cursor.execute(
+                        """
+                        INSERT INTO CUS_FEEL_TH (
+                            created_time, updated_time, cust_id,
+                            rgs_dt, seq, time_slot,
+                            mood, energy, cluster_val, stable_yn
+                        )
+                        VALUES (
+                            %s, %s, %s,
+                            %s, %s, %s,
+                            %s, %s,
+                            (SELECT cluster_val
+                               FROM COM_FEEL_CLUSTER_TM
+                              WHERE mood = %s AND energy = %s),
+                            %s
+                        )
+                        """,
+                        [
+                            date_time, date_time, cust_id,
+                            rgs_dt, seq, time_slot,
+                            mood, energy, mood, energy, stable_yn
+                        ]
+                    )
+
+                # UPDATE 경로
+                else:
+                    seq = row[0]
+
+                    cursor.execute(
+                        """
+                        UPDATE CUS_FEEL_TH
+                        SET
+                            updated_time = %s,
+                            mood = %s,
+                            energy = %s,
+                            cluster_val = (SELECT cluster_val
+                                             FROM COM_FEEL_CLUSTER_TM
+                                            WHERE mood = %s AND energy = %s),
+                            stable_yn = %s
+                        WHERE cust_id = %s
+                          AND rgs_dt = %s
+                          AND time_slot = %s
+                        """,
+                        [
+                            date_time, mood, energy,
+                            mood, energy, stable_yn,
+                            cust_id, rgs_dt, time_slot
+                        ]
+                    )
+
+                    # 기존 키워드 삭제
+                    cursor.execute(
+                        """
+                        DELETE FROM CUS_FEEL_TS
+                        WHERE cust_id = %s
+                          AND rgs_dt = %s
+                          AND seq = %s
+                        """,
+                        [cust_id, rgs_dt, seq]
+                    )
+
+                # 키워드 재삽입
+                if keywords:
+                    ts_rows = []
+                    for i, k in enumerate(keywords, start=1):
+                        ts_rows.append(
+                            (date_time, date_time, cust_id, rgs_dt, seq, i, k)
+                        )
+
+                    cursor.executemany(
+                        """
+                        INSERT INTO CUS_FEEL_TS (
+                            created_time, updated_time, cust_id,
+                            rgs_dt, seq, keyword_seq, feel_id
+                        )
+                        VALUES (
+                            %s, %s, %s,
+                            %s, %s, %s,
+                            (SELECT feel_id
+                               FROM COM_FEEL_TM
+                              WHERE word = %s)
+                        )
+                        """,
+                        ts_rows
+                    )
+
+        # 트랜잭션 정상 종료 → commit
+    except Exception as e:
+        return HttpResponseBadRequest(f"저장 중 오류 발생: {e}")
+
+    # meal.html에 데이터 전송
+    request.session["rgs_dt"] = rgs_dt
+    request.session["seq"] = seq
+    request.session["time_slot"] = time_slot
+    return redirect("/record/meal/")
 
 
 def record_meal(request):
