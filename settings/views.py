@@ -6,10 +6,19 @@ from typing import Optional, Dict, Any, List
 
 from django.db import connection
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.templatetags.static import static
+from accounts.models import CusBadge, CusProfile
 
 from settings.badges import BADGE_MASTER
 import hashlib
 
+import json
+import os
+from django.conf import settings
+
+
+DEFAULT_PROFILE_BADGE = "icons_img/bear_default.png"
 
 # ============================================================
 # 0) Time helpers (DB updated_dt/updated_time 갱신용)
@@ -142,16 +151,20 @@ def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
           cust_id,
           height_cm, weight_kg, gender, birth_dt,
           ratio_carb, ratio_protein, ratio_fat,
-          activity_level, purpose
+          activity_level, purpose,
+          selected_badge_id
         FROM CUS_PROFILE_TS
         WHERE cust_id = %s
         """,
         (cust_id,),
     )
 
-    # badge (현재는 DEFAULT 고정: 내일 badge 화면에서 갱신 예정)
-    profile_badge_id = "DEFAULT"
-    profile_badge_img = BADGE_MASTER.get(profile_badge_id, BADGE_MASTER["DEFAULT"])["image"]
+    # badge
+    selected_badge_id = (prof.get("selected_badge_id") or "").strip()
+    if selected_badge_id:
+        profile_badge_img = f"badges_img/{selected_badge_id}.png"
+    else:
+        profile_badge_img = DEFAULT_PROFILE_BADGE
 
     # nickname 처리 (빈 값이면 템플릿에서 안내문구 출력)
     nickname = (cust.get("nickname") or "").strip()
@@ -212,6 +225,19 @@ def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
     }
 
 
+def _make_badge_ids(prefix: str, n: int):
+    return [f"{prefix}{i:09d}" for i in range(1, n + 1)]
+
+def _chunk(items, size=6):
+    return [items[i:i+size] for i in range(0, len(items), size)]
+
+def _load_badge_meta():
+    # settings/badges_meta/badge_meta.json
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    meta_path = os.path.join(base_dir, "badges_meta", "badge_meta.json")
+    with open(meta_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 # ============================================================
 # 5) Views (S0~S5)
 # - redirect는 모두 S0(settings_index)로 통일
@@ -226,16 +252,58 @@ def settings_account(request):  # S1
     return render(request, "settings/settings_account.html", ctx)
 
 
+@login_required(login_url="accounts_app:user_login")
 def settings_profile_edit(request):  # S2
     ctx = _base_ctx(request, active_tab="settings")
     cust_id = ctx["cust_id"]
 
+    # ----------------------------
+    # (A) GET에서도 배지 선택 모달에 쓸 데이터 준비
+    # ----------------------------
+    meta = _load_badge_meta()
+    items = meta.get("items", [])
+    img_base = meta.get("img_base", "/static/badges_img")  # 현재 메타 값 유지
+
+    acquired_rows = (
+        CusBadge.objects
+        .filter(cust_id=cust_id)
+        .values("badge_id", "acquired_time")
+    )
+    acquired_set = {r["badge_id"] for r in acquired_rows}
+
+    def normalize_for_picker(x):
+        badge_id = x["badge_id"]
+        is_acquired = badge_id in acquired_set
+        return {
+            "badge_id": badge_id,
+            "category": x.get("category"),  # "E" or "F"
+            "sort_no": int(x.get("sort_no", 999999)),
+            "img_url": f"{img_base}/{badge_id}.png",
+            "title": x.get("title", ""),
+            "desc": x.get("desc", ""),
+            "hint": x.get("hint", ""),
+            "locked": (not is_acquired),
+        }
+
+    picker_items = sorted([normalize_for_picker(x) for x in items], key=lambda r: r["sort_no"])
+
+    ctx.update({
+        "picker_items": picker_items,
+        "selected_badge_id": (ctx.get("profile_badge_img", "").split("/")[-1].replace(".png", "") if ctx.get("profile_badge_img") else ""),
+    })
+
+    # ----------------------------
+    # (B) POST: 개인정보 + 대표배지 저장
+    # ----------------------------
     if request.method == "POST":
         nickname = (request.POST.get("nickname") or "").strip()
         gender = (request.POST.get("gender") or "").strip()         # "M"/"F"
         birth_dt = (request.POST.get("birth_dt") or "").strip()     # "YYYYMMDD"
         height_cm = (request.POST.get("height_cm") or "").strip()
         weight_kg = (request.POST.get("weight_kg") or "").strip()
+
+        # ✅ 추가: 대표 배지
+        selected_badge_id = (request.POST.get("selected_badge_id") or "").strip()  # "E000..." or "F000..." or ""
 
         if gender and gender not in {"M", "F"}:
             ctx["error"] = "성별 값 오류"
@@ -244,6 +312,14 @@ def settings_profile_edit(request):  # S2
         if birth_dt and len(birth_dt) != 8:
             ctx["error"] = "생년월일 형식 오류(YYYYMMDD)"
             return render(request, "settings/settings_profile_edit.html", ctx)
+
+        # ✅ 잠김 배지 선택 방지(서버 검증)
+        if selected_badge_id:
+            # 실제 획득 배지만 선택 가능
+            has_badge = CusBadge.objects.filter(cust_id=cust_id, badge_id=selected_badge_id).exists()
+            if not has_badge:
+                ctx["error"] = "아직 획득하지 않은 배지는 선택할 수 없어요."
+                return render(request, "settings/settings_profile_edit.html", ctx)
 
         upd_dt = _now_yyyymmdd()
         upd_time = _now_yyyymmddhhmmss()
@@ -263,10 +339,13 @@ def settings_profile_edit(request):  # S2
             """
             UPDATE CUS_PROFILE_TS
             SET gender=%s, birth_dt=%s, height_cm=%s, weight_kg=%s,
+                selected_badge_id=%s,
                 updated_time=%s
             WHERE cust_id=%s
             """,
-            (gender or None, birth_dt or None, height_cm or None, weight_kg or None, upd_time, cust_id),
+            (gender or None, birth_dt or None, height_cm or None, weight_kg or None,
+             (selected_badge_id or None),
+             upd_time, cust_id),
         )
 
         return redirect("settings_app:settings_index")
@@ -429,3 +508,82 @@ def settings_password(request):  # S5
         return redirect("settings_app:settings_index")
 
     return render(request, "settings/settings_password.html", ctx)
+
+@login_required(login_url="accounts_app:user_login")
+def settings_badges(request):
+    """
+    로그인 사용자 기반 도감:
+    - CUS_BADGE_TM 기준 획득/잠김
+    - 수집율 계산
+    """
+    # 0) base ctx (너 프로젝트 공용)
+    ctx = _base_ctx(request, active_tab="badges") if "_base_ctx" in globals() else {}
+
+    # 1) 로그인 사용자 cust_id 확정 (로그인 기반 고정)
+    cust_id = None
+    if getattr(request, "user", None) and request.user.is_authenticated:
+        cust_id = getattr(request.user, "cust_id", None)
+
+    # 2) fallback (이미 login에서 세션도 세팅하고 있으니 안전장치)
+    if not cust_id:
+        cust_id = request.session.get("cust_id")
+
+    if not cust_id:
+        # 로그인인데 cust_id가 비는 이상 케이스
+        return redirect("accounts_app:user_login")
+
+    # 3) badge meta 로드
+    meta = _load_badge_meta()
+    items = meta.get("items", [])
+    img_base = meta.get("img_base", "/static/badges_img")
+
+    # 4) DB에서 획득 배지 조회
+    #    acquired_map: {badge_id: acquired_time}
+    acquired_rows = (
+        CusBadge.objects
+        .filter(cust_id=cust_id)
+        .values("badge_id", "acquired_time")
+    )
+    acquired_map = {r["badge_id"]: (r.get("acquired_time") or "") for r in acquired_rows}
+    acquired_set = set(acquired_map.keys())
+
+    # 5) meta normalize + locked 반영
+    def normalize_item(x):
+        badge_id = x["badge_id"]
+        is_acquired = badge_id in acquired_set
+        acquired_time = acquired_map.get(badge_id, "") if is_acquired else ""
+
+        return {
+            "badge_id": badge_id,
+            "category": x.get("category"),  # "F" or "E"
+            "sort_no": int(x.get("sort_no", 999999)),
+            "img_url": f"{img_base}/{badge_id}.png",
+
+            "title": x.get("title", ""),
+            "desc": x.get("desc", ""),
+            "hint": x.get("hint", ""),
+
+            "locked": (not is_acquired),
+            "acquired_time": acquired_time,  # 획득 배지만 값 있음
+        }
+
+    norm = [normalize_item(x) for x in items]
+
+    # 6) 카테고리 분리 + 정렬
+    food_badges = sorted([x for x in norm if x["category"] == "F"], key=lambda r: r["sort_no"])
+    emotion_badges = sorted([x for x in norm if x["category"] == "E"], key=lambda r: r["sort_no"])
+
+    # 7) 수집율 계산
+    total = len(norm)
+    acquired = len(acquired_set)
+    rate = int(round((acquired / total) * 100)) if total else 0
+
+    ctx.update({
+        "cust_id": cust_id,
+        "food_badges": food_badges,
+        "emotion_badges": emotion_badges,
+        "badge_total": total,
+        "badge_acquired": acquired,
+        "badge_rate": rate,
+    })
+    return render(request, "settings/settings_badges.html", ctx)

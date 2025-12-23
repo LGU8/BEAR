@@ -167,7 +167,19 @@ class CusProfile(models.Model):
     offset = models.FloatField(db_column='Offset', null=True)
     created_time = models.CharField(max_length=14, null=True)
     updated_time = models.CharField(max_length=14, null=True)
+    selected_badge_id = models.CharField(max_length=10, null=True, blank=True)
 
     class Meta:
         db_table = 'CUS_PROFILE_TS'
         managed = False
+
+class CusBadge(models.Model):
+    # SQL: CUS_BADGE_TM
+    cust = models.ForeignKey("Cust", on_delete=models.CASCADE, db_column="cust_id")
+    badge_id = models.CharField(max_length=10)
+    acquired_time = models.CharField(max_length=14, null=True, blank=True)
+
+    class Meta:
+        db_table = "CUS_BADGE_TM"
+        managed = False
+        unique_together = (("cust", "badge_id"),)

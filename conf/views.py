@@ -10,6 +10,7 @@ from django.db.models import Count
 
 from record.models import CusFeelTh
 from record.models import ReportTh
+from django.urls import reverse
 
 
 def _safe_get_cust_id(request) -> str:
@@ -309,11 +310,10 @@ def index(request):
     }
     return render(request, "home.html", context)
 
-
-# badges 뷰
-@login_required(login_url="/")
-def badges(request):
-    return render(request, "badges.html")
+@login_required
+def badges_redirect(request):
+    # canonical: /settings/badges/
+    return redirect(reverse("settings_app:settings_badges"))
 
 
 def _round_int(x) -> int:

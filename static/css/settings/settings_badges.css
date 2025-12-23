@@ -1,0 +1,285 @@
+/* static/css/settings/settings_badges.css */
+
+.badges-page { gap: 16px; }
+
+.badges-progress-card { padding: 18px; }
+.badges-progress-head { display:flex; align-items:center; justify-content:space-between; }
+.badges-progress-title { font-weight:700; font-size:14px; }
+
+.badges-progress-bar {
+  margin-top: 10px;
+  width: 100%;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: #FFFFFF;
+  border: 1px solid rgba(244, 121, 0, 0.25);
+  overflow: hidden;
+}
+.badges-progress-bar > span {
+  display:block;
+  height:100%;
+  background: var(--orange-1);
+  width: 0%;
+  border-radius: var(--radius-pill);
+}
+
+.badges-section-head { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.badges-section-title { font-weight:700; font-size:14px; }
+.badges-section-sub { font-weight:300; font-size:10px; color: var(--text-sub); }
+
+.badge-slider {
+  position: relative;
+  background: rgba(255,255,255,0.35);
+  border-radius: var(--radius-lg);
+  padding: 14px 46px; /* ✅ 버튼 안전 여백 */
+  overflow: hidden;
+}
+
+/* ✅ 버튼이 track/overlay에 가리지 않게 */
+.badge-nav{
+  z-index: 50;
+  pointer-events: auto;
+}
+.badge-viewport,
+.badge-track,
+.badge-page{
+  position: relative;
+  z-index: 1;
+}
+
+.badge-viewport { overflow: hidden; }
+
+.badge-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: transform;
+}
+
+.badge-page {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: auto;
+  gap: 14px 10px;
+  padding: 6px 10px;
+}
+
+.badge-item { text-align:center; user-select:none; cursor: pointer; }
+.badge-bubble {
+  width: 78px;
+  height: 78px;
+  border-radius: 999px;
+  background: rgba(255, 209, 124, 0.45);
+  margin: 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position: relative;
+  overflow:hidden;
+}
+
+.badge-img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  display:block;
+}
+
+.badge-id {
+  margin-top: 6px;
+  font-size: 10px;
+  color: rgba(0,0,0,0.2);
+}
+
+/* 잠김 */
+.badge-item.is-locked .badge-img { opacity: 0.35; filter: saturate(0.9); }
+.badge-item.is-locked .badge-id { opacity: 0.25; }
+
+/* (선택) 획득 배지 미세 강조 링: 과하지 않게 */
+.badge-item:not(.is-locked) .badge-bubble{
+  outline: 2px solid rgba(244,121,0,0.14);
+}
+
+/* Hover overlay: title/hint만 */
+.badge-overlay {
+  position:absolute;
+  inset:0;
+  padding: 10px 8px;
+  background: rgba(255, 255, 255, 0.55);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 140ms ease, transform 140ms ease;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+}
+.badge-item:hover .badge-overlay { opacity: 1; transform: translateY(0); }
+
+.badge-overlay-title {
+  font-weight: 800;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-overlay-hint {
+  font-weight: 400;
+  font-size: 9px;
+  color: rgba(0,0,0,0.7);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Nav */
+.badge-nav {
+  position:absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255,255,255,0.75);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.badge-nav--prev { left: 8px; }
+.badge-nav--next { right: 8px; }
+.badge-nav:disabled { opacity: 0.35; cursor: default; }
+
+/* =========================
+   Modal (완전 고정형 / viewport 기준)
+   ========================= */
+
+.badge-modal{
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 999999; /* 다른 카드/헤더/슬라이더 위 */
+}
+
+.badge-modal.is-open{ display:block; }
+
+/* ✅ dim도 viewport 기준으로 고정 */
+.badge-modal__dim{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.25);
+}
+
+/* ✅ content도 viewport 기준으로 고정 (absolute 금지) */
+.badge-modal__content{
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.98);
+
+  width: min(560px, calc(100vw - 28px));
+  max-height: min(82vh, calc(100vh - 56px)); /* ✅ 상/하 여백 확보 */
+  overflow: auto; /* ✅ 내용 길면 모달 내부 스크롤 */
+
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 16px;
+
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms ease;
+  -webkit-overflow-scrolling: touch;
+}
+
+.badge-modal.is-open .badge-modal__content{
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* 닫기 버튼은 content 위 */
+.badge-modal__close{
+  position: sticky; /* ✅ 스크롤해도 상단에 유지 */
+  top: 0;
+  margin-left: auto;
+
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: none;
+
+  background: rgba(255,255,255,0.7);
+  font-size: 18px;
+  cursor: pointer;
+
+  display: grid;
+  place-items: center;
+}
+
+/* body layout */
+.badge-modal__body{
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+/* 모바일: 1열로 변경 */
+@media (max-width: 420px){
+  .badge-modal__body{
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+}
+
+/* 이미지 */
+.badge-modal__imgwrap{
+  width: 140px;
+  height: 140px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.badge-modal__imgwrap img{
+  width: 98px;
+  height: 98px;
+  object-fit: contain;
+  display:block;
+}
+
+.badge-modal__title{ font-weight: 800; font-size: 16px; }
+.badge-modal__desc{ margin-top: 8px; font-weight: 400; font-size: 12px; line-height: 1.45; }
+.badge-modal__hint{ margin-top: 10px; font-weight: 500; font-size: 11px; color: rgba(0,0,0,0.7); }
+
+/* 획득일 */
+.badge-modal__acquired{
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(0,0,0,0.65);
+  display: none;
+}
+
+.badge-modal__footer{
+  margin-top: 12px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap: wrap; /* ✅ 좁을 때 줄바꿈 */
+}
+
+.badge-modal__pill{
+  display:inline-flex;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.6);
+  font-weight: 700;
+  font-size: 11px;
+  color: rgba(0,0,0,0.75);
+}

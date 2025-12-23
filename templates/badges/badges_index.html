@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/settings/settings_base.css' %}">
+<link rel="stylesheet" href="{% static 'css/settings/settings_badges.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="settings-page badges-page">
+
+  <!-- Progress -->
+  <div class="settings-card">
+    <div class="badge-progress-title">
+      수집율 {{ progress_pct|default:0 }}%
+    </div>
+    <div class="badge-progress-bar">
+      <span style="width: {{ progress_pct|default:0 }}%;"></span>
+    </div>
+  </div>
+
+  <!-- Food badges -->
+  <div class="settings-card">
+    <div class="badge-section-title">식단 캐릭터</div>
+
+    <div class="badge-slider" data-slider="food">
+      <button type="button" class="slider-btn prev" aria-label="prev">‹</button>
+      <button type="button" class="slider-btn next" aria-label="next">›</button>
+
+      <div class="badge-track">
+        {% for page in F_pages %}
+          <div class="badge-page">
+            <div class="badge-grid">
+              {% for it in page %}
+                <div class="badge-item {% if it.earned %}badge-earned{% else %}badge-locked{% endif %}">
+                  <div class="badge-circle">
+                    <img src="{{ it.img_url }}" alt="{{ it.badge_id }}">
+                  </div>
+                  <div class="badge-id">{{ it.badge_id }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Emotion badges -->
+  <div class="settings-card">
+    <div class="badge-section-title">감정 캐릭터</div>
+
+    <div class="badge-slider" data-slider="emotion">
+      <button type="button" class="slider-btn prev" aria-label="prev">‹</button>
+      <button type="button" class="slider-btn next" aria-label="next">›</button>
+
+      <div class="badge-track">
+        {% for page in E_pages %}
+          <div class="badge-page">
+            <div class="badge-grid">
+              {% for it in page %}
+                <div class="badge-item {% if it.earned %}badge-earned{% else %}badge-locked{% endif %}">
+                  <div class="badge-circle">
+                    <img src="{{ it.img_url }}" alt="{{ it.badge_id }}">
+                  </div>
+                  <div class="badge-id">{{ it.badge_id }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  (function () {
+    function initSlider(sliderEl) {
+      const track = sliderEl.querySelector(".badge-track");
+      const pages = sliderEl.querySelectorAll(".badge-page");
+      const prevBtn = sliderEl.querySelector(".slider-btn.prev");
+      const nextBtn = sliderEl.querySelector(".slider-btn.next");
+      const total = pages.length;
+
+      // 예외: 페이지가 1개면 버튼 숨김
+      if (total <= 1) {
+        prevBtn.style.display = "none";
+        nextBtn.style.display = "none";
+        return;
+      }
+
+      let idx = 0;
+
+      function render() {
+        // idx에 따라 track를 좌로 이동(슬라이드)
+        track.style.transform = `translateX(${-idx * 100}%)`;
+      }
+
+      prevBtn.addEventListener("click", () => {
+        idx = (idx - 1 + total) % total;
+        render();
+      });
+
+      nextBtn.addEventListener("click", () => {
+        idx = (idx + 1) % total;
+        render();
+      });
+
+      // 초기
+      render();
+    }
+
+    document.querySelectorAll(".badge-slider").forEach(initSlider);
+  })();
+</script>
+
+{% endblock %}

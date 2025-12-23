@@ -23,7 +23,7 @@ urlpatterns = [
 
     # 뷰 함수 직접 연결 (데코레이터가 붙은 conf_views의 함수인지 확인!)
     path("timeline/", timeline, name="timeline"),
-    path("badges/", conf_views.badges, name="badges"),
+    path("badges/", conf_views.badges_redirect, name="badges"),
 
     # report가 include 방식이라면, 해당 앱의 views.py에도 @login_required가 있어야 합니다.
     path("report/", include("report.urls")),
