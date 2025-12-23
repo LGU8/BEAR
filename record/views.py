@@ -9,7 +9,8 @@ from report.views import get_selected_date
 # Create your views here.
 def record_mood(request):
     selected_date = get_selected_date(request)
-    context = {"selected_date": selected_date.strftime("%Y-%m-%d")}
+    context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
+               "active_tab": "record",}
 
     if request.method == "POST":
         time_slot = request.POST['time_slot']
@@ -35,13 +36,11 @@ def record_mood(request):
         #     cursor.execute(sql, [cust_id, start, end])
         #     rows = cursor.fetchall()
 
-        return render(request, "record/record_meal.html", data)
+        return redirect("/record/meal/")
     else:
         return render(request, "record/record_mood.html", context)
 
 def record_meal(request):
-    data = request.POST['data']
-    print(data)
     return render(request, "record/record_meal.html")
 
 def recipe_search(request):
