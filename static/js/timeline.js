@@ -164,7 +164,17 @@ document.addEventListener("DOMContentLoaded", () => {
             stack: "feeling",
             backgroundColor: "#FFD07C",
             borderSkipped: false,
-            borderRadius: (c) => getTopRadius(c, 10),
+            barThickness: 44,
+            maxBarThickness: 56,
+            categoryPercentage: 0.8,
+            barPercentage: 0.9,
+            borderRadius: (c) => getTopRadius(c, 25),
+
+            // ✅ 추가
+            borderWidth: 0,
+            borderColor: "transparent",
+            hoverBorderWidth: 0,
+            clip: 0,
           },
           {
             label: "Neutral (중립)",
@@ -172,7 +182,17 @@ document.addEventListener("DOMContentLoaded", () => {
             stack: "feeling",
             backgroundColor: "#FFE2B6",
             borderSkipped: false,
-            borderRadius: (c) => getTopRadius(c, 10),
+            barThickness: 44,
+            maxBarThickness: 56,
+            categoryPercentage: 0.8,
+            barPercentage: 0.9,
+            borderRadius: (c) => getTopRadius(c, 25),
+
+            // ✅ 추가
+            borderWidth: 0,
+            borderColor: "transparent",
+            hoverBorderWidth: 0,
+            clip: 0,
           },
           {
             label: "Negative (부정)",
@@ -180,8 +200,18 @@ document.addEventListener("DOMContentLoaded", () => {
             stack: "feeling",
             backgroundColor: "#FFB845",
             borderSkipped: false,
-            borderRadius: (c) => getTopRadius(c, 10),
-          },
+            barThickness: 44,
+            maxBarThickness: 56,
+            categoryPercentage: 0.8,
+            barPercentage: 0.9,
+            borderRadius: (c) => getTopRadius(c, 25),
+
+            // ✅ 추가
+            borderWidth: 0,
+            borderColor: "transparent",
+            hoverBorderWidth: 0,
+            clip: 0,
+          }
         ],
       },
       options: {
@@ -202,15 +232,17 @@ document.addEventListener("DOMContentLoaded", () => {
         scales: {
           x: {
             stacked: true,
-            offset : true,
+            offset: true,
             grid: { display: false, drawBorder: false },
-            ticks: { display: false }, // ✅ DOM 날짜 사용
+            border: { display: false }, // ✅ 추가
+            ticks: { display: false },
           },
           y: {
             stacked: true,
             beginAtZero: true,
-            max: payload?.y_max ?? 9, // ✅ 고정 스케일 (기본 9)
+            max: payload?.y_max ?? 9,
             grid: { display: false, drawBorder: false },
+            border: { display: false }, // ✅ 추가
             ticks: { display: false, stepSize: 1 },
           },
         },
