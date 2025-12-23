@@ -17,6 +17,48 @@ from .services.barcode.mapping_code import EnvNotSetError, UpstreamAPIError
 
 from .models import FoodTb
 
+# 감정 기록 키워드 api
+def keyword_api(request):
+    """
+    감정(mood) + 활성도(energy)에 따라
+    키워드 목록을 DB에서 조회해서 JSON으로 반환
+    """
+
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "GET method only"},
+            status=405
+        )
+
+    # 파라미터 받기
+    mood = request.GET.get("mood")
+    energy = request.GET.get("energy")
+
+    if not mood or not energy:
+        return JsonResponse(
+            {"error": "mood and energy are required"},
+            status=400
+        )
+
+    # SQL 작성
+    sql = """
+        SELECT word
+        FROM COM_FEEL_TM
+        WHERE cluster_val = (SELECT cluster_val
+            FROM COM_FEEL_CLUSTER_TM
+            WHERE mood = %s
+                AND energy = %s)
+    """
+
+    # SQL 실행
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [mood, energy])
+        rows = cursor.fetchall()
+
+    keywords = [r[0] for r in rows]
+
+    # JSON 응답
+    return JsonResponse(keywords, safe=False)
 
 def _normalize_candidate(raw: dict) -> dict:
     """

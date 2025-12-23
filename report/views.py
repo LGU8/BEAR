@@ -5,17 +5,16 @@ def get_selected_date(request):
     date_str = request.GET.get("date")
     if date_str:
         try:
-            return datetime.strptime(date_str, "%Y-%m-%d").date()
+            return datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
         except ValueError:
             pass
-    return date.today()
+    return datetime.now()
 
 def get_week_range(target_date):
     # target_date가 포함된 주의 월요일 ~ 일요일을 반환
     weekday = target_date.weekday() # 월=0, 일=6
     week_start = target_date - timedelta(days=weekday)
     week_end = week_start + timedelta(days=6)
-    print(week_start, week_end)
     return week_start, week_end
 
 def report_daily(request):

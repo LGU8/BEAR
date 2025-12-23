@@ -6,23 +6,27 @@ document.addEventListener("DOMContentLoaded", () => {
   let selectedMood = null;      // pos / neu / neg
   let selectedArousal = null;   // low / med / high
 
-
   /* =================================================
-     2. 더미 키워드 데이터 (감정 × 활성도)
+     2. DB에서 키워드 가져오기
      ================================================= */
-  const DUMMY_KEYWORD_MAP = {
-    pos_low:  ["편안함", "안정", "여유", "차분함"],
-    pos_med:  ["기분좋음", "만족", "집중"],
-    pos_high: ["설렘", "기대", "에너지", "활력"],
-
-    neu_low:  ["무난함", "평온", "일상"],
-    neu_med:  ["보통", "차분", "집중"],
-    neu_high: ["분주함", "바쁨"],
-
-    neg_low:  ["무기력", "지침", "피곤"],
-    neg_med:  ["답답함", "걱정"],
-    neg_high: ["불안", "초조", "긴장", "스트레스"]
-  };
+  function fetchKeywordsFromServer(mood, energy) {
+    fetch(`api/keywords/?mood=${mood}&energy=${energy}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("키워드 조회 실패");
+      }
+      return response.json();
+    })
+    .then(keywordList => {
+      // 서버에서 받은 키워드로 렌더링
+      renderKeywordPills(keywordList);
+    })
+    .catch(error => {
+      console.error(error);
+      clearKeywords();
+      showKeywordPlaceholder();
+    });
+  }
 
 
   /* =================================================
@@ -71,6 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
       option.classList.add("active");
 
       selectedMood = option.dataset.mood;
+      document.getElementById("mood-input").value = selectedMood;
 
       const img  = option.querySelector("img");
       const text = option.querySelector(".mood-label");
@@ -103,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.classList.add("active");
 
       selectedArousal = btn.dataset.arousal;
+      document.getElementById("energy-input").value = selectedArousal;
 
       updateKeywords();
     });
@@ -120,11 +126,22 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const key = `${selectedMood}_${selectedArousal}`;
-    const keywords = DUMMY_KEYWORD_MAP[key] || [];
-
-    renderKeywordPills(keywords);
+    fetchKeywordsFromServer(selectedMood, selectedArousal);
   }
+
+  /* =================================================
+     7-2. 키워드 저장 로직
+     ================================================= */
+
+  function updateKeywordInput() {
+    const selectedKeywords = Array.from(
+    document.querySelectorAll(".keyword-pill.active")
+    ).map(btn => btn.textContent);
+
+    document.getElementById("keyword-input").value =
+    selectedKeywords.join(",");
+  }
+
 
 
   /* =================================================
@@ -144,12 +161,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     keywordList.forEach(word => {
       const btn = document.createElement("button");
+      btn.type = "button"
       btn.className = "keyword-pill";
       btn.textContent = word;
 
       // 복수 선택 토글
       btn.addEventListener("click", () => {
         btn.classList.toggle("active");
+        updateKeywordInput();
       });
 
       keywordContainer.appendChild(btn);
@@ -181,13 +200,5 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 
-  /* =================================================
-     10. (선택) 외부에서 키워드 가져오기
-     ================================================= */
-  window.getSelectedKeywords = function () {
-    return Array.from(
-      document.querySelectorAll(".keyword-pill.active")
-    ).map(btn => btn.textContent);
-  };
 
 });

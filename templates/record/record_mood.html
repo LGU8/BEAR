@@ -47,6 +47,14 @@ $(function () {
 
 </script>
 
+<form method="post" >
+{% csrf_token %}
+
+<!-- 서버로 보낼 실제 값 (저장소) -->
+<input type="hidden" name="mood" id="mood-input">
+<input type="hidden" name="energy" id="energy-input">
+<input type="hidden" name="keyword" id="keyword-input">
+
 <!-- 감정-정서 선택 -->
 <div class="record-mood-card">
   <div class="record-mood-title">
@@ -54,17 +62,17 @@ $(function () {
   </div>
 
   <div class="mood-row">
-    <button class="mood-option" data-mood="pos">
+    <button type="button" class="mood-option" data-mood="pos">
       <img src="/static/icons_img/긍정.png" alt="긍정">
       <span class="mood-label">긍정</span>
     </button>
 
-    <button class="mood-option" data-mood="neu">
+    <button type="button" class="mood-option" data-mood="neu">
       <img src="/static/icons_img/중립.png" alt="중립">
       <span class="mood-label">중립</span>
     </button>
 
-    <button class="mood-option" data-mood="neg">
+    <button type="button" class="mood-option" data-mood="neg">
       <img src="/static/icons_img/부정.png" alt="부정">
       <span class="mood-label">부정</span>
     </button>
@@ -89,9 +97,9 @@ $(function () {
 
     <!-- RIGHT: 활성도 버튼 -->
     <div class="arousal-options">
-      <button class="arousal-btn low" data-arousal="low">Low</button>
-      <button class="arousal-btn med" data-arousal="med">Med</button>
-      <button class="arousal-btn high" data-arousal="high">High</button>
+      <button type="button" class="arousal-btn low" data-arousal="low">Low</button>
+      <button type="button" class="arousal-btn med" data-arousal="med">Med</button>
+      <button type="button" class="arousal-btn high" data-arousal="hig">High</button>
     </div>
 
   </div>
@@ -110,7 +118,8 @@ $(function () {
 
 <!-- 하단 버튼 -->
 <div class="bottom-actions">
-  <a href="{% url 'record_app:record_meal' %}" class="bottom-btn primary"> 다음 </a>
+  <button type="submit" class="bottom-btn primary" name="next" value="next"> 다음 </button>
 </div>
+</form>
 
 {% endblock %}

@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from datetime import date, datetime, timedelta
 from django.db import connection
 import json
@@ -10,7 +10,31 @@ from decimal import Decimal
 def record_mood(request):
     selected_date = get_selected_date(request)
     context = {"selected_date": selected_date.strftime("%Y-%m-%d")}
-    return render(request, "record/record_mood.html", context)
+    user_id = request.user.cust_id
+
+    if request.method == "POST":
+        mood = request.POST['mood']
+        energy = request.POST['energy']
+        keyword = request.POST['keyword'].split(',')
+        date_time = selected_date.strftime("%Y%m%d%H%M%S")
+        rgs_dt = selected_date.strftime("%Y%m%d")
+
+        print(mood, energy, keyword, date_time, rgs_dt, user_id)
+
+        sql = """
+        INSERT VALUES
+        FROM CUS_FEEL_TH
+        VALUES (%s, %s, %s, %s, %d, %s, %s, %s, %s, %s)
+        """
+
+        #
+        # with connection.cursor() as cursor:
+        #     cursor.execute(sql, [cust_id, start, end])
+        #     rows = cursor.fetchall()
+
+        return redirect("/record/meal/")
+    else:
+        return render(request, "record/record_mood.html", context)
 
 def record_meal(request):
     return render(request, "record/record_meal.html")
