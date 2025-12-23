@@ -4,6 +4,8 @@ from datetime import date, datetime, timedelta
 from django.db import connection
 import json
 from report.views import get_selected_date
+from conf.views import _safe_get_cust_id
+from django.utils import timezone
 
 
 # Create your views here.
@@ -13,10 +15,10 @@ def record_mood(request):
                "active_tab": "record",}
 
     if request.method == "POST":
-        time_slot = request.POST['time_slot']
-        mood = request.POST['mood']
-        energy = request.POST['energy']
-        keyword = request.POST['keyword'].split(',')
+        time_slot = request.POST["time_slot"]
+        mood = request.POST["mood"]
+        energy = request.POST["energy"]
+        keyword = request.POST["keyword"].split(",")
         date_time = selected_date.strftime("%Y%m%d%H%M%S")
         rgs_dt = selected_date.strftime("%Y%m%d")
         cust_id = request.user.cust_id
@@ -88,8 +90,12 @@ def record_mood(request):
     else:
         return render(request, "record/record_mood.html", context)
 
+
 def record_meal(request):
+    data = request.POST['data']
+    print(data)
     return render(request, "record/record_meal.html")
+
 
 def recipe_search(request):
     return render(request, "record/recipe_search.html")
@@ -110,17 +116,21 @@ def scan_result(request):
 def timeline(request):
     """
     감정 변화 요약 (주간)
-    - 막대 높이 = 하루 총 감정 강도 합 (0~9)
+    - 막대 높이 = 하루 총 감정 강도 합
     - 누적 색 = 긍/중/부정 강도 구성
+    - 점수 산정:
+        energy: hig=3, med=2, low=1
+        mood(pos/neu/neg)에 따라 각 score로 누적
     """
 
-    cust_id = "1000000001"
+    # ✅ home(index)와 동일한 방식으로 cust_id 결정
+    cust_id = _safe_get_cust_id(request)
 
     # 1) 기간 파라미터
     start = request.GET.get("start")
     end = request.GET.get("end")
 
-    today = datetime.now().date()
+    today = timezone.localdate()
 
     if not end:
         end_date = today
@@ -137,16 +147,47 @@ def timeline(request):
     week_start = start_date.strftime("%Y.%m.%d")
     week_end = end_date.strftime("%Y.%m.%d")
 
-    # 2) SQL: 하루 1행, score 그대로 사용
+    # 2) SQL: CUS_FEEL_TH에서 mood+energy로 score 산정 후, 하루 1행 집계
     sql = """
     SELECT
       rgs_dt,
-      COALESCE(pos_count, 0) AS pos_score,
-      COALESCE(neu_count, 0) AS neu_score,
-      COALESCE(neg_count, 0) AS neg_score
-    FROM CUS_FEEL_RATIO_TH
+      SUM(
+        CASE WHEN mood = 'pos' THEN
+          CASE energy
+            WHEN 'hig' THEN 3
+            WHEN 'med' THEN 2
+            WHEN 'mid' THEN 2
+            WHEN 'low' THEN 1
+            ELSE 0
+          END
+        ELSE 0 END
+      ) AS pos_score,
+      SUM(
+        CASE WHEN mood = 'neu' THEN
+          CASE energy
+            WHEN 'hig' THEN 3
+            WHEN 'med' THEN 2
+            WHEN 'mid' THEN 2
+            WHEN 'low' THEN 1
+            ELSE 0
+          END
+        ELSE 0 END
+      ) AS neu_score,
+      SUM(
+        CASE WHEN mood = 'neg' THEN
+          CASE energy
+            WHEN 'hig' THEN 3
+            WHEN 'med' THEN 2
+            WHEN 'mid' THEN 2
+            WHEN 'low' THEN 1
+            ELSE 0
+          END
+        ELSE 0 END
+      ) AS neg_score
+    FROM CUS_FEEL_TH
     WHERE cust_id = %s
       AND rgs_dt BETWEEN %s AND %s
+    GROUP BY rgs_dt
     ORDER BY rgs_dt;
     """
 
@@ -157,7 +198,7 @@ def timeline(request):
     # 3) 날짜 → score 매핑
     day_to_score = {}
     for rgs_dt, pos_s, neu_s, neg_s in rows:
-        day_to_score[rgs_dt] = (
+        day_to_score[str(rgs_dt)] = (
             int(pos_s or 0),
             int(neu_s or 0),
             int(neg_s or 0),
@@ -184,7 +225,7 @@ def timeline(request):
             "pos": pos,
             "neu": neu,
             "neg": neg,
-            "y_max": 9,  # ✅ 고정 스케일
+            "y_max": 9,  # 기존 고정 스케일 유지
         },
         ensure_ascii=False,
     )
@@ -194,10 +235,10 @@ def timeline(request):
         "week_start": week_start,
         "week_end": week_end,
         "chart_json": chart_json,
+        # 아래 3개는 네 기존 context에 있던 값이면 유지, 아니면 제거 가능
         "risk_label": "위험해요ㅠㅠ",
         "risk_score": 0.78,
         "llm_ment": "오늘은 기분이 좋지 않았네요. 가벼운 산책은 어때요?",
     }
 
     return render(request, "timeline.html", context)
-

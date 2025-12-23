@@ -118,20 +118,28 @@
 
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+
+  /* ✅ gap 제거: Chart.js 카테고리 폭은 gap 개념이 없어서 어긋나기 쉬움 */
+  gap: 0;
+
   align-items: center;
+
+  /* ✅ JS가 chartArea 기준으로 width/margin-left를 줄 거라서 overflow 안전장치 */
+  overflow: hidden;
 }
 
 .timeline-xlabel{
-  display: block;
   height: 22px;
   line-height: 22px;
   font-size: 12px;
   color: rgba(0,0,0,0.65);
-  text-align: center;
   white-space: nowrap;
-}
 
+  /* ✅ 셀 내부 정중앙 고정 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 /* ======================================================
    Bootstrap Datepicker Theme
    ====================================================== */

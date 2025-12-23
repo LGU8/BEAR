@@ -35,7 +35,7 @@
 
 
 .section-card {
-  background-color: #FFF2DD;
+  background-color: #FFFFFF;
   border-radius: 14px;
   padding: 14px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.04);
@@ -266,9 +266,6 @@
    오늘 먹은 것들
    ============================== */
 
-.food-card {
-  padding: 14px;
-}
 
 /* ---------- Legend ---------- */
 
@@ -319,6 +316,7 @@
 .food-slot {
   font-size: 13px;
   font-weight: 700;
+  padding : 0 0 0 10px;
   color: #333;
 }
 
@@ -337,14 +335,17 @@
 /* ---------- Bar ---------- */
 
 .food-bar {
-  position: relative;
-  width: 100%;
-  height: 22px;
-  border-radius: 999px;
-  background-color: rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
+  flex: 1 1 auto;
+  min-width: 0;
 
+  display: flex;              /* ✅ 세그먼트 나란히 */
+  height: 18px;               /* ✅ 텍스트가 안 잘리는 높이 */
+  border-radius: 999px;       /* ✅ pill 형태 */
+  overflow: hidden;           /* ✅ 둥근 끝 유지 */
+  background: rgba(0,0,0,0.06);
+
+  /* 텍스트가 있는 형태라 padding은 주지 않는 게 안정적 */
+}
 .food-bar.is-empty {
   background-color: rgba(0, 0, 0, 0.05);
 }
@@ -352,13 +353,15 @@
 /* Segments */
 .food-seg {
   height: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
+  display: flex;
+  align-items: center;        /* ✅ 세로 중앙 */
+  justify-content: center;    /* ✅ 가로 중앙 */
+  font-size: 11px;            /* ✅ bar 높이 대비 안전 */
+  line-height: 1;             /* ✅ 잘림 방지 핵심 */
   font-weight: 800;
+  color: rgba(0,0,0,0.55);
   white-space: nowrap;
-  color: #8F8F8F;
+  box-sizing: border-box;
 }
 
 .food-seg.carb    { background-color: #FFB845; }
