@@ -1,3 +1,4 @@
+from django.http import HttpResponseBadRequest
 from django.shortcuts import render, redirect
 from datetime import date, datetime, timedelta
 from django.db import connection
@@ -9,16 +10,19 @@ from report.views import get_selected_date
 def record_mood(request):
     selected_date = get_selected_date(request)
     context = {"selected_date": selected_date.strftime("%Y-%m-%d")}
-    user_id = request.user.cust_id
 
     if request.method == "POST":
+        time_slot = request.POST['time_slot']
         mood = request.POST['mood']
         energy = request.POST['energy']
         keyword = request.POST['keyword'].split(',')
         date_time = selected_date.strftime("%Y%m%d%H%M%S")
         rgs_dt = selected_date.strftime("%Y%m%d")
+        cust_id = request.user.cust_id
+        print(time_slot, mood, energy, keyword, date_time, rgs_dt, cust_id)
 
-        print(mood, energy, keyword, date_time, rgs_dt, user_id)
+        if not time_slot or not mood or not energy:
+            return HttpResponseBadRequest("시간, 감정, 활성화 정도는 필수 항목입니다.")
 
         sql = """
         INSERT VALUES
@@ -31,11 +35,13 @@ def record_mood(request):
         #     cursor.execute(sql, [cust_id, start, end])
         #     rows = cursor.fetchall()
 
-        return redirect("/record/meal/")
+        return render(request, "record/record_meal.html", data)
     else:
         return render(request, "record/record_mood.html", context)
 
 def record_meal(request):
+    data = request.POST['data']
+    print(data)
     return render(request, "record/record_meal.html")
 
 def recipe_search(request):

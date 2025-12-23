@@ -28,10 +28,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-
   /* =================================================
      3. DOM 요소
      ================================================= */
+  const timeSlot = document.querySelectorAll(".time-item")
+
   const moodOptions    = document.querySelectorAll(".mood-option");
   const arousalButtons = document.querySelectorAll(".arousal-btn");
 
@@ -45,9 +46,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const keywordContainer   = document.querySelector(".keyword-container");
   const keywordPlaceholder = keywordContainer?.querySelector(".keyword-placeholder");
 
+  // 정보 누락 방지
+  const form = document.querySelector("form");
 
   /* =================================================
-     4. 초기 상태
+     시간대 상태
+     ================================================= */
+  timeSlot.forEach(option => {
+    option.addEventListener("click", () => {
+
+    // active 초기화
+    timeSlot.forEach(o => o.classList.remove("active"));
+
+    // 클릭한 버튼만 active
+    option.classList.add("active");
+
+    // 시간 값 가져오기
+    const selectedTime = option.dataset.time;
+
+    // form에 저장
+    document.getElementById("time-input").value = selectedTime;
+    });
+  });
+
+  /* =================================================
+     4. 감정 초기 상태
      ================================================= */
   // 감정 미선택 상태
   if (selectedMoodImg) {
@@ -199,6 +222,18 @@ document.addEventListener("DOMContentLoaded", () => {
       .forEach(el => el.remove());
   }
 
+  // 정보 누락 방지
+  form.addEventListener("submit", (e) => {
+    const time   = document.getElementById("time-input").value;
+    const mood   = document.getElementById("mood-input").value;
+    const energy = document.getElementById("energy-input").value;
+
+    if (!time || !mood || !energy) {
+    e.preventDefault(); // submit 막기
+    alert("시간, 감정, 활성도를 모두 선택해 주세요.");
+    return;
+    }
+  });
 
 
 });

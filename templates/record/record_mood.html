@@ -51,9 +51,33 @@ $(function () {
 {% csrf_token %}
 
 <!-- 서버로 보낼 실제 값 (저장소) -->
+<input type="hidden" name="time_slot" id="time-input">
 <input type="hidden" name="mood" id="mood-input">
 <input type="hidden" name="energy" id="energy-input">
 <input type="hidden" name="keyword" id="keyword-input">
+
+<!-- 시간대 선택 -->
+<div class="record-mood-card">
+  <div class="record-mood-title">
+    <span>시간 선택</span>
+  </div>
+    <div class="time-row">
+    <button type="button" class="time-item" data-time="M">
+      <img src="{% static 'record_img/morning.png' %}" alt="아침">
+      <span class="time-label">아침</span>
+    </button>
+
+    <button type="button" class="time-item" data-time="L">
+      <img src="{% static 'record_img/lunch.png' %}" alt="점심">
+      <span class="time-label">점심</span>
+    </button>
+
+    <button type="button" class="time-item" data-time="D">
+      <img src="{% static 'record_img/dinner.png' %}" alt="저녁">
+      <span class="time-label">저녁</span>
+    </button>
+  </div>
+</div>
 
 <!-- 감정-정서 선택 -->
 <div class="record-mood-card">
