@@ -41,7 +41,7 @@
 
 
 from django.shortcuts import render, redirect
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from django.utils import timezone
 import json
 from django.db import connection
@@ -84,6 +84,7 @@ def _safe_get_cust_id(request) -> str:
 
     return ""
 
+
 def _build_daily_report_chart(cust_id: str, today_ymd: str) -> dict:
     """
     Home - 일일 리포트 섹션용 데이터 빌더.
@@ -94,8 +95,7 @@ def _build_daily_report_chart(cust_id: str, today_ymd: str) -> dict:
         return {"rgs_dt": today_ymd, "content": ""}
 
     row = (
-        ReportTh.objects
-        .filter(cust_id=cust_id, type="D", rgs_dt=today_ymd)
+        ReportTh.objects.filter(cust_id=cust_id, type="D", rgs_dt=today_ymd)
         .order_by("-updated_time")
         .first()
     )
@@ -105,6 +105,213 @@ def _build_daily_report_chart(cust_id: str, today_ymd: str) -> dict:
 
     return {"rgs_dt": row.rgs_dt, "content": row.content}
 
+
+def _kst_now():
+    """
+    서버 설정이 timezone-aware일 때는 timezone.localtime()을 쓰고,
+    아니면 datetime.now()로 fallback.
+    """
+    try:
+        return timezone.localtime()
+    except Exception:
+        return datetime.now()
+
+
+def _get_food_name_column() -> str:
+    """
+    FOOD_TB에서 '음식명' 컬럼명이 프로젝트마다 다를 수 있어서
+    information_schema로 실제 존재하는 컬럼을 찾아 1개를 선택한다.
+
+    우선순위 후보(있으면 그걸 사용):
+    - name
+    - food_nm
+    - food_name
+    - food_nm_kr
+    - title
+    - food_title
+
+    없으면 빈 문자열 반환(조인 실패 처리로 이어짐)
+    """
+    candidates = ["name", "food_nm", "food_name", "food_nm_kr", "title", "food_title"]
+
+    sql = """
+        SELECT COLUMN_NAME
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'FOOD_TB';
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        cols = {str(r[0]) for r in cursor.fetchall()}
+
+    for c in candidates:
+        if c in cols:
+            return c
+    return ""
+
+
+def _build_menu_reco_context(cust_id: str, today_ymd: str) -> dict:
+    """
+    Home - 메뉴 추천 context 생성
+
+    정책(너가 확정한 스펙 그대로):
+    - '오늘 D까지 기록 완료'(CUS_FOOD_TH에 today_ymd + time_slot='D' 존재)면:
+        - 완료 문구 + (내일 아침 추천: rgs_dt=tomorrow, slot='M') 표시
+        - 단, KST 04:00 이후면 문구에서 '내일' 제거
+    - 오늘 미완료면:
+        - MENU_RECOM_TH에서 오늘 rgs_dt 기준 가장 마지막 행의 rec_time_slot을 가져오고,
+          그 slot의 P/H/E 추천을 표시
+        - 오늘 추천 테이블이 0행이면 slot='M'로 조회
+    - FOOD_TB 조인 실패(없는 food_id)는 제외하고 남은 것만 표시
+    - 0개 성공이면 '추천 준비 중'
+    - 중복 저장 없음(= cust_id+rgs_dt+slot+type 유니크), 최신 선택 필요 없음
+    """
+    base = {
+        "empty": True,
+        "title": "",
+        "line": "",
+        "status_text": "추천 준비 중",
+        "is_done_today": False,
+        "done_title": "",
+        "done_subtitle": "",
+    }
+
+    if not cust_id:
+        return base
+
+    now_kst = _kst_now()
+    is_after_4am = (now_kst.hour > 4) or (now_kst.hour == 4 and now_kst.minute >= 0)
+
+    # 1) 오늘 D 기록 완료 여부
+    sql_done = """
+        SELECT 1
+        FROM CUS_FOOD_TH
+        WHERE cust_id = %s
+          AND rgs_dt  = %s
+          AND time_slot = 'D'
+        LIMIT 1;
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql_done, [cust_id, today_ymd])
+        done_row = cursor.fetchone()
+
+    done_today = bool(done_row)
+
+    # FOOD_TB 음식명 컬럼 탐지
+    name_col = _get_food_name_column()
+    if not name_col:
+        # FOOD_TB에서 이름 컬럼을 못 찾으면 사실상 추천 표시 불가(조인 실패가 연쇄)
+        # 스펙상 0개 성공 처리 -> "추천 준비 중"
+        if done_today:
+            base["is_done_today"] = True
+            base["done_title"] = "오늘 식사 기록이 모두 완료됐어요."
+            base["done_subtitle"] = (
+                "아침 추천을 준비해드릴게요."
+                if is_after_4am
+                else "내일 아침 추천을 미리 준비해드릴게요."
+            )
+        return base
+
+    # 2-A) 완료 상태: 내일 아침 추천 표시 + 완료 문구
+    if done_today:
+        tomorrow_ymd = (timezone.localdate() + timedelta(days=1)).strftime("%Y%m%d")
+
+        base["is_done_today"] = True
+        base["done_title"] = "오늘 식사 기록이 모두 완료됐어요."
+        base["done_subtitle"] = (
+            "아침 추천을 준비해드릴게요."
+            if is_after_4am
+            else "내일 아침 추천을 미리 준비해드릴게요."
+        )
+
+        # 타이틀도 4시 기준으로 톤 맞추기(원하면 이 규칙은 바로 변경 가능)
+        base["title"] = "아침 메뉴 추천" if is_after_4am else "내일 아침 메뉴 추천"
+
+        # 추천 조회(내일 M)
+        target_dt = tomorrow_ymd
+        target_slot = "M"
+
+    # 2-B) 미완료 상태: 오늘 마지막 slot 기반 추천 표시
+    else:
+        # 오늘 추천 테이블에서 마지막 slot 1개
+        sql_last = """
+            SELECT rec_time_slot
+            FROM MENU_RECOM_TH
+            WHERE cust_id = %s
+              AND rgs_dt  = %s
+            ORDER BY created_time DESC
+            LIMIT 1;
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(sql_last, [cust_id, today_ymd])
+            last = cursor.fetchone()
+
+        target_slot = str(last[0]).strip().upper() if last and last[0] else "M"
+        if target_slot not in ("M", "L", "D"):
+            target_slot = "M"
+
+        target_dt = today_ymd
+
+        slot_label = {"M": "아침", "L": "점심", "D": "저녁"}[target_slot]
+        base["title"] = f"{slot_label} 메뉴 추천"
+
+    # 3) 해당 날짜+slot의 P/H/E 추천을 FOOD_TB와 조인해서 가져오기
+    #    - 조인 실패한 건 제외(= INNER JOIN)
+    #    - rec_type 순서는 P -> H -> E 고정
+    sql_reco = f"""
+        SELECT
+            r.rec_type,
+            r.food_id,
+            f.`{name_col}` AS food_name
+        FROM MENU_RECOM_TH r
+        JOIN FOOD_TB f
+          ON f.food_id = r.food_id
+        WHERE r.cust_id = %s
+          AND r.rgs_dt = %s
+          AND r.rec_time_slot = %s
+          AND r.rec_type IN ('P','H','E')
+        ORDER BY FIELD(r.rec_type, 'P','H','E');
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql_reco, [cust_id, target_dt, target_slot])
+        rows = cursor.fetchall()
+
+    # rows: (rec_type, food_id, food_name)
+    # 스펙: 조인 성공한 것만 표시, 0개면 "추천 준비 중"
+    if not rows:
+        base["empty"] = True
+        base["line"] = ""
+        base["status_text"] = "추천 준비 중"
+        return base
+
+    # 4) 타입 노출 문구 구성(존재하는 것만)
+    type_label = {
+        "P": "취향 기반",
+        "H": "균형(5:3:2)",
+        "E": "새로운 메뉴",
+    }
+
+    parts = []
+    for rec_type, food_id, food_name in rows:
+        t = str(rec_type).strip().upper()
+        nm = str(food_name).strip() if food_name is not None else ""
+        if not nm:
+            # 이 케이스는 JOIN이라 거의 없지만, 방어적으로 제외
+            continue
+        label = type_label.get(t, t)
+        parts.append(f"{label}: {nm}")
+
+    if not parts:
+        base["empty"] = True
+        base["line"] = ""
+        base["status_text"] = "추천 준비 중"
+        return base
+
+    base["empty"] = False
+    base["line"] = " / ".join(parts)
+    base["status_text"] = ""
+    return base
 
 
 def _build_today_donut(cust_id: str, yyyymmdd: str):
@@ -116,8 +323,7 @@ def _build_today_donut(cust_id: str, yyyymmdd: str):
         return None
 
     qs = (
-        CusFeelTh.objects
-        .filter(cust_id=cust_id, rgs_dt=yyyymmdd)
+        CusFeelTh.objects.filter(cust_id=cust_id, rgs_dt=yyyymmdd)
         .values("mood")
         .annotate(cnt=Count("mood"))
     )
@@ -158,24 +364,18 @@ def index(request):
     donut = _build_today_donut(cust_id=cust_id, yyyymmdd=today_str)
     daily_report = _build_daily_report_chart(cust_id, today_ymd)
     food_payload = build_today_food_payload(cust_id=cust_id, today_ymd=today_ymd)
+    menu_reco = _build_menu_reco_context(cust_id=cust_id, today_ymd=today_ymd)
 
     context = {
-    "menu_reco": None,
-    "today_ymd": today_ymd,
-    "daily_report": daily_report,
-
-    # ✅ 템플릿과 JS가 읽을 키
-    "food_payload_json": json.dumps(food_payload, ensure_ascii=False),
-
-    # (선택) 기존 키 유지하고 싶으면 같이 둬도 됨
-    "today_meals": json.dumps(food_payload, ensure_ascii=False),
-
-    "donut": donut,
-}
-
-
-
-
+        "menu_reco": menu_reco,
+        "today_ymd": today_ymd,
+        "daily_report": daily_report,
+        # ✅ 템플릿과 JS가 읽을 키
+        "food_payload_json": json.dumps(food_payload, ensure_ascii=False),
+        # (선택) 기존 키 유지하고 싶으면 같이 둬도 됨
+        "today_meals": json.dumps(food_payload, ensure_ascii=False),
+        "donut": donut,
+    }
     return render(request, "home.html", context)
 
 
@@ -183,8 +383,6 @@ def index(request):
 @login_required(login_url="/")
 def badges(request):
     return render(request, "badges.html")
-
-
 
 
 # # report_daily 뷰
@@ -206,8 +404,6 @@ def badges(request):
 #     }
 #
 #     return render(request, "report_daily.html", context)
-
-
 
 
 def _round_int(x) -> int:
@@ -335,21 +531,40 @@ def build_today_food_payload(cust_id: str, today_ymd: str) -> dict:
             carb_pct = protein_pct = fat_pct = 0.0
 
         segments = [
-            {"key": "carb", "label": "탄", "g": carb, "pct": carb_pct, "showText": carb_pct >= threshold},
-            {"key": "protein", "label": "단", "g": protein, "pct": protein_pct, "showText": protein_pct >= threshold},
-            {"key": "fat", "label": "지", "g": fat, "pct": fat_pct, "showText": fat_pct >= threshold},
+            {
+                "key": "carb",
+                "label": "탄",
+                "g": carb,
+                "pct": carb_pct,
+                "showText": carb_pct >= threshold,
+            },
+            {
+                "key": "protein",
+                "label": "단",
+                "g": protein,
+                "pct": protein_pct,
+                "showText": protein_pct >= threshold,
+            },
+            {
+                "key": "fat",
+                "label": "지",
+                "g": fat,
+                "pct": fat_pct,
+                "showText": fat_pct >= threshold,
+            },
         ]
 
-        result.append({
-            "time_slot": ts,
-            "label": s["label"],
-            "kcal_display": kcal_display,
-            "total_g": total_g,
-            "segments": segments,
-
-            # 빈 슬롯이면 tooltip 비활성
-            "tooltip_enabled": s["row_count"] > 0,
-            "tooltip_text": f"탄 {carb}g / 단 {protein}g / 지 {fat}g",
-        })
+        result.append(
+            {
+                "time_slot": ts,
+                "label": s["label"],
+                "kcal_display": kcal_display,
+                "total_g": total_g,
+                "segments": segments,
+                # 빈 슬롯이면 tooltip 비활성
+                "tooltip_enabled": s["row_count"] > 0,
+                "tooltip_text": f"탄 {carb}g / 단 {protein}g / 지 {fat}g",
+            }
+        )
 
     return {"rgs_dt": today_ymd, "slots": result}

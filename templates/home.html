@@ -8,7 +8,7 @@
 {% block content %}
 <main class="home">
 
-  <!-- 1) 메뉴 추천 -->
+   <!-- 1) 메뉴 추천 -->
   <section class="home-section" id="section-menu-reco">
     <div class="section-head">
       <h4 class="section-title">메뉴 추천</h4>
@@ -16,32 +16,42 @@
     </div>
 
     <div class="section-card">
-      {% comment %}
-        context 예시:
-        menu_reco = {
-          "items": [
-            {"title":"...", "reason":"...", "score":0.92},
-            ...
-          ],
-          "empty": True/False
-        }
-      {% endcomment %}
+      
 
-      {% if menu_reco and menu_reco.items %}
-        <ul class="reco-list">
-          {% for item in menu_reco.items %}
-            <li class="reco-item">
-              <div class="reco-title">{{ item.title }}</div>
-              {% if item.reason %}
-                <div class="reco-reason">{{ item.reason }}</div>
-              {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
+      {% if menu_reco and menu_reco.is_done_today %}
         <div class="empty-state">
-          <p class="empty-text">오늘의 추천 메뉴가 아직 없어요.</p>
+          <p class="empty-text">{{ menu_reco.done_title }}</p>
+          <p class="empty-text">{{ menu_reco.done_subtitle }}</p>
         </div>
+
+        {% if menu_reco.line %}
+          <div style="padding: 10px 14px;">
+            <div style="font-weight: 700; margin-bottom: 6px;">{{ menu_reco.title }}</div>
+            <div style="line-height: 1.5;">{{ menu_reco.line }}</div>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <p class="empty-text">{{ menu_reco.status_text|default:"추천 준비 중" }}</p>
+          </div>
+        {% endif %}
+
+      {% else %}
+        {% if menu_reco and menu_reco.line %}
+          <div style="padding: 10px 14px;">
+            <div style="font-weight: 700; margin-bottom: 6px;">{{ menu_reco.title }}</div>
+            <div style="line-height: 1.5;">{{ menu_reco.line }}</div>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <p class="empty-text">
+              {% if menu_reco and menu_reco.status_text %}
+                {{ menu_reco.status_text }}
+              {% else %}
+                추천 준비 중
+              {% endif %}
+            </p>
+          </div>
+        {% endif %}
       {% endif %}
     </div>
   </section>
