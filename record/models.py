@@ -66,3 +66,38 @@ class FoodTb(models.Model):
         managed = (
             False  # 이미 DB에 테이블이 있으니 Django가 마이그레이션으로 건드리지 않게
         )
+
+
+class CusFoodTh(models.Model):
+    created_time = models.CharField(max_length=14, null=True, blank=True)
+    updated_time = models.CharField(max_length=14, null=True, blank=True)
+
+    cust_id = models.CharField(max_length=10, primary_key=True)
+    rgs_dt = models.CharField(max_length=8)
+    seq = models.IntegerField()
+    time_slot = models.CharField(max_length=10, null=True)
+
+    kcal = models.IntegerField(null=True, blank=True)
+    carb_g = models.IntegerField(null=True, blank=True)
+    protein_g = models.IntegerField(null=True, blank=True)
+    fat_g = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = "CUS_FOOD_TH"
+        managed = False
+
+
+class CusFoodTs(models.Model):
+    created_time = models.CharField(max_length=14, null=True, blank=True)
+    updated_time = models.CharField(max_length=14, null=True, blank=True)
+
+    cust_id = models.CharField(max_length=10, primary_key=True)
+    rgs_dt = models.CharField(max_length=8)
+    seq = models.IntegerField()
+
+    food_seq = models.IntegerField()
+    food_id = models.CharField(max_length=10, null=True)
+
+    class Meta:
+        db_table = "CUS_FOOD_TS"
+        managed = False
