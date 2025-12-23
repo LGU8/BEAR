@@ -3,41 +3,55 @@ document.addEventListener("DOMContentLoaded", () => {
   //console.log("[report_daily] DOMContentLoaded ✅");
 
   /* 하루 요약 영양소 더미 데이터 (DB에서 온다고 가정) */
-  const nutritionData = {
-    calorie: { intake: 1800, recommended: 2000, unit: "kcal" },
-    carb: { intake: 220, recommended: 300, unit: "g" },
-    protein: { intake: 130, recommended: 120, unit: "g" },
-    fat: { intake: 70, recommended: 60, unit: "g" },
-  };
+  const nutEl = document.getElementById("report-nut-data");
+  if (!nutEl) {
+    console.error("report-nut-data element not found");
+  }
+
+  const nutritionData = JSON.parse(nutEl.dataset.nutDay);
+
+  const total = {kcal: 0, carb: 0, protein: 0, fat: 0};
+
+  ["M", "L", "D"].forEach(slot => {
+    if (!nutritionData[slot]) return;
+    total.kcal += nutritionData[slot].kcal || 0;
+    total.carb += nutritionData[slot].carb || 0;
+    total.protein += nutritionData[slot].protein || 0;
+    total.fat += nutritionData[slot].fat || 0;
+  });
 
   const COLOR_FULL = "#F47900"; // 권장량 충족/초과
   const COLOR_LOW = "#FFA636"; // 부족
 
   /* 하루 요약 막대(그래프처럼 보이는 progress) 렌더링 */
-  const nutRows = document.querySelectorAll(".nut-row");
-  // console.log("nutRows:", nutRows.length);
-
-  nutRows.forEach((row) => {
-    const key = row.dataset.nutrient;
-    const data = nutritionData[key];
-
-    // 방어코드: key가 틀리면 여기서 종료 (전체 중단 방지)
-    if (!data) return;
-
+  document.querySelectorAll(".nut-row").forEach(row => {
+    const key = row.dataset.nutrient; // calorie, carb, protein, fat
     const textEl = row.querySelector(".nut-text");
     const barEl = row.querySelector(".nut-bar span");
 
     if (!textEl || !barEl) return;
 
-    const percent = (data.intake / data.recommended) * 100;
+    // calorie는 kcal로 매핑
+    const dataKey = key === "calorie" ? "kcal" : key;
+
+    const intake = total[dataKey];
+    const recommended = nutritionData.recom[dataKey];
+
+    // 방어: 기준값 없으면 표시 안 함
+    if (recommended == null || recommended === 0) return;
+
+    const percent = (intake / recommended) * 100;
     const width = Math.min(percent, 100);
+    const color = intake >= recommended ? COLOR_FULL : COLOR_LOW;
 
-    const color = data.intake >= data.recommended ? COLOR_FULL : COLOR_LOW;
+    // 텍스트 출력
+    if (dataKey === "kcal") {
+    textEl.textContent = `${intake} / ${recommended} kcal`;
+    } else {
+    textEl.textContent = `${intake} / ${recommended} g`;
+    }
 
-    // 텍스트
-    textEl.textContent = `${data.intake} / ${data.recommended} ${data.unit}`;
-
-    // 막대
+    // 막대 스타일
     barEl.style.width = `${width}%`;
     barEl.style.backgroundColor = color;
   });
@@ -57,25 +71,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
         summaryContent.style.display = target === "summary" ? "block" : "none";
         detailContent.style.display = target === "detail" ? "block" : "none";
-
-        // detail 탭으로 넘어갈 때 차트가 안 보이면, 여기서 한 번 더 렌더(안전)
-        if (target === "detail") {
-          // detail이 display:none -> block으로 바뀐 직후라 size 계산이 안정적
-          renderMacroChart(getMealLabel("morning"), mealMacroData.morning);
-        }
       });
     });
   }
 
-  /* 끼니별 탄단지 더미 데이터 */
-  const mealMacroData = {
-    morning: { carb: 260, protein: 120, fat: 140, kcal: 1020 },
-    lunch:   { carb: 300, protein: 180, fat: 160, kcal: 640 },
-    dinner:  { carb: 200, protein: 220, fat: 180, kcal: 600 },
+  /* 끼니별 버튼 매핑 */
+  const MEAL_KEY_MAP = {
+    morning: "M",
+    lunch: "L",
+    dinner: "D"
   };
 
   /* 끼니 버튼 DOM */
   const mealButtons = document.querySelectorAll(".meal-btn");
+  const menuTextEl = document.querySelector(".meal-menu-text");
 
   /* 영양 도넛 차트 */
   let macroDonutChart = null;
@@ -99,42 +108,57 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     };
 
-  function renderMacroDonut(data) {
-      const canvas = document.getElementById("macroDonutChart");
-      if (!canvas || !window.Chart) return;
+  function renderMacroDonut(mealKey) {
+    const data = nutritionData[mealKey];
+    if (!data) return;
 
-      const ctx = canvas.getContext("2d");
+    /* ---- 메뉴명 렌더 ---- */
+    if (menuTextEl) {
+    if (data.f_name && data.f_name.length > 0) {
+      menuTextEl.textContent = data.f_name.join(", ");
+    } else {
+      menuTextEl.textContent = "기록된 메뉴가 없어요";
+    }
+    }
 
-      if (macroDonutChart) macroDonutChart.destroy();
+    /* ---- 도넛 차트 렌더 ---- */
+    const canvas = document.getElementById("macroDonutChart");
+    if (!canvas || !window.Chart) return;
 
-      macroDonutChart = new Chart(ctx, {
-        type: "doughnut",
-        data: {
-          labels: ["탄수화물", "단백질", "지방"],
-          datasets: [{
-            data: [data.carb, data.protein, data.fat],
-            backgroundColor: ["#FFD07C", "#FFE2B6", "#FFB845"],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          animation: false,
-          cutout: "65%",
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: ctx => `${ctx.label}: ${ctx.raw} g`
-              }
-            },
-            centerText: {
-              text: `${data.kcal} kcal`
-            }
+    const ctx = canvas.getContext("2d");
+
+    if (macroDonutChart) {
+    macroDonutChart.destroy();
+    }
+
+    macroDonutChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: ["탄수화물", "단백질", "지방"],
+      datasets: [{
+        data: [data.carb, data.protein, data.fat],
+        backgroundColor: ["#FFD07C", "#FFE2B6", "#FFB845"],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      animation: false,
+      cutout: "65%",
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.label}: ${ctx.raw} g`
           }
         },
-        plugins: [centerTextPlugin]
-      });
-    }
+        centerText: {
+          text: `${data.kcal} kcal`
+        }
+      }
+    },
+    plugins: [centerTextPlugin]
+    });
+  }
 
   /*끼니 버튼 클릭 이벤트 */
   mealButtons.forEach(btn => {
@@ -142,36 +166,50 @@ document.addEventListener("DOMContentLoaded", () => {
       mealButtons.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
 
-      const meal = btn.dataset.meal;
-      if (mealMacroData[meal]) {
-        renderMacroDonut(mealMacroData[meal]);
+      const meal = btn.dataset.meal;          // morning / lunch / dinner
+      const mealKey = MEAL_KEY_MAP[meal];     // M / L / D
+      if (mealKey) {
+        renderMacroDonut(mealKey);
       }
     });
   });
 
-  /* 초기 상태 (detail 탭 열렸을 때) */
+  /* 초기 상태-아침 (detail 탭 열렸을 때) */
   const morningBtn = document.querySelector('.meal-btn[data-meal="morning"]');
-  if (morningBtn) morningBtn.classList.add("active");
-
-  // detail-content가 보인 이후에 호출하는 게 가장 안전
-  renderMacroDonut(mealMacroData.morning);
+    if (morningBtn) {
+      morningBtn.classList.add("active");
+      renderMacroDonut("M");
+  }
 
 /* ─────────────────────────────
    감정 도넛 차트
    ───────────────────────────── */
 
   /* 하루 감정 더미 데이터 */
+  const moodEl = document.getElementById("report-mood-data");
+  const moodRatio = JSON.parse(moodEl.dataset.moodRatio);
+
   const moodRatioData = {
-      positive: 0.5,
-      neutral: 0.3,
-      negative: 0.2
-    };
+    positive: moodRatio.pos,
+    neutral: moodRatio.neu,
+    negative: moodRatio.neg
+  };
 
   /* 하루 감정에 따른 캐릭터(이미지) 설정 */
   function getDominantMood(moodData) {
-      return Object.entries(moodData)
-        .sort((a, b) => b[1] - a[1])[0][0];
+    const values = Object.values(moodData);
+
+    // 1) 모든 값이 같은지 확인
+    const allEqual = values.every(v => v === values[0]);
+
+    if (allEqual) {
+    return "neutral";
     }
+
+    // 2) 모두 같지 않으면, 가장 큰 값의 감정 반환
+    return Object.entries(moodData)
+    .sort((a, b) => b[1] - a[1])[0][0];
+  }
 
   const moodCharacterMap = {
       positive: "/static/icons_img/긍정.png",
@@ -180,9 +218,9 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
   const moodTextMap = {
-      positive: "오늘은 긍정 감정을 많이 느꼈어요!",
-      neutral:  "오늘의 감정은 무난했어요!",
-      negative: "오늘은 부정 감정을 많이 느꼈어요!"
+      positive: "오늘은 긍정 감정을 많이 느꼈어요 😊",
+      neutral:  "오늘의 감정은 무난했어요 🙂",
+      negative: "오늘은 부정 감정을 많이 느꼈어요 🥺"
     };
 
   /* 기분 도넛 차트 render */

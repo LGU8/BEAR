@@ -70,10 +70,12 @@ $(function () {
     </div>
   </div>
 
+  <div id="report-nut-data" data-nut-day='{{ nut_day|safe }}'></div>
+
   <!-- 요약 내용 (기본 노출) -->
   <div class="summary-content">
 
-    <div class="nut-row" data-nutrient="calorie">
+    <div class="nut-row" data-nutrient="kcal">
       <div class="nut-title">칼로리</div>
       <div class="nut-text"></div>
       <div class="nut-bar"><span></span></div>
@@ -125,7 +127,7 @@ $(function () {
         <!-- 메뉴명 -->
         <div class="meal-menu">
           <div class="meal-menu-title">메뉴</div>
-          <div class="meal-menu-text">계란후라이, 토스트</div>
+          <div class="meal-menu-text"></div>
         </div>
 
       </div>
@@ -161,7 +163,7 @@ $(function () {
     </div>
 
     <!-- RIGHT COLUMN -->
-    <div class="mood-right">
+    <div class="mood-right" id="report-mood-data" data-mood-ratio='{{ mood_ratio|safe }}'>
       <!-- 도넛 차트 -->
       <div class="mood-donut-wrap">
         <canvas id="moodDonutChart"></canvas>
