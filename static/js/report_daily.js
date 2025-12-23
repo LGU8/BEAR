@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const nutEl = document.getElementById("report-nut-data");
   if (!nutEl) {
     console.error("report-nut-data element not found");
+    return;
   }
 
   const nutritionData = JSON.parse(nutEl.dataset.nutDay);
@@ -187,6 +188,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* 하루 감정 더미 데이터 */
   const moodEl = document.getElementById("report-mood-data");
+
+  if (!nutEl) {
+    console.error("report-mood-data element not found");
+    return;
+  }
   const moodRatio = JSON.parse(moodEl.dataset.moodRatio);
 
   const moodRatioData = {

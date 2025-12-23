@@ -95,18 +95,27 @@ def report_daily(request):
                 for feel in feel_daily:
                     mood.append(feel[0])
 
-                pos = (mood.count('pos')/len(mood))
-                neu = (mood.count('neu')/len(mood))
-                neg = (mood.count('neg')/len(mood))
-
     except Exception as e:
         return HttpResponseBadRequest(f"SELECT 오류 발생: {e}")
 
-    context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
-               "active_tab": "report",
-               "nut_day": json.dumps(nut_data),
-               "mood_ratio": json.dumps({'pos': pos, "neu": neu, "neg": neg}),
-               }
+    if not mood or not nut_daily:
+        has_data = 0
+        context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
+                   "active_tab": "report",
+                   "has_data": has_data,}
+    else:
+        has_data = 1
+        pos = (mood.count('pos') / len(mood))
+        neu = (mood.count('neu') / len(mood))
+        neg = (mood.count('neg') / len(mood))
+
+        context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
+                   "active_tab": "report",
+                   "has_data": has_data,
+                   "nut_day": json.dumps(nut_data),
+                   "mood_ratio": json.dumps({'pos': pos, "neu": neu, "neg": neg}),
+                   }
+
     print(context)
 
     return render(request, "report/report_daily.html", context)

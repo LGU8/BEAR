@@ -38,138 +38,191 @@ $(function () {
 
 </script>
 
-<!-- =========================
-     오늘의 요약 카드
-     ========================= -->
-<div class="summary-card">
-  <div class="summary-title">
-    <span>오늘의 요약</span>
-  </div>
-
-  <div class="feedback-card">
-    <img class="feedback-ico" src="{% static 'icons_img/bear_report.png' %}" alt="bear feedback">
-    <div class="feedback-text">
-      오늘은 조금 힘들었겠지만, 긍정적인 기운이 더 많았어. 단백질이 풍부한 식사로 힘을 보충해보자!
-      햇살 가득한 저녁이 너를 따뜻하게 감싸줬을 거야.
+{% if has_data %}
+  <!-- =========================
+       오늘의 요약 카드
+       ========================= -->
+  <div class="summary-card">
+    <div class="summary-title">
+      <span>오늘의 요약</span>
     </div>
-  </div>
-</div>
 
-<!-- =========================
-     영양소 카드
-     ========================= -->
-<div class="summary-card">
-  <!-- 제목 + 토글 한 줄 -->
-  <div class="nutrition-header">
-    <span class="nutrition-title">영양소</span>
-
-    <div class="nut-sum-type-toggle">
-      <button class="toggle-btn active" data-target="summary">요약</button>
-      <span class="divider">|</span>
-      <button class="toggle-btn" data-target="detail">자세히</button>
+    <div class="feedback-card">
+      <img class="feedback-ico" src="{% static 'icons_img/bear_report.png' %}" alt="bear feedback">
+      <div class="feedback-text">
+        오늘은 조금 힘들었겠지만, 긍정적인 기운이 더 많았어. 단백질이 풍부한 식사로 힘을 보충해보자!
+        햇살 가득한 저녁이 너를 따뜻하게 감싸줬을 거야.
+      </div>
     </div>
   </div>
 
-  <div id="report-nut-data" data-nut-day='{{ nut_day|safe }}'></div>
+  <!-- =========================
+       영양소 카드
+       ========================= -->
+  <div class="summary-card">
+    <!-- 제목 + 토글 한 줄 -->
+    <div class="nutrition-header">
+      <span class="nutrition-title">영양소</span>
 
-  <!-- 요약 내용 (기본 노출) -->
-  <div class="summary-content">
-
-    <div class="nut-row" data-nutrient="kcal">
-      <div class="nut-title">칼로리</div>
-      <div class="nut-text"></div>
-      <div class="nut-bar"><span></span></div>
+      <div class="nut-sum-type-toggle">
+        <button class="toggle-btn active" data-target="summary">요약</button>
+        <span class="divider">|</span>
+        <button class="toggle-btn" data-target="detail">자세히</button>
+      </div>
     </div>
 
-    <div class="nut-row" data-nutrient="carb">
-      <div class="nut-title">탄수화물</div>
-      <div class="nut-text"></div>
-      <div class="nut-bar"><span></span></div>
+    <div id="report-nut-data" data-nut-day='{{ nut_day|safe }}'></div>
+
+    <!-- 요약 내용 (기본 노출) -->
+    <div class="summary-content">
+
+      <div class="nut-row" data-nutrient="kcal">
+        <div class="nut-title">칼로리</div>
+        <div class="nut-text"></div>
+        <div class="nut-bar"><span></span></div>
+      </div>
+
+      <div class="nut-row" data-nutrient="carb">
+        <div class="nut-title">탄수화물</div>
+        <div class="nut-text"></div>
+        <div class="nut-bar"><span></span></div>
+      </div>
+
+      <div class="nut-row" data-nutrient="protein">
+        <div class="nut-title">단백질</div>
+        <div class="nut-text"></div>
+        <div class="nut-bar"><span></span></div>
+      </div>
+
+      <div class="nut-row" data-nutrient="fat">
+        <div class="nut-title">지방</div>
+        <div class="nut-text"></div>
+        <div class="nut-bar"><span></span></div>
+      </div>
+
     </div>
 
-    <div class="nut-row" data-nutrient="protein">
-      <div class="nut-title">단백질</div>
-      <div class="nut-text"></div>
-      <div class="nut-bar"><span></span></div>
-    </div>
+    <!-- 자세히 내용 -->
+    <div class="detail-content">
 
-    <div class="nut-row" data-nutrient="fat">
-      <div class="nut-title">지방</div>
-      <div class="nut-text"></div>
-      <div class="nut-bar"><span></span></div>
-    </div>
+      <div class="detail-grid">
+        <!-- LEFT COLUMN -->
+        <div class="detail-left">
 
+          <!-- 식사 선택 -->
+          <div class="meal-toggle">
+            <img src="/static/icons_img/morning.png"
+                 class="meal-btn active"
+                 data-meal="morning"
+                 alt="아침">
+            <img src="/static/icons_img/lunch.png"
+                 class="meal-btn"
+                 data-meal="lunch"
+                 alt="점심">
+            <img src="/static/icons_img/dinner.png"
+                 class="meal-btn"
+                 data-meal="dinner"
+                 alt="저녁">
+          </div>
+
+          <!-- 메뉴명 -->
+          <div class="meal-menu">
+            <div class="meal-menu-title">메뉴</div>
+            <div class="meal-menu-text"></div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="detail-right">
+
+          <!-- 도넛 차트 -->
+          <div class="meal-donut-wrap">
+            <canvas id="macroDonutChart"></canvas>
+          </div>
+
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- 자세히 내용 -->
-  <div class="detail-content">
+  <!-- =========================
+       기분 카드
+       ========================= -->
+  <div class="summary-card">
+    <div class="summary-title">
+      <span>기분</span>
+    </div>
 
     <div class="detail-grid">
       <!-- LEFT COLUMN -->
-      <div class="detail-left">
-
-        <!-- 식사 선택 -->
-        <div class="meal-toggle">
-          <img src="/static/icons_img/morning.png"
-               class="meal-btn active"
-               data-meal="morning"
-               alt="아침">
-          <img src="/static/icons_img/lunch.png"
-               class="meal-btn"
-               data-meal="lunch"
-               alt="점심">
-          <img src="/static/icons_img/dinner.png"
-               class="meal-btn"
-               data-meal="dinner"
-               alt="저녁">
-        </div>
-
-        <!-- 메뉴명 -->
-        <div class="meal-menu">
-          <div class="meal-menu-title">메뉴</div>
-          <div class="meal-menu-text"></div>
-        </div>
-
+      <div class="mood-left">
+        <!-- 기분 캐릭터 -->
+        <div class="mood_img"></div>
+        <!-- 오늘 감정 멘트 -->
+        <div class="mood_text"></div>
       </div>
 
       <!-- RIGHT COLUMN -->
-      <div class="detail-right">
-
+      <div class="mood-right" id="report-mood-data" data-mood-ratio='{{ mood_ratio|safe }}'>
         <!-- 도넛 차트 -->
-        <div class="meal-donut-wrap">
-          <canvas id="macroDonutChart"></canvas>
+        <div class="mood-donut-wrap">
+          <canvas id="moodDonutChart"></canvas>
         </div>
-
       </div>
     </div>
   </div>
-</div>
-
-<!-- =========================
-     기분 카드
-     ========================= -->
-<div class="summary-card">
-  <div class="summary-title">
-    <span>기분</span>
-  </div>
-
-  <div class="detail-grid">
-    <!-- LEFT COLUMN -->
-    <div class="mood-left">
-      <!-- 기분 캐릭터 -->
-      <div class="mood_img"></div>
-      <!-- 오늘 감정 멘트 -->
-      <div class="mood_text"></div>
+{% else %}
+  <!-- =========================
+       오늘의 요약 카드
+       ========================= -->
+  <div class="summary-card">
+    <div class="summary-title">
+      <span>오늘의 요약</span>
     </div>
 
-    <!-- RIGHT COLUMN -->
-    <div class="mood-right" id="report-mood-data" data-mood-ratio='{{ mood_ratio|safe }}'>
-      <!-- 도넛 차트 -->
-      <div class="mood-donut-wrap">
-        <canvas id="moodDonutChart"></canvas>
+    <div class="feedback-card">
+      <img class="feedback-ico" src="{% static 'icons_img/bear_report.png' %}" alt="bear feedback">
+      <div class="feedback-text">
+        기록을 남기면 이 날의 리포트를 볼 수 있어요. <br>
+        기록을 하러 떠나 볼까요? 😉
       </div>
     </div>
   </div>
-</div>
+
+  <!-- =========================
+       영양소 카드
+       ========================= -->
+  <div class="summary-card">
+    <!-- 제목 + 토글 한 줄 -->
+    <div class="nutrition-header">
+      <span class="nutrition-title">영양소</span>
+
+      <div class="nut-sum-type-toggle">
+        <button class="toggle-btn active" data-target="summary">요약</button>
+        <span class="divider">|</span>
+        <button class="toggle-btn" data-target="detail">자세히</button>
+      </div>
+    </div>
+
+    <!-- 요약 내용 (기본 노출) -->
+    <div class="card-empty">
+      <span>아직 이 날의 기록을 남기지 않았어요.</span>
+    </div>
+  </div>
+
+  <!-- =========================
+       기분 카드
+       ========================= -->
+  <div class="summary-card">
+    <div class="summary-title">
+      <span>기분</span>
+    </div>
+
+    <div class="card-empty">
+      <span>아직 이 날의 기록을 남기지 않았어요.</span>
+    </div>
+  </div>
+{% endif %}
 
 {% endblock %}

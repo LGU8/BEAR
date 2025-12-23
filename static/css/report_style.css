@@ -143,6 +143,20 @@
   font-weight: 700;
 }
 
+.card-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 120px;
+  margin-bottom: 20px;   /* 카드 간 간격 */
+}
+
+.card-empty span {
+  color: #6f6f6f;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
 /* ─────────────────────────────
    Feedback 카드
    ───────────────────────────── */
