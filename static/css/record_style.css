@@ -553,3 +553,69 @@ a {
   outline: 2px solid #ff8a00;
   background: rgba(255, 138, 0, 0.12);
 }
+
+/* 테이블 스크롤 영역 만들기 */
+.table-wrap {
+  max-height: 420px;           /* 원하는 높이로 조정 */
+  overflow: hidden;            /* 테이블 밖으로 안 튀게 */
+}
+
+/* header 고정 느낌 + body만 스크롤 */
+.food-table thead,
+.food-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.food-table tbody {
+  display: block;
+  max-height: 320px;           /* tbody 스크롤 높이 */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 체크박스 칼럼 폭 */
+.food-table .col-check {
+  width: 70px;
+}
+.food-table td.col-check-cell {
+  width: 70px;
+  text-align: center;
+}
+
+.selected-bar {
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 138, 0, 0.10);
+  border: 1px solid rgba(255, 138, 0, 0.25);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 44px;
+  align-items: center;
+}
+
+.selected-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.08);
+  font-size: 13px;
+}
+
+.selected-chip button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.selected-bar-empty {
+  color: rgba(0,0,0,0.45);
+  font-size: 13px;
+}

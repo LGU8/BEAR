@@ -71,11 +71,13 @@
       <button id="food-search-btn" class="search-btn" type="button">Search</button>
     </div>
 
+    <div id="selected-bar" class="selected-bar" aria-live="polite"></div>
+
     <div class="table-wrap">
       <table class="food-table">
         <thead>
           <tr>
-            <th>No.</th><th>제품명</th><th>칼로리</th><th>탄수화물</th><th>단백질</th><th>지방</th>
+            <th class="col-check">선택</th><th>제품명</th><th>칼로리</th><th>탄수화물</th><th>단백질</th><th>지방</th>
           </tr>
         </thead>
         <tbody id="record-items-tbody"></tbody>

@@ -7,23 +7,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const inputEl = document.getElementById("food-search-input");
   const btnEl = document.getElementById("food-search-btn");
   const tbody = document.getElementById("record-items-tbody");
+  const selectedBar = document.getElementById("selected-bar");
+  const addBtn = document.getElementById("btn-add-item");
 
-  // ✅ 한 번만 등록 (중복 등록 방지)
-  if (!tbody.dataset.clickBound) {
-    tbody.dataset.clickBound = "1";
-
-    tbody.addEventListener("click", (e) => {
-        const tr = e.target.closest("tr.food-row");
-        if (!tr) return;
-
-        tr.classList.toggle("is-selected");
-
-        // 디버깅용(선택 확인)
-        console.log("[select] food_id=", tr.dataset.foodId, "selected=", tr.classList.contains("is-selected"));
-    });
-}
-
-  console.log("[food_search] elems", { inputEl, btnEl, tbody });
+  console.log("[food_search] elems", { inputEl, btnEl, tbody, selectedBar });
+  console.log("[addBtn]", addBtn);
 
   if (!inputEl || !btnEl || !tbody) {
     console.warn("[food_search] required elements not found");
@@ -36,6 +24,65 @@ document.addEventListener("DOMContentLoaded", () => {
     if (Number.isNaN(n)) return "0";
     return String(n);
   };
+
+  const selectedMap = new Map(); // foodId -> item
+
+  function syncCheckbox(foodId, checked) {
+    const cb = document.querySelector(`.row-check[data-food-id="${foodId}"]`);
+    if (cb) cb.checked = checked;
+  }
+
+  function renderSelectedBar() {
+    if (!selectedBar) return;
+
+    if (selectedMap.size === 0) {
+      selectedBar.innerHTML = `<span class="selected-bar-empty">선택된 메뉴가 없습니다.</span>`;
+      return;
+    }
+
+    const chips = Array.from(selectedMap.values()).map(item => `
+      <span class="selected-chip" data-food-id="${item.food_id}">
+        ${item.name}
+        <button type="button" class="chip-remove" aria-label="삭제">✕</button>
+      </span>
+    `).join("");
+
+    selectedBar.innerHTML = chips;
+  }
+
+  function addFromRow(tr, checked) {
+    const foodId = Number(tr.dataset.foodId);
+    if (!foodId) return;
+
+    if (checked) {
+      selectedMap.set(foodId, {
+        food_id: foodId,
+        name: tr.dataset.name || "",
+        kcal: Number(tr.dataset.kcal || 0),
+        carb_g: Number(tr.dataset.carb || 0),
+        protein_g: Number(tr.dataset.protein || 0),
+        fat_g: Number(tr.dataset.fat || 0),
+      });
+    } else {
+      selectedMap.delete(foodId);
+    }
+
+    renderSelectedBar();
+  }
+
+  function restoreChecksAfterRender() {
+    selectedMap.forEach((_, foodId) => {
+      syncCheckbox(foodId, true);
+
+      // ✅ 행 강조도 같이 복원
+      const tr = document.querySelector(`tr.food-row[data-food-id="${foodId}"]`);
+      if (tr) tr.classList.add("is-selected");
+    });
+  }
+
+  function getSelectedFoodIds() {
+    return Array.from(selectedMap.keys());
+  }
 
   async function runSearch() {
     const q = (inputEl.value || "").trim();
@@ -61,9 +108,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const items = data.items || [];
 
-    tbody.innerHTML = items.map((it, idx) => `
-      <tr class="food-row" data-food-id="${it.food_id}">
-        <td>${idx + 1}</td>
+    // ✅ 렌더링
+    tbody.innerHTML = items.map((it) => `
+      <tr class="food-row" data-food-id="${it.food_id}"
+        data-name="${(it.name ?? "").replace(/"/g, '&quot;')}"
+        data-kcal="${it.kcal ?? 0}"
+        data-carb="${it.carb_g ?? 0}"
+        data-protein="${it.protein_g ?? 0}"
+        data-fat="${it.fat_g ?? 0}">
+        <td class="col-check-cell">
+          <input class="row-check" type="checkbox" data-food-id="${it.food_id}">
+        </td>
         <td>${it.name ?? ""}</td>
         <td>${it.kcal ?? 0}</td>
         <td>${it.carb_g ?? 0}</td>
@@ -71,6 +126,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${it.fat_g ?? 0}</td>
       </tr>
     `).join("");
+
+    restoreChecksAfterRender();
+
   }
 
   btnEl.addEventListener("click", (e) => {
@@ -86,10 +144,57 @@ document.addEventListener("DOMContentLoaded", () => {
       runSearch().catch(console.error);
     }
   });
-});
 
-function getSelectedFoodIds() {
-  return Array.from(document.querySelectorAll("tr.food-row.is-selected"))
-    .map(tr => Number(tr.dataset.foodId))
-    .filter(n => !Number.isNaN(n) && n > 0);
-}
+  tbody.addEventListener("change", (e) => {
+    const cb = e.target.closest(".row-check");
+    if (!cb) return;
+
+    const tr = cb.closest("tr.food-row");
+    if (!tr) return;
+
+    // ✔ 체크 상태에 따라 행 강조
+    tr.classList.toggle("is-selected", cb.checked);
+
+    // ✔ 선택 상태 갱신
+    addFromRow(tr, cb.checked);
+  });
+
+  tbody.addEventListener("click", (e) => {
+    const tr = e.target.closest("tr.food-row");
+    if (!tr) return;
+
+    // checkbox 자체를 클릭한 경우는 change에서 처리
+    if (e.target.classList.contains("row-check")) return;
+
+    const cb = tr.querySelector(".row-check");
+    if (!cb) return;
+
+    cb.checked = !cb.checked;
+
+    // ✅ 핵심: row 클릭으로 토글했을 때도 change 로직이 돌도록
+    cb.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  // 선택 바에서 X 누르면 해제
+  if(selectedBar) {
+    selectedBar.addEventListener("click", (e) => {
+      if (!e.target.classList.contains("chip-remove")) return;
+
+      const chip = e.target.closest(".selected-chip");
+      if (!chip) return;
+
+      const foodId = Number(chip.dataset.foodId);
+      selectedMap.delete(foodId);
+      syncCheckbox(foodId, false);
+
+      const tr = document.querySelector(`tr.food-row[data-food-id="${foodId}"]`);
+      if (tr) tr.classList.remove("is-selected");
+
+      renderSelectedBar();
+    });
+  }
+
+  // 초기 상태
+  renderSelectedBar();
+
+});
