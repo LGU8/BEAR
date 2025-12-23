@@ -10,3 +10,5 @@ def predict_negative_risk(user, weekly_summary: dict):
         risk_label = "안정적이에요"
 
     return {"risk_score": risk_score, "risk_label": risk_label}
+
+
