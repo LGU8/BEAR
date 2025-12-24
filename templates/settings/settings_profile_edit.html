@@ -158,39 +158,38 @@
 
 </section>
 
-<!-- ✅ Badge Picker Modal -->
-<div id="badgeModal" class="badge-modal" aria-hidden="true">
-  <div class="badge-modal__backdrop" data-close="1"></div>
+<!-- ✅ Badge Picker Modal (S2 전용) -->
+<div id="badgePickerModal" class="badge-picker-modal" aria-hidden="true">
+  <div class="badge-picker-modal__backdrop" data-close="1"></div>
 
-  <div class="badge-modal__panel" role="dialog" aria-modal="true" aria-label="badge picker">
-    <div class="badge-modal__head">
-      <div class="badge-modal__title">프로필 캐릭터 선택</div>
-      <button type="button" class="badge-modal__close" data-close="1" aria-label="close">×</button>
+  <div class="badge-picker-modal__panel" role="dialog" aria-modal="true" aria-label="badge picker">
+    <div class="badge-picker-modal__head">
+      <div class="badge-picker-modal__title">프로필 캐릭터 선택</div>
+      <button type="button" class="badge-picker-modal__close" data-close="1" aria-label="close">×</button>
     </div>
 
-    <div class="badge-modal__tabs">
-      <button type="button" class="badge-tab is-active" data-tab="F">식단(Food)</button>
-      <button type="button" class="badge-tab" data-tab="E">감정(Emotion)</button>
+    <!-- Tabs -->
+    <div class="badge-picker-modal__tabs">
+      <button type="button" class="badge-picker-tab is-active" data-tab="F">식단(Food)</button>
+      <button type="button" class="badge-picker-tab" data-tab="E">감정(Emotion)</button>
     </div>
 
-    <div class="badge-modal__body">
+    <div class="badge-picker-modal__body">
       <!-- Food -->
-      <div class="badge-grid" data-pane="F">
+      <div class="badge-picker-grid" data-pane="F">
         {% for b in picker_items %}
           {% if b.category == "F" %}
           <button
             type="button"
-            class="badge-item {% if b.locked %}is-locked{% endif %}"
+            class="badge-picker-item {% if b.locked %}is-locked{% endif %}"
             data-id="{{ b.badge_id }}"
             data-img="{{ b.img_url }}"
-            data-title="{{ b.title|escape }}"
-            data-hint="{{ b.hint|escape }}"
             {% if b.locked %}disabled{% endif %}
           >
             <img src="{{ b.img_url }}" alt="{{ b.badge_id }}">
-            <div class="badge-item__meta">
-              <div class="badge-item__title">{{ b.title }}</div>
-              <div class="badge-item__hint">{{ b.hint }}</div>
+            <div>
+              <div class="badge-picker-item__title">{{ b.title }}</div>
+              <div class="badge-picker-item__hint">{{ b.hint }}</div>
             </div>
           </button>
           {% endif %}
@@ -198,22 +197,20 @@
       </div>
 
       <!-- Emotion -->
-      <div class="badge-grid is-hidden" data-pane="E">
+      <div class="badge-picker-grid is-hidden" data-pane="E">
         {% for b in picker_items %}
           {% if b.category == "E" %}
           <button
             type="button"
-            class="badge-item {% if b.locked %}is-locked{% endif %}"
+            class="badge-picker-item {% if b.locked %}is-locked{% endif %}"
             data-id="{{ b.badge_id }}"
             data-img="{{ b.img_url }}"
-            data-title="{{ b.title|escape }}"
-            data-hint="{{ b.hint|escape }}"
             {% if b.locked %}disabled{% endif %}
           >
             <img src="{{ b.img_url }}" alt="{{ b.badge_id }}">
-            <div class="badge-item__meta">
-              <div class="badge-item__title">{{ b.title }}</div>
-              <div class="badge-item__hint">{{ b.hint }}</div>
+            <div>
+              <div class="badge-picker-item__title">{{ b.title }}</div>
+              <div class="badge-picker-item__hint">{{ b.hint }}</div>
             </div>
           </button>
           {% endif %}
@@ -221,12 +218,13 @@
       </div>
     </div>
 
-    <div class="badge-modal__foot">
-      <div class="badge-modal__help">획득한 배지만 선택할 수 있어요.</div>
-      <button type="button" id="badgeApplyBtn" class="badge-apply-btn" disabled>적용</button>
+    <div class="badge-picker-modal__foot">
+      <div class="badge-picker-modal__help">획득한 배지만 선택할 수 있어요.</div>
+      <button type="button" id="badgeApplyBtn" class="badge-picker-apply-btn" disabled>적용</button>
     </div>
   </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}

@@ -1,247 +1,27 @@
-/* static/css/settings/settings_s2.css */
-
-/* =========================
-   S2 (개인정보 수정) 전용 - SAFE SCOPE
-   ========================= */
-
-/* 카드 폭 */
-.settings-page .edit-card {
-  padding: 18px;
-  margin: 0 auto;
-}
-
-/* 헤더 */
-.settings-page .edit-card .edit-header {
-  display: grid;
-  grid-template-columns: 40px 1fr 40px;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-.settings-page .edit-card .back-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  text-decoration: none;
-  color: var(--text);
-  font-weight: 800;
-  font-size: 18px;
-  background: transparent;
-}
-
-.settings-page .edit-card .edit-title {
-  text-align: center;
-  font-weight: 800;
-  font-size: 16px;
-}
-
-.settings-page .edit-card .edit-header-spacer {
-  width: 40px;
-  height: 40px;
-}
-
-/* 배지 영역 */
-.settings-page .edit-card .profile-edit-avatar {
-  display: grid;
-  justify-items: center;
-  margin: 8px 0 16px;
-  gap: 6px;
-}
-
-/* ✅ 배지 클릭 버튼 */
-.settings-page .edit-card .avatar-btn {
-  border: 0;
-  padding: 0;
-  background: transparent;
-  cursor: pointer;
-  border-radius: 14px;
-}
-
-.settings-page .edit-card .avatar-btn:focus-visible {
-  outline: 2px solid rgba(244,121,0,0.55);
-  outline-offset: 3px;
-}
-
-/* wrap */
-.settings-page .edit-card .profile-avatar-wrap.lg {
-  width: 92px;
-  height: 92px;
-  position: relative;
-}
-
-.settings-page .edit-card .profile-avatar.lg {
-  width: 70px;
-  height: 70px;
-}
-
-/* ✅ 편집 아이콘(카메라) */
-.settings-page .edit-card .avatar-edit {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-
-  background: rgba(255, 226, 182, 0.95);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  box-shadow: 0 4px 10px rgba(0,0,0,0.10);
-}
-
-.settings-page .edit-card .edit-ico {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-  display: block;
-}
-
-.settings-page .edit-card .profile-edit-hint {
-  font-weight: 300;
-  font-size: 10px;
-  color: var(--text-sub);
-}
-
-/* 폼 블록 */
-.settings-page .edit-card .form-block {
-  display: grid;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.settings-page .edit-card .form-label {
-  font-weight: 400;
-  font-size: 10px;
-  color: var(--text-sub);
-}
-
-.settings-page .edit-card .form-help {
-  margin-top: -2px;
-  font-weight: 300;
-  font-size: 10px;
-  color: rgba(0,0,0,0.55);
-}
-
-/* input row */
-.settings-page .edit-card .form-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 10px;
-}
-
-/* underline input */
-.settings-page .edit-card .form-input {
-  width: 100%;
-  border: 0;
-  border-bottom: 2px solid rgba(244,121,0,0.35);
-  background: transparent;
-  padding: 10px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  outline: none;
-}
-
-.settings-page .edit-card .form-input:focus {
-  border-bottom-color: rgba(244,121,0,0.80);
-}
-
-/* suffix */
-.settings-page .edit-card .form-suffix {
-  font-size: 12px;
-  font-weight: 800;
-  color: rgba(0,0,0,0.50);
-  padding-right: 6px;
-  line-height: 1;
-}
-
-/* 성별 토글 */
-.settings-page .edit-card .seg-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.settings-page .edit-card .seg-toggle-btn {
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(244,121,0,0.45);
-  padding: 10px 0;
-  background: rgba(255,255,255,0.35);
-  font-weight: 800;
-  font-size: 12px;
-  transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-}
-
-.settings-page .edit-card .seg-toggle-btn.is-active {
-  background: rgba(244,121,0,0.14);
-  border-color: var(--orange-1);
-}
-
-/* 에러 */
-.settings-page .edit-card .form-error {
-  min-height: 16px;
-  margin-top: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(220, 38, 38, 0.95);
-}
-
-/* 저장 버튼 */
-.settings-page .edit-card .edit-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 18px;
-}
-
-.settings-page .edit-card .save-btn {
-  border: 0;
-  border-radius: var(--radius-pill);
-  padding: 10px 14px;
-  font-weight: 800;
-  font-size: 12px;
-  background: var(--orange-1);
-  color: #fff;
-}
-
-.settings-page .edit-card .save-btn:hover { filter: brightness(0.98); }
-
-.settings-page .edit-card .save-btn:disabled {
-  background: rgba(244, 121, 0, 0.35);
-  color: rgba(255,255,255,0.92);
-  cursor: not-allowed;
-}
-
-
 /* static/css/settings/settings_badge_picker.css */
-/* S2 전용: 프로필 배지 선택 모달 */
+/* S2 전용: 프로필 배지 선택 모달 (picker) */
+/* 도감(.badge-modal)과 완전 분리 네이밍 */
 
-/* ===== Modal Root ===== */
-.badge-modal{
+.badge-picker-modal{
   position: fixed;
   inset: 0;
   display: none;
   z-index: 999999;
 }
 
-.badge-modal.is-open{
+.badge-picker-modal.is-open{
   display: block;
 }
 
 /* backdrop */
-.badge-modal__backdrop{
+.badge-picker-modal__backdrop{
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.25);
 }
 
 /* panel */
-.badge-modal__panel{
+.badge-picker-modal__panel{
   position: fixed;
   left: 50%;
   top: 50%;
@@ -262,18 +42,18 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.badge-modal.is-open .badge-modal__panel{
+.badge-picker-modal.is-open .badge-picker-modal__panel{
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
 }
 
-/* body scroll lock */
+/* body scroll lock (공용) */
 body.is-modal-open{
   overflow: hidden;
 }
 
 /* ===== Header ===== */
-.badge-modal__head{
+.badge-picker-modal__head{
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -282,12 +62,12 @@ body.is-modal-open{
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
-.badge-modal__title{
+.badge-picker-modal__title{
   font-weight: 800;
   font-size: 14px;
 }
 
-.badge-modal__close{
+.badge-picker-modal__close{
   width: 32px;
   height: 32px;
   border-radius: 10px;
@@ -301,13 +81,13 @@ body.is-modal-open{
 }
 
 /* ===== Tabs ===== */
-.badge-modal__tabs{
+.badge-picker-modal__tabs{
   display: flex;
   gap: 8px;
   margin-top: 10px;
 }
 
-.badge-tab{
+.badge-picker-tab{
   border: 1px solid rgba(244,121,0,0.35);
   background: rgba(255,255,255,0.45);
   padding: 8px 10px;
@@ -317,30 +97,30 @@ body.is-modal-open{
   cursor: pointer;
 }
 
-.badge-tab.is-active{
+.badge-picker-tab.is-active{
   border-color: rgba(244,121,0,0.65);
   background: rgba(244,121,0,0.10);
 }
 
 /* ===== Body ===== */
-.badge-modal__body{
+.badge-picker-modal__body{
   margin-top: 12px;
 }
 
 /* grid */
-.badge-grid{
+.badge-picker-grid{
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 
 /* hide pane */
-.badge-grid.is-hidden{
+.badge-picker-grid.is-hidden{
   display: none;
 }
 
 /* item button */
-.badge-item{
+.badge-picker-item{
   border: 1px solid rgba(0,0,0,0.10);
   background: rgba(255,255,255,0.40);
   border-radius: 12px;
@@ -354,7 +134,7 @@ body.is-modal-open{
   align-items: center;
 }
 
-.badge-item img{
+.badge-picker-item img{
   width: 92px;
   height: 92px;
   object-fit: contain;
@@ -364,22 +144,22 @@ body.is-modal-open{
 }
 
 /* locked */
-.badge-item.is-locked{
+.badge-picker-item.is-locked{
   cursor: not-allowed;
   opacity: 0.55;
 }
-.badge-item.is-locked img{
+.badge-picker-item.is-locked img{
   opacity: 0.55;
 }
 
 /* meta */
-.badge-item__title{
+.badge-picker-item__title{
   font-weight: 900;
   font-size: 12px;
   margin-bottom: 6px;
 }
 
-.badge-item__hint{
+.badge-picker-item__hint{
   font-weight: 500;
   font-size: 11px;
   color: rgba(0,0,0,0.60);
@@ -392,13 +172,13 @@ body.is-modal-open{
 }
 
 /* selected */
-.badge-item.is-selected{
+.badge-picker-item.is-selected{
   border-color: rgba(244,121,0,0.75);
   outline: 2px solid rgba(244,121,0,0.20);
 }
 
 /* ===== Footer ===== */
-.badge-modal__foot{
+.badge-picker-modal__foot{
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid rgba(0,0,0,0.06);
@@ -409,13 +189,13 @@ body.is-modal-open{
   gap: 10px;
 }
 
-.badge-modal__help{
+.badge-picker-modal__help{
   font-size: 11px;
   color: rgba(0,0,0,0.55);
   font-weight: 600;
 }
 
-.badge-apply-btn{
+.badge-picker-apply-btn{
   border: 0;
   border-radius: var(--radius-pill);
   padding: 10px 14px;
@@ -426,14 +206,14 @@ body.is-modal-open{
   cursor: pointer;
 }
 
-.badge-apply-btn:disabled{
+.badge-picker-apply-btn:disabled{
   background: rgba(244,121,0,0.35);
   cursor: not-allowed;
 }
 
 /* mobile */
 @media (max-width: 420px){
-  .badge-grid{ grid-template-columns: 1fr; }
-  .badge-item{ grid-template-columns: 84px 1fr; }
-  .badge-item img{ width: 84px; height: 84px; }
+  .badge-picker-grid{ grid-template-columns: 1fr; }
+  .badge-picker-item{ grid-template-columns: 84px 1fr; }
+  .badge-picker-item img{ width: 84px; height: 84px; }
 }

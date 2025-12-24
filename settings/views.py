@@ -18,7 +18,7 @@ import os
 from django.conf import settings
 
 
-DEFAULT_PROFILE_BADGE = "icons_img/bear_default.png"
+DEFAULT_PROFILE_BADGE = "icons_img/bear_welcome.png"
 
 # ============================================================
 # 0) Time helpers (DB updated_dt/updated_time 갱신용)
@@ -515,41 +515,56 @@ def settings_badges(request):
     로그인 사용자 기반 도감:
     - CUS_BADGE_TM 기준 획득/잠김
     - 수집율 계산
+    - 정렬: (획득 먼저) + 획득은 최신 획득 우선 + 미획득은 sort_no
     """
-    # 0) base ctx (너 프로젝트 공용)
-    ctx = _base_ctx(request, active_tab="badges") if "_base_ctx" in globals() else {}
+    # 0) base ctx
+    ctx = _base_ctx(request, active_tab="collection")
 
-    # 1) 로그인 사용자 cust_id 확정 (로그인 기반 고정)
-    cust_id = None
-    if getattr(request, "user", None) and request.user.is_authenticated:
-        cust_id = getattr(request.user, "cust_id", None)
-
-    # 2) fallback (이미 login에서 세션도 세팅하고 있으니 안전장치)
+    # 1) cust_id 통일
+    cust_id = _get_cust_id(request)
     if not cust_id:
-        cust_id = request.session.get("cust_id")
-
-    if not cust_id:
-        # 로그인인데 cust_id가 비는 이상 케이스
         return redirect("accounts_app:user_login")
 
-    # 3) badge meta 로드
+    # 2) badge meta 로드
     meta = _load_badge_meta()
     items = meta.get("items", [])
-    img_base = meta.get("img_base", "/static/badges_img")
 
-    # 4) DB에서 획득 배지 조회
-    #    acquired_map: {badge_id: acquired_time}
+    # img_base normalize: 항상 "/static/..."로
+    img_base = (meta.get("img_base") or "/static/badges_img").strip()
+    if not img_base.startswith("/"):
+        img_base = "/" + img_base
+    if not img_base.startswith("/static/"):
+        # 혹시 "badges_img"처럼 들어오면 /static 붙이기
+        if img_base.startswith("/badges_img"):
+            img_base = "/static" + img_base
+        # 그 외는 그대로 두되, 프로젝트 규칙상 /static/... 권장
+
+    # 3) DB에서 획득 배지 조회
     acquired_rows = (
         CusBadge.objects
         .filter(cust_id=cust_id)
-        .values("badge_id", "acquired_time")
+        .values_list("badge_id", "acquired_time")
     )
-    acquired_map = {r["badge_id"]: (r.get("acquired_time") or "") for r in acquired_rows}
+
+    acquired_map = {}
+    for badge_id, acquired_time in acquired_rows:
+        # acquired_time이 datetime일 수도, str일 수도 있음
+        if acquired_time is None:
+            acquired_map[str(badge_id)] = ""
+        else:
+            if isinstance(acquired_time, datetime):
+                acquired_map[str(badge_id)] = acquired_time.strftime("%Y%m%d%H%M%S")
+            else:
+                s = str(acquired_time).strip()
+                # "YYYY-MM-DD HH:MM:SS" 같은 경우 숫자만 추출해서 정렬키로 사용
+                digits = "".join(ch for ch in s if ch.isdigit())
+                acquired_map[str(badge_id)] = digits if digits else s
+
     acquired_set = set(acquired_map.keys())
 
-    # 5) meta normalize + locked 반영
+    # 4) meta normalize + locked 반영
     def normalize_item(x):
-        badge_id = x["badge_id"]
+        badge_id = str(x.get("badge_id", "")).strip()
         is_acquired = badge_id in acquired_set
         acquired_time = acquired_map.get(badge_id, "") if is_acquired else ""
 
@@ -564,19 +579,30 @@ def settings_badges(request):
             "hint": x.get("hint", ""),
 
             "locked": (not is_acquired),
-            "acquired_time": acquired_time,  # 획득 배지만 값 있음
+            "acquired_time": acquired_time,  # 획득 배지만 값 있음(정렬키로도 사용)
         }
 
-    norm = [normalize_item(x) for x in items]
+    norm = [normalize_item(x) for x in items if x.get("badge_id")]
 
-    # 6) 카테고리 분리 + 정렬
-    food_badges = sorted([x for x in norm if x["category"] == "F"], key=lambda r: r["sort_no"])
-    emotion_badges = sorted([x for x in norm if x["category"] == "E"], key=lambda r: r["sort_no"])
+    # 5) 정렬키(안전형)
+    def _sort_key(r):
+        if not r.get("locked", True):
+            at = r.get("acquired_time") or ""
+            # 숫자정렬이 가능하면 최신 우선
+            if at.isdigit():
+                return (0, -int(at), r.get("sort_no", 999999))
+            # 숫자 아닌 경우: 문자열 역순 대신 sort_no로 보조
+            return (0, 0, r.get("sort_no", 999999))
+        return (1, r.get("sort_no", 999999))
 
-    # 7) 수집율 계산
+    food_badges = sorted([x for x in norm if x["category"] == "F"], key=_sort_key)
+    emotion_badges = sorted([x for x in norm if x["category"] == "E"], key=_sort_key)
+
+    # 6) 수집율
     total = len(norm)
     acquired = len(acquired_set)
     rate = int(round((acquired / total) * 100)) if total else 0
+    rate = max(0, min(100, rate))
 
     ctx.update({
         "cust_id": cust_id,
@@ -585,6 +611,6 @@ def settings_badges(request):
         "badge_total": total,
         "badge_acquired": acquired,
         "badge_rate": rate,
-        "active_tab": "collection",
+        "active_tab": "collection",  # ✅ 통일
     })
     return render(request, "settings/settings_badges.html", ctx)

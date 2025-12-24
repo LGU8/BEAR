@@ -3,12 +3,13 @@
 
 (function () {
   const openBtn = document.getElementById("badgeOpenBtn");
-  const modal = document.getElementById("badgeModal");
-  const backdrop = modal ? modal.querySelector(".badge-modal__backdrop") : null;
+  const modal = document.getElementById("badgePickerModal");
+
+  const backdrop = modal ? modal.querySelector(".badge-picker-modal__backdrop") : null;
   const closeBtns = modal ? Array.from(modal.querySelectorAll("[data-close='1']")) : [];
 
-  const tabs = modal ? Array.from(modal.querySelectorAll(".badge-tab")) : [];
-  const panes = modal ? Array.from(modal.querySelectorAll(".badge-grid")) : [];
+  const tabs = modal ? Array.from(modal.querySelectorAll(".badge-picker-tab")) : [];
+  const panes = modal ? Array.from(modal.querySelectorAll(".badge-picker-grid")) : [];
 
   const applyBtn = document.getElementById("badgeApplyBtn");
   const hiddenBadgeId = document.getElementById("selected_badge_id");
@@ -41,13 +42,17 @@
 
   function clearSelectedUI() {
     if (!modal) return;
-    modal.querySelectorAll(".badge-item.is-selected").forEach((el) => el.classList.remove("is-selected"));
+    modal
+      .querySelectorAll(".badge-picker-item.is-selected")
+      .forEach((el) => el.classList.remove("is-selected"));
   }
 
   function setSelectedUI(id) {
     if (!modal) return;
     clearSelectedUI();
-    const btn = modal.querySelector(`.badge-item[data-id="${CSS.escape(id)}"]`);
+
+    // ✅ picker 네이밍으로 수정
+    const btn = modal.querySelector(`.badge-picker-item[data-id="${CSS.escape(id)}"]`);
     if (btn) btn.classList.add("is-selected");
   }
 
@@ -58,15 +63,11 @@
 
   // ---- events ----
   if (openBtn) {
-    openBtn.addEventListener("click", () => {
-      openModal();
-    });
+    openBtn.addEventListener("click", openModal);
   }
 
   // close: backdrop / close btn
-  if (backdrop) {
-    backdrop.addEventListener("click", closeModal);
-  }
+  if (backdrop) backdrop.addEventListener("click", closeModal);
   closeBtns.forEach((btn) => btn.addEventListener("click", closeModal));
 
   // ESC close
@@ -86,7 +87,7 @@
       const target = e.target;
       if (!(target instanceof Element)) return;
 
-      const item = target.closest(".badge-item");
+      const item = target.closest(".badge-picker-item");
       if (!item) return;
 
       // locked/disabled
@@ -94,7 +95,6 @@
 
       const id = item.getAttribute("data-id") || "";
       const img = item.getAttribute("data-img") || "";
-
       if (!id || !img) return;
 
       selected = { id, img };
@@ -111,8 +111,7 @@
       if (hiddenBadgeId) hiddenBadgeId.value = selected.id;
       if (profileBadgeImg) profileBadgeImg.src = selected.img;
 
-      // 저장 버튼 활성화: S2 쪽 변경 감지 로직이 돌게 트리거
-      // (S2 JS가 input 이벤트를 기준으로 업데이트하므로, 직접 이벤트를 발생)
+      // 저장 버튼 활성화 트리거
       if (hiddenBadgeId) {
         hiddenBadgeId.dispatchEvent(new Event("input", { bubbles: true }));
         hiddenBadgeId.dispatchEvent(new Event("change", { bubbles: true }));
@@ -125,10 +124,11 @@
   // 초기 탭
   setActiveTab("F");
 
-  // 초기 선택값이 서버에서 내려온 경우 반영
+  // 초기 선택값 서버 반영
   const initId = hiddenBadgeId ? (hiddenBadgeId.value || "").trim() : "";
   if (initId && modal) {
-    const initBtn = modal.querySelector(`.badge-item[data-id="${CSS.escape(initId)}"]`);
+    // ✅ initId로 수정
+    const initBtn = modal.querySelector(`.badge-picker-item[data-id="${CSS.escape(initId)}"]`);
     if (initBtn && !initBtn.classList.contains("is-locked") && !initBtn.hasAttribute("disabled")) {
       selected = { id: initId, img: initBtn.getAttribute("data-img") || "" };
       setSelectedUI(initId);
