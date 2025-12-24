@@ -3,6 +3,9 @@ from datetime import date, datetime, timedelta, time
 from django.db import connection, transaction
 from django.http import HttpResponseBadRequest
 import json
+from ml.report import report_daily_langchain
+from ml.report.report_daily_langchain import make_daily_feedback
+
 
 def get_selected_date(request):
     date_str = request.GET.get("date")
@@ -22,6 +25,25 @@ def get_selected_date(request):
 
     # date 파라미터가 없으면 → 오늘 + 현재 시간
     return now
+
+def daily_total_nutrition(nut_data):
+    total_nut = {"kcal": 0, "carb": 0, "protein": 0, "fat": 0}
+
+    for index, value in enumerate(nut_data.values()):
+        if index > 0:
+            total_nut["kcal"] += value["kcal"]
+            total_nut["carb"] += value["carb"]
+            total_nut["protein"] += value["protein"]
+            total_nut["fat"] += value["fat"]
+
+    return total_nut
+
+def daily_keywords(keywords):
+    keywords_daily = []
+    for words in keywords:
+        for w in words:
+            keywords_daily.append(w)
+    return keywords_daily
 
 def get_last_week_range(target_date):
     # target_date기준 저번 주의 월요일 ~ 일요일을 반환
@@ -125,9 +147,20 @@ def report_daily(request):
                 WHERE cust_id = %s
                 AND rgs_dt = %s; 
                 """
-
                 cursor.execute(sql, [cust_id, rgs_dt])
                 feel_daily = cursor.fetchall()
+
+                sql = """
+                SELECT word
+                FROM COM_FEEL_TM w
+                JOIN (SELECT feel_id
+                        FROM CUS_FEEL_TS
+                        WHERE cust_id = %s
+                        AND rgs_dt = %s) c
+                ON w.feel_id = c.feel_id;
+                """
+                cursor.execute(sql, [cust_id, rgs_dt])
+                keywords = cursor.fetchall()
 
                 mood = []
                 for feel in feel_daily:
@@ -147,11 +180,29 @@ def report_daily(request):
         neu = (mood.count('neu') / len(mood))
         neg = (mood.count('neg') / len(mood))
 
+        # feedback 용 데이터
+        total_nut = daily_total_nutrition(nut_data)
+        keywords_daily = daily_keywords(keywords)
+
+        daily_data = {"cust_id": cust_id,
+                      "date": selected_date.strftime("%Y-%m-%d"),
+                      "positive_ratio": pos,
+                      "neutral_ratio": neu,
+                      "negative_ratio": neg,
+                      "feeling_keywords": keywords_daily,
+                      "total_kcal": total_nut['kcal'],
+                      "total_carb": total_nut['carb'],
+                      "total_protein": total_nut['protein'],
+                      "total_fat": total_nut['fat'],
+        }
+        feedback = json.loads(make_daily_feedback(daily_data))
+
         context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
                    "active_tab": "report",
                    "has_data": has_data,
                    "nut_day": json.dumps(nut_data),
                    "mood_ratio": json.dumps({'pos': pos, "neu": neu, "neg": neg}),
+                   "feedback": feedback,
                    }
 
     return render(request, "report/report_daily.html", context)
