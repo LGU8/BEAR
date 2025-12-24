@@ -42,6 +42,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const selectedMap = new Map(); // foodId -> item
 
+  function renderEmptyState() {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align:center; padding:12px; opacity:0.7;">
+          검색어를 입력하고 Search를 눌러주세요.
+        </td>
+      </tr>
+    `;
+  }
+
+  function resetAfterSave() {
+    // 1) 선택 상태 초기화
+    selectedMap.clear();
+    renderSelectedBar();
+
+    // 2) 입력창 초기화(원하면)
+    if (inputEl) inputEl.value = "";
+
+    // 3) 테이블을 "첫 화면"처럼 비우기
+    renderEmptyState(); // ✅ 이게 제일 자연스러움 (tbody.innerHTML="" 대신)
+
+    // 4) 스크롤 위치도 위로
+    const tableWrap = document.querySelector(".table-wrap");
+    if (tableWrap) tableWrap.scrollTop = 0;
+  }
+
   function syncCheckbox(foodId, checked) {
     const cb = document.querySelector(`.row-check[data-food-id="${foodId}"]`);
     if (cb) cb.checked = checked;
@@ -179,6 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("저장 실패");
         return;
       }
+      resetAfterSave();
       alert("저장 완료!");
 
       // ✅ 저장 성공 후 선택 초기화
@@ -190,6 +217,8 @@ document.addEventListener("DOMContentLoaded", () => {
       tbody.querySelectorAll("tr.food-row.is-selected").forEach(tr => tr.classList.remove("is-selected"));
     });
   }
+
+  renderEmptyState();
 
   btnEl.addEventListener("click", (e) => {
     e.preventDefault();
