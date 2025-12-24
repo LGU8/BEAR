@@ -240,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
           y: {
             stacked: true,
             beginAtZero: true,
-            max: payload?.y_max ?? 9,
+            max: payload?.y_max ?? 10,
             grid: { display: false, drawBorder: false },
             border: { display: false }, // ✅ 추가
             ticks: { display: false, stepSize: 1 },
