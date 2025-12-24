@@ -6,6 +6,8 @@ import json
 from report.views import get_selected_date
 from conf.views import _safe_get_cust_id
 from django.utils import timezone
+from ml.lstm.predictor import predict_negative_risk
+from django.utils import timezone
 
 
 # Create your views here.
@@ -301,12 +303,18 @@ def timeline(request):
         },
         ensure_ascii=False,
     )
+    # 5) 부정감정 예측 (LSTM)
+    # 기준일 D = 오늘(정책)
+    D = timezone.localdate().strftime("%Y%m%d")
+    neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=D)
 
     context = {
         "active_tab": "timeline",
         "week_start": week_start,
         "week_end": week_end,
         "chart_json": chart_json,
+        "neg_pred": neg_pred,
+
         # 아래 3개는 네 기존 context에 있던 값이면 유지, 아니면 제거 가능
         "risk_label": "위험해요ㅠㅠ",
         "risk_score": 0.78,
