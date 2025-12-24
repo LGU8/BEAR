@@ -34,7 +34,7 @@ def record_mood(request):
     cust_id = request.user.cust_id
     rgs_dt = selected_date.strftime("%Y%m%d")
     date_time = selected_date.strftime("%Y%m%d%H%M%S")
-    stable_yn = 1 if (mood in ("pos", "neu") and energy in ("low", "med")) else 0
+    stable_yn = 'y' if (mood in ("pos", "neu") and energy in ("low", "med")) else 'n'
 
     # 트랜잭션 시작
     try:
