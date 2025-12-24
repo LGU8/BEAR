@@ -52,24 +52,25 @@
       </div>
 
     {% if not neg_pred.eligible %}
-      <div class="timeline-alert">
-        <p><strong>{{ neg_pred.reason }}</strong></p>
+      <div class="negpred-wrap">
+        <div class="negpred-panel negpred-panel--empty">
 
-        {% if neg_pred.detail.type == "gate_keyword_3days" %}
-          <p>직전 3일 중 키워드 입력이 없는 날짜가 있어요:</p>
-          <ul>
-            {% for d in neg_pred.detail.missing_days %}
-              <li>{{ d }}</li>
-            {% endfor %}
-          </ul>
+          <div class="negpred-empty-text">
+            <p class="negpred-empty-title">데이터가 부족합니다.</p>
+            <p class="negpred-empty-desc">
+              키워드 입력이 없는 날짜가 존재합니다.
+            </p>
 
-        {% elif neg_pred.detail.type == "window_insufficient" %}
-          <p>직전 3일 범위에서 기록이 7회 미만이에요 ({{ neg_pred.detail.have }}/{{ neg_pred.detail.need }}).</p>
+            {% if neg_pred.detail.type == "gate_keyword_3days" %}
+              <p class="negpred-empty-dates">
+                {{ neg_pred.detail.missing_days|join:", " }}
+              </p>
+            {% endif %}
+          </div>
 
-        {% else %}
-          <p>{{ neg_pred.detail.error }}</p>
-        {% endif %}
+        </div>
       </div>
+
 
     {% else %}
       <div class="negpred-wrap">

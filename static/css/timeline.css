@@ -336,3 +336,45 @@
 .negpred-details{
   display: none !important;
 }
+
+/* ======================================================
+   Negative Prediction - Empty State
+   ====================================================== */
+
+/* 데이터 없음 상태 */
+.negpred-panel--empty{
+  min-height: 160px;              /* 박스 높이 안정 */
+  display: flex;
+  align-items: center;            /* 세로 중앙 */
+  justify-content: center;        /* 가로 중앙 */
+}
+
+/* 텍스트 래퍼 */
+.negpred-empty-text{
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* 메인 타이틀 */
+.negpred-empty-title{
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #333;
+}
+
+/* 설명 문구 */
+.negpred-empty-desc{
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  color: rgba(0,0,0,0.65);
+}
+
+/* 날짜 리스트 */
+.negpred-empty-dates{
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #F5941E;   /* BEAR 포인트 컬러 */
+  word-break: keep-all;
+}
