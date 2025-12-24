@@ -9,6 +9,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.templatetags.static import static
 from accounts.models import CusBadge, CusProfile
+from settings.utils.security import verify_password, hash_password
 
 from settings.badges import BADGE_MASTER
 import hashlib
@@ -94,8 +95,6 @@ def _segments_10(value_0_10: int) -> List[bool]:
 # ============================================================
 # 2) cust_id 결정 (요구사항)
 # - request.user 우선 + session fallback
-# - accounts 미완성이면 default 0000000001
-# ============================================================
 def _get_cust_id(request) -> str:
     u = getattr(request, "user", None)
     if u and getattr(u, "cust_id", None):
@@ -105,8 +104,13 @@ def _get_cust_id(request) -> str:
     if sid:
         return str(sid)
 
-    return "0000000001"
+    # 여기서 "" 반환은 OK (단, 호출부에서 처리해야 함)
+    return ""
 
+def _get_cust_id_strict(request) -> str:
+    cust_id = _get_cust_id(request)
+    # cust_id 없으면 절대 진행하지 않음
+    return cust_id
 
 # ============================================================
 # 3) DB helpers (Raw SQL)
@@ -418,10 +422,10 @@ def settings_activity_goal_edit(request):  # S4
 
     return render(request, "settings/settings_activity_goal_edit.html", ctx)
 
-
+@login_required(login_url="accounts_app:user_login")
 def settings_password(request):  # S5
     ctx = _base_ctx(request, active_tab="settings")
-    cust_id = ctx["cust_id"]
+    cust_id = _get_cust_id(request)
 
     if request.method == "POST":
         cur_pw = (request.POST.get("current_password") or "").strip()
@@ -433,7 +437,7 @@ def settings_password(request):  # S5
             ctx["error"] = "모든 항목을 입력해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 2) 길이(프론트는 8자 기준이므로 서버도 동일 권장)
+        # 2) 길이
         if len(new_pw) < 8:
             ctx["error"] = "새 비밀번호는 8자 이상으로 입력해주세요."
             return render(request, "settings/settings_password.html", ctx)
@@ -443,12 +447,12 @@ def settings_password(request):  # S5
             ctx["error"] = "새 비밀번호와 확인이 일치하지 않습니다."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 4) 현재 비밀번호와 동일 방지
+        # 4) 동일 방지 (raw 기준)
         if cur_pw == new_pw:
             ctx["error"] = "새 비밀번호는 현재 비밀번호와 다르게 입력해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 5) 현재 상태 조회(password/retry/lock)
+        # 5) 현재 상태 조회
         cust_auth = _fetch_one(
             """
             SELECT password, retry_cnt, lock_yn
@@ -457,7 +461,6 @@ def settings_password(request):  # S5
             """,
             (cust_id,),
         )
-
         if not cust_auth:
             ctx["error"] = "사용자 정보를 찾을 수 없습니다."
             return render(request, "settings/settings_password.html", ctx)
@@ -466,14 +469,13 @@ def settings_password(request):  # S5
         retry_cnt = int(cust_auth.get("retry_cnt") or 0)
         db_hash = (cust_auth.get("password") or "").strip()
 
-        # 6) 잠금이면 차단
+        # 6) 잠금 차단
         if lock_yn == "Y":
             ctx["error"] = "계정이 잠겨 있어요. 관리자에게 문의해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 7) 현재 비밀번호 검증(SHA256)
-        cur_hash = hashlib.sha256(cur_pw.encode("utf-8")).hexdigest()
-        if cur_hash != db_hash:
+        # 7) 현재 비밀번호 검증 (✅ Django 해시 + SHA256 레거시 모두 지원)
+        if not verify_password(cur_pw, db_hash):
             retry_cnt += 1
             new_lock = "Y" if retry_cnt >= 5 else "N"
             upd_dt = _now_yyyymmdd()
@@ -491,8 +493,8 @@ def settings_password(request):  # S5
             ctx["error"] = "현재 비밀번호가 올바르지 않습니다."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 8) 변경 저장
-        new_hash = hashlib.sha256(new_pw.encode("utf-8")).hexdigest()
+        # 8) 변경 저장 (✅ 앞으로는 Django 표준 해시로 통일)
+        new_hash = hash_password(new_pw)
         upd_dt = _now_yyyymmdd()
         upd_time = _now_yyyymmddhhmmss()
 
