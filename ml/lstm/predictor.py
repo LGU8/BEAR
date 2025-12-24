@@ -22,9 +22,9 @@ from .model import LSTMClassifier
 # 정책(Policy)
 # =========================
 HIGH_RISK_SET = {0, 2}
-THRESHOLD = 0.30          # p0+p2 >= 0.30 이면 위험
-WINDOW = 7                # 최근 7개 record
-GATE_DAYS = 3             # 직전 3일 고정
+THRESHOLD = 0.30  # p0+p2 >= 0.30 이면 위험
+WINDOW = 7  # 최근 7개 record
+GATE_DAYS = 3  # 직전 3일 고정
 
 
 # =========================
@@ -36,7 +36,9 @@ class Artifacts:
     scaler: Any
     model: LSTMClassifier
     device: torch.device
-    cluster_mean: Dict[str, Tuple[float, float]]  # cluster_val -> (mean_valence, mean_arousal)
+    cluster_mean: Dict[
+        str, Tuple[float, float]
+    ]  # cluster_val -> (mean_valence, mean_arousal)
 
 
 def _time_onehot(time_slot: str) -> Tuple[float, float, float]:
@@ -142,7 +144,9 @@ def load_artifacts() -> Artifacts:
             continue
         cluster_mean[str(cv)] = (mv, ma)
 
-    return Artifacts(cfg=cfg, scaler=scaler, model=model, device=device, cluster_mean=cluster_mean)
+    return Artifacts(
+        cfg=cfg, scaler=scaler, model=model, device=device, cluster_mean=cluster_mean
+    )
 
 
 # =========================
@@ -285,15 +289,17 @@ def build_feature_matrix(
         # delta는 뒤에서 채움
         feats.append([v, a, 0.0, 0.0, tm, ta, te])
 
-        meta.append({
-            "rgs_dt": rgs_dt,
-            "seq": seq,
-            "time_slot": time_slot,
-            "cluster_val": None if cluster_val is None else str(cluster_val),
-            "valence": v,
-            "arousal": a,
-            "source": src,  # keyword_mean / cluster_fallback
-        })
+        meta.append(
+            {
+                "rgs_dt": rgs_dt,
+                "seq": seq,
+                "time_slot": time_slot,
+                "cluster_val": None if cluster_val is None else str(cluster_val),
+                "valence": v,
+                "arousal": a,
+                "source": src,  # keyword_mean / cluster_fallback
+            }
+        )
 
     X = np.array(feats, dtype=np.float32)  # (7,7)
 
@@ -333,7 +339,7 @@ def predict_negative_risk(
                 "rule": "직전 3일(D-3~D-1) 매일 키워드 1회 이상 필요",
                 "asof": D_yyyymmdd,
                 "missing_days": missing_days,
-            }
+            },
         }
 
     # 2) Window records
@@ -349,7 +355,7 @@ def predict_negative_risk(
                 "need": WINDOW,
                 "have": len(records),
                 "days": list(_prev_days(D_yyyymmdd)),
-            }
+            },
         }
 
     # 3) Feature matrix
@@ -363,7 +369,7 @@ def predict_negative_risk(
                 "type": "feature_build_failed",
                 "asof": D_yyyymmdd,
                 "error": str(e),
-            }
+            },
         }
 
     # 4) Scaler transform
@@ -377,18 +383,27 @@ def predict_negative_risk(
                 "type": "scaler_failed",
                 "asof": D_yyyymmdd,
                 "error": str(e),
-            }
+            },
         }
 
     # 5) LSTM inference
-    x_t = torch.tensor(Xs, dtype=torch.float32, device=art.device).unsqueeze(0)  # (1,7,7)
+    x_t = torch.tensor(Xs, dtype=torch.float32, device=art.device).unsqueeze(
+        0
+    )  # (1,7,7)
 
     with torch.no_grad():
-        logits = art.model(x_t)                         # (1,6)
+        logits = art.model(x_t)  # (1,6)
         probs = F.softmax(logits, dim=1).cpu().numpy()  # (1,6)
-        probs = probs.reshape(-1)                       # (6,)
+        probs = probs.reshape(-1)  # (6,)
+    p0 = float(probs[0])
+    p2 = float(probs[2])
+    p1 = float(probs[1])
+    p3 = float(probs[3])
+    p5 = float(probs[5])
+    p4 = float(probs[4])
+    p_highrisk = p0 + p2 
 
-    p_highrisk = float(probs[0] + probs[2])
+    # p_highrisk = float(probs[0] + probs[2])
     is_risky = bool(p_highrisk >= THRESHOLD)
     pred_class = int(np.argmax(probs))
 
@@ -398,6 +413,12 @@ def predict_negative_risk(
         "high_risk_set": sorted(list(HIGH_RISK_SET)),
         "threshold": THRESHOLD,
         "p_highrisk": p_highrisk,
+        "p0": p0,
+        "p2": p2,
+        "p1": p1,
+        "p3": p3,
+        "p4": p4,
+        "p5": p5,
         "is_risky": is_risky,
         "pred_class": pred_class,
         "probs": [float(x) for x in probs.tolist()],

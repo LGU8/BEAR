@@ -140,6 +140,7 @@
   align-items: center;
   justify-content: center;
 }
+
 /* ======================================================
    Bootstrap Datepicker Theme
    ====================================================== */
@@ -175,5 +176,163 @@
 /* 기본 arrow 숨김(너가 원하는 디자인이면 유지) */
 .datepicker-dropdown:before,
 .datepicker-dropdown:after{
+  display: none !important;
+}
+
+/* ======================================================
+   Negative Prediction (부정 감정 예측 카드)
+   - 여기부터가 수정/추가 파트
+   ====================================================== */
+
+.negpred-wrap{
+  margin-top: 12px;
+}
+
+/* 흰색 둥근 박스 */
+.negpred-panel{
+  background: #fff;
+  border-radius: 20px;
+  padding: 18px 16px 14px;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  /* 배경에서 살짝 뜨게 (원치 않으면 지워도 됨) */
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+/* 아이콘 3개 가로 정렬 */
+.negpred-icons{
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+
+  /* 반응형 간격 */
+  gap: clamp(10px, 4vw, 20px);
+  width: 100%;
+}
+
+/* ✅ 핵심: 전역 width:100% 먹는 문제 차단 */
+.negpred-item{
+  width: auto;
+  max-width: none;
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  opacity: 0.45;
+  transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.negpred-item.is-active{
+  opacity: 1;
+  transform: scale(1.02);
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+}
+
+/* ✅ 아이콘 크기 반응형 (요청사항) */
+.negpred-img{
+  width: clamp(64px, 18vw, 92px);
+  height: auto;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 문구: 스샷처럼 오른쪽 아래 */
+.negpred-text{
+  width: 100%;
+  margin-top: 10px;
+  text-align: right;
+}
+
+.negpred-status{
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+}
+
+.negpred-prob{
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: rgba(0,0,0,0.65);
+}
+
+.negpred-th{
+  margin-left: 6px;
+  font-weight: 600;
+  color: rgba(0,0,0,0.45);
+}
+
+/* ======================================================
+   FORCE OVERRIDE (최후방어)
+   - 다른 파일이 !important로 덮어써도 이김
+   ====================================================== */
+.timeline-section .negpred-icons{
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+}
+
+.timeline-section .negpred-icons .negpred-item{
+  width: auto !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+}
+
+.timeline-section .negpred-icons .negpred-img{
+  width: clamp(64px, 18vw, 92px) !important;
+  height: auto !important;
+  display: block !important;
+}
+
+
+/* ======================================================
+   Negative Prediction (아이콘 중심 UI)
+   ====================================================== */
+
+/* 아이콘 + 텍스트를 세로로 */
+.negpred-item{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+
+  width: auto !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+
+  opacity: 0.45;
+  transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+/* 활성 아이콘 */
+.negpred-item.is-active{
+  opacity: 1;
+  transform: scale(1.02);
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+}
+
+/* 상태 멘트: 아이콘 바로 아래 */
+.negpred-status{
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 기존 오른쪽 정렬 텍스트 영역 완전 비활성 */
+.negpred-text,
+.negpred-prob,
+.negpred-details{
   display: none !important;
 }

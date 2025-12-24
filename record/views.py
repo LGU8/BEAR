@@ -34,7 +34,7 @@ def record_mood(request):
     cust_id = request.user.cust_id
     rgs_dt = selected_date.strftime("%Y%m%d")
     date_time = selected_date.strftime("%Y%m%d%H%M%S")
-    stable_yn = 'y' if (mood in ("pos", "neu") and energy in ("low", "med")) else 'n'
+    stable_yn = "y" if (mood in ("pos", "neu") and energy in ("low", "med")) else "n"
 
     # 트랜잭션 시작
     try:
@@ -50,7 +50,7 @@ def record_mood(request):
                       AND rgs_dt = %s
                       AND time_slot = %s
                     """,
-                    [cust_id, rgs_dt, time_slot]
+                    [cust_id, rgs_dt, time_slot],
                 )
                 row = cursor.fetchone()
 
@@ -62,7 +62,7 @@ def record_mood(request):
                         FROM CUS_FEEL_TH
                         WHERE cust_id = %s
                         """,
-                        [cust_id]
+                        [cust_id],
                     )
                     seq = cursor.fetchone()[0]
 
@@ -84,10 +84,18 @@ def record_mood(request):
                         )
                         """,
                         [
-                            date_time, date_time, cust_id,
-                            rgs_dt, seq, time_slot,
-                            mood, energy, mood, energy, stable_yn
-                        ]
+                            date_time,
+                            date_time,
+                            cust_id,
+                            rgs_dt,
+                            seq,
+                            time_slot,
+                            mood,
+                            energy,
+                            mood,
+                            energy,
+                            stable_yn,
+                        ],
                     )
 
                 # UPDATE 경로
@@ -110,10 +118,16 @@ def record_mood(request):
                           AND time_slot = %s
                         """,
                         [
-                            date_time, mood, energy,
-                            mood, energy, stable_yn,
-                            cust_id, rgs_dt, time_slot
-                        ]
+                            date_time,
+                            mood,
+                            energy,
+                            mood,
+                            energy,
+                            stable_yn,
+                            cust_id,
+                            rgs_dt,
+                            time_slot,
+                        ],
                     )
 
                     # 기존 키워드 삭제
@@ -124,7 +138,7 @@ def record_mood(request):
                           AND rgs_dt = %s
                           AND seq = %s
                         """,
-                        [cust_id, rgs_dt, seq]
+                        [cust_id, rgs_dt, seq],
                     )
 
                 # 키워드 재삽입
@@ -149,7 +163,7 @@ def record_mood(request):
                               WHERE word = %s)
                         )
                         """,
-                        ts_rows
+                        ts_rows,
                     )
 
         # 트랜잭션 정상 종료 → commit
@@ -307,6 +321,30 @@ def timeline(request):
     # 기준일 D = 오늘(정책)
     D = timezone.localdate().strftime("%Y%m%d")
     neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=D)
+    # =========================
+    # (추가) UI용 상태 계산
+    #  - ui_active_idx: 0=긍정, 1=중립, 2=부정
+    #  - ui_status_text: 상태 문구
+    # =========================
+    neg_pred["ui_active_idx"] = 1
+    neg_pred["ui_status_text"] = "예측 준비 중"
+
+    if neg_pred.get("eligible", False):
+        p = neg_pred.get("p_highrisk", 0.0)
+        try:
+            p = float(p)
+        except (TypeError, ValueError):
+            p = 0.0
+
+        if p >= 0.30:
+            neg_pred["ui_active_idx"] = 2
+            neg_pred["ui_status_text"] = "위험해요ㅠㅠ"
+        elif p >= 0.20:
+            neg_pred["ui_active_idx"] = 1
+            neg_pred["ui_status_text"] = "조심해요"
+        else:
+            neg_pred["ui_active_idx"] = 0
+            neg_pred["ui_status_text"] = "안정적이에요"
 
     context = {
         "active_tab": "timeline",
@@ -314,7 +352,6 @@ def timeline(request):
         "week_end": week_end,
         "chart_json": chart_json,
         "neg_pred": neg_pred,
-
         # 아래 3개는 네 기존 context에 있던 값이면 유지, 아니면 제거 가능
         "risk_label": "위험해요ㅠㅠ",
         "risk_score": 0.78,

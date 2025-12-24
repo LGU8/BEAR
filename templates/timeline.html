@@ -46,9 +46,10 @@
 <!-- (2) ML 부정 감정 예측 결과 -->
 <section class="timeline-section">
   <div class="timeline-card">
-    <div class="timeline-card-head">
-      <h4 class="timeline-title">부정 감정 예측 결과</h4>
-    </div>
+    <div class="timeline-card-inner">
+      <div class="timeline-card-head">
+        <h4 class="timeline-title">부정 감정 예측</h4>
+      </div>
 
     {% if not neg_pred.eligible %}
       <div class="timeline-alert">
@@ -71,36 +72,56 @@
       </div>
 
     {% else %}
-      <div class="timeline-pred">
-        <p>
-          HighRisk(클러스터 0·2) 확률:
-          <strong>{{ neg_pred.p_highrisk|floatformat:2 }}</strong>
-          (기준 {{ neg_pred.threshold }})
-        </p>
+      <div class="negpred-wrap">
+        <div class="negpred-panel">
 
-        {% if neg_pred.is_risky %}
-          <p class="badge badge-danger">위험</p>
-        {% else %}
-          <p class="badge badge-safe">안정</p>
-        {% endif %}
+          <div class="negpred-icons" aria-label="부정 감정 예측 아이콘">
 
-        <details style="margin-top:10px;">
-          <summary>디버그: window 7개 기록</summary>
-          <ul>
-            {% for r in neg_pred.window_records %}
-              <li>
-                {{ r.rgs_dt }} / seq={{ r.seq }} / slot={{ r.time_slot }}
-                / v={{ r.valence|floatformat:2 }} a={{ r.arousal|floatformat:2 }}
-                / source={{ r.source }}
-              </li>
-            {% endfor %}
-          </ul>
-        </details>
+            <!-- 긍정 -->
+            <div class="negpred-item {% if neg_pred.ui_active_idx == 0 %}is-active{% endif %}">
+              <img
+                src="{% static 'icons_img/긍정.png' %}"
+                alt="Positive(긍정)"
+                class="negpred-img"
+              />
+              {% if neg_pred.ui_active_idx == 0 %}
+                <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
+              {% endif %}
+            </div>
+
+            <!-- 중립 -->
+            <div class="negpred-item {% if neg_pred.ui_active_idx == 1 %}is-active{% endif %}">
+              <img
+                src="{% static 'icons_img/중립.png' %}"
+                alt="Neutral(중립)"
+                class="negpred-img"
+              />
+              {% if neg_pred.ui_active_idx == 1 %}
+                <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
+              {% endif %}
+            </div>
+
+            <!-- 부정 -->
+            <div class="negpred-item {% if neg_pred.ui_active_idx == 2 %}is-active{% endif %}">
+              <img
+                src="{% static 'icons_img/부정.png' %}"
+                alt="Negative(부정)"
+                class="negpred-img"
+              />
+              {% if neg_pred.ui_active_idx == 2 %}
+                <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
+              {% endif %}
+            </div>
+
+          </div>
+
+        </div>
       </div>
     {% endif %}
+
+    </div>
   </div>
 </section>
-
 
 <!-- (3) LLM 멘트 -->
 <section class="timeline-section">
