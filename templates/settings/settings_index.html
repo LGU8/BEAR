@@ -6,60 +6,87 @@
 <link rel="stylesheet" href="{% static 'css/settings/settings_s0.css' %}">
 {% endblock %}
 
+{% block extra_js %}
+<script defer src="{% static 'js/settings/settings_s0.js' %}"></script>
+{% endblock %}
+
 {% block main_area %}
-<section class="settings-page">
+<section class="settings-page s0">
 
-  <!-- (S0-1) 프로필 카드 (시안: BEAR/가입일/이메일 표시) -->
-  <article class="settings-card profile-card">
-    <div class="profile-row">
-      <div class="profile-avatar-wrap">
-        <img class="profile-avatar" src="{% static profile_badge_img %}" alt="profile badge">
-      </div>
+  <!-- (S0-A) 프로필 요약 카드 (클릭 시 Modal 안내) -->
+  <article class="settings-card profile-card s0-profile-card" aria-label="프로필 요약">
+    <!-- 카드 전체 클릭 affordance -->
+    <button type="button" class="s0-profile-click" id="openProfileHint" aria-haspopup="dialog" aria-controls="profileHintModal">
 
-      <div class="profile-meta">
-        <div class="profile-title">
-          {% if nickname_is_empty %}
-            BEAR에게 이름을 알려주세요
+      <div class="profile-row s0-profile-row">
+        <div class="profile-avatar-wrap">
+          <img class="profile-avatar" src="{% static profile_badge_img %}" alt="profile badge">
+        </div>
+
+        <div class="profile-meta s0-profile-meta">
+          <div class="profile-title s0-profile-title">
+            {% if nickname_is_empty %}
+              <span class="s0-nickname-hint">BEAR에게 이름을 알려주세요</span>
+            {% else %}
+              {{ nickname }}
+            {% endif %}
+          </div>
+
+          {% if created_dt_label %}
+            <div class="profile-sub s0-profile-sub">(가입일: {{ created_dt_label }})</div>
           {% else %}
-            {{ nickname }}
+            <div class="profile-sub s0-profile-sub"></div>
+          {% endif %}
+
+          {% if email %}
+            <span class="profile-email-pill s0-email-pill">{{ email }}</span>
+          {% else %}
+            <span class="profile-email-pill s0-email-pill is-empty">이메일 정보 없음</span>
           {% endif %}
         </div>
-        {% if created_dt_label %}
-          <div class="profile-sub">(가입일: {{ created_dt_label }})</div>
-        {% else %}
-          <div class="profile-sub"></div>
-        {% endif %}
-        <span class="profile-email-pill">{{ email|default:"" }}</span>
-      </div>
-    </div>
 
-    <div class="profile-stats">
-      <div class="stat">
-        <div class="stat-label">키</div>
-        <div class="stat-value">{{ height_cm|floatformat:0|default:"-" }}</div>
+        <div class="s0-card-chevron" aria-hidden="true">›</div>
       </div>
-      <div class="stat">
-        <div class="stat-label">몸무게</div>
-        <div class="stat-value">{{ weight_kg|floatformat:0|default:"-" }}</div>
+
+      <!-- 신체 요약 -->
+      <div class="profile-stats s0-profile-stats" role="group" aria-label="신체 정보 요약">
+        <div class="stat">
+          <div class="stat-label">키</div>
+          <div class="stat-value">
+            {% if height_cm %}{{ height_cm|floatformat:0 }} <span class="stat-unit">cm</span>{% else %}-{% endif %}
+          </div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-label">몸무게</div>
+          <div class="stat-value">
+            {% if weight_kg %}{{ weight_kg|floatformat:0 }} <span class="stat-unit">kg</span>{% else %}-{% endif %}
+          </div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-label">나이</div>
+          <div class="stat-value">{% if age %}{{ age }}{% else %}-{% endif %}</div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-label">성별</div>
+          <div class="stat-value">{{ gender_label|default:"-" }}</div>
+        </div>
       </div>
-      <div class="stat">
-        <div class="stat-label">나이</div>
-        <div class="stat-value">{{ age|default:"-" }}</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">성별</div>
-        <div class="stat-value">{{ gender_label|default:"-" }}</div>
-      </div>
-    </div>
+
+    </button>
   </article>
-  <!-- (S0-2) 메뉴 카드 -->
-  <article class="settings-card menu-card">
+
+  <!-- (S0-B) 메뉴 카드 -->
+  <article class="settings-card menu-card s0-menu-card" aria-label="설정 메뉴">
 
     <a class="menu-item" href="{% url 'settings_app:settings_account' %}">
       <div class="menu-left">
         <img class="menu-ico" src="{% static 'settings_img/icon_account.png' %}" alt="account">
         <div class="menu-text">계정 관리</div>
       </div>
+      <div class="menu-right" aria-hidden="true">›</div>
     </a>
 
     <div class="menu-divider"></div>
@@ -69,25 +96,43 @@
         <img class="menu-ico" src="{% static 'settings_img/icon_password.png' %}" alt="password">
         <div class="menu-text">비밀번호 관리</div>
       </div>
+      <div class="menu-right" aria-hidden="true">›</div>
     </a>
 
     {% if user.is_authenticated %}
-      <div class="menu-divider"></div>
+      <div class="menu-divider menu-divider--strong"></div>
 
-      <form class="menu-item menu-item-form"
-            action="{% url 'accounts_app:user_logout' %}"
-            method="post">
+      <form class="menu-item-form" action="{% url 'accounts_app:user_logout' %}" method="post">
         {% csrf_token %}
-
-        <button type="submit" class="menu-item-btn">
+        <button type="submit" class="menu-item-btn menu-item-btn--danger">
           <div class="menu-left">
             <img class="menu-ico" src="{% static 'settings_img/bear_logout.png' %}" alt="logout">
             <div class="menu-text">로그아웃</div>
           </div>
+          <div class="menu-right" aria-hidden="true">›</div>
         </button>
       </form>
     {% endif %}
 
   </article>
+
+  <!-- (S0-C) Modal: 프로필 수정 안내 -->
+  <div class="s0-modal-backdrop" id="profileHintModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="s0-modal">
+      <button type="button" class="s0-modal-close" id="closeProfileHint" aria-label="닫기">×</button>
+
+      <div class="s0-modal-title">프로필 수정</div>
+      <div class="s0-modal-desc">
+        프로필 정보(닉네임/키/몸무게/배지 등)는<br>
+        <b>계정 관리</b>에서 수정할 수 있어요.
+      </div>
+
+      <div class="s0-modal-actions">
+        <button type="button" class="s0-modal-btn s0-modal-btn--ghost" id="dismissProfileHint">확인</button>
+        <a class="s0-modal-btn s0-modal-btn--primary" href="{% url 'settings_app:settings_account' %}">계정 관리로 이동</a>
+      </div>
+    </div>
+  </div>
+
 </section>
 {% endblock %}
