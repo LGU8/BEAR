@@ -2,14 +2,29 @@
 console.log("[food_search] FILE EXECUTED v=20251222-3");
 
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("[food_search] DOMContentLoaded href=", location.href);
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return "";
+  }
+
+  // ✅ HTML escape (제품명 안전 처리)
+  const safeText = (s) => String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
   const inputEl = document.getElementById("food-search-input");
   const btnEl = document.getElementById("food-search-btn");
   const tbody = document.getElementById("record-items-tbody");
   const selectedBar = document.getElementById("selected-bar");
   const saveBtn = document.getElementById("btn-save-meal");
-
+  
+  console.log("[food_search] DOMContentLoaded href=", location.href);
   console.log("[food_search] elems", { inputEl, btnEl, tbody, selectedBar });
   console.log("[meal_save] saveBtn", saveBtn);
 
@@ -110,24 +125,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ✅ 렌더링
     tbody.innerHTML = items.map((it) => `
-      <tr class="food-row" data-food-id="${it.food_id}"
-        data-name="${(it.name ?? "").replace(/"/g, '&quot;')}"
-        data-kcal="${it.kcal ?? 0}"
-        data-carb="${it.carb_g ?? 0}"
-        data-protein="${it.protein_g ?? 0}"
-        data-fat="${it.fat_g ?? 0}">
-        <td class="col-check-cell">
-          <input class="row-check" type="checkbox" data-food-id="${it.food_id}">
-        </td>
-        <td>${it.name ?? ""}</td>
-        <td>${it.kcal ?? 0}</td>
-        <td>${it.carb_g ?? 0}</td>
-        <td>${it.protein_g ?? 0}</td>
-        <td>${it.fat_g ?? 0}</td>
-      </tr>
-    `).join("");
+      <tr class="food-row"
+        data-food-id="${it.food_id}"
+        data-name="${safeText(it.name)}">
+      <td class="col-check-cell">
+        <input class="row-check" type="checkbox" data-food-id="${it.food_id}">
+      </td>
+      <td>${safeText(it.name)}</td>
+      <td>${it.kcal ?? 0}</td>
+      <td>${it.carb_g ?? 0}</td>
+      <td>${it.protein_g ?? 0}</td>
+      <td>${it.fat_g ?? 0}</td>
+    </tr>
+  `).join("");
 
-    restoreChecksAfterRender();
+  restoreChecksAfterRender();
 
   }
 
@@ -136,14 +148,27 @@ document.addEventListener("DOMContentLoaded", () => {
       const foodIds = Array.from(selectedMap.keys());
       console.log("[meal_save] selected foodIds =", foodIds);
 
+
       if (foodIds.length === 0) {
         alert("음식을 선택해주세요.");
         return;
       }
 
+      const csrfToken = getCookie("csrftoken");
+      if (!csrfToken) {
+        alert("CSRF 토큰이 없습니다. 페이지를 새로고침(F5) 후 다시 시도해주세요.");
+        console.warn("[meal_save] csrftoken cookie missing. document.cookie=", document.cookie);
+      return;
+    }
+      
+    console.log("[meal_save] csrfToken(cookie) =", csrfToken);
+
       const res = await fetch("/record/api/meal/save/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken,
+        },
         body: JSON.stringify({ food_ids: foodIds }),
       });
 
@@ -155,6 +180,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       alert("저장 완료!");
+
+      // ✅ 저장 성공 후 선택 초기화
+      selectedMap.clear();
+      renderSelectedBar();
+
+      // 테이블에 남아있는 체크/강조도 초기화
+      tbody.querySelectorAll(".row-check").forEach(cb => (cb.checked = false));
+      tbody.querySelectorAll("tr.food-row.is-selected").forEach(tr => tr.classList.remove("is-selected"));
     });
   }
 

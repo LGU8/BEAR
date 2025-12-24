@@ -22,5 +22,6 @@ urlpatterns = [
 
     path("api/meals/add/", views_api.api_meal_add, name="api_meal_add"),
     path("api/meals/recent3/", views_api.api_meals_recent3, name="api_meals_recent3"),
+    path("api/meal/save/", views_api.api_meal_save_by_search, name="api_meal_save_by_search"),
 
 ]

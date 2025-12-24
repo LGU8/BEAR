@@ -4,6 +4,10 @@
 
 {% block main_area %}
 
+<form style="display:none;">
+  {% csrf_token %}
+</form>
+
 <section class="record-wrap">
 
   <!-- 식단 기록 카드 -->

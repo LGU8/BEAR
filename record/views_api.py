@@ -596,3 +596,177 @@ def api_meals_recent3(request):
 
     except Exception as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+
+@require_POST
+def api_meal_save_by_search(request):
+    try:
+        cust_id = request.user.cust_id
+
+        # 1) session 키
+        rgs_dt = request.session.get("rgs_dt")  # "YYYYMMDD"
+        seq = request.session.get("seq")  # int or str
+        time_slot = request.session.get("time_slot")  # "M/L/D"
+
+        if not (rgs_dt and seq and time_slot):
+            return JsonResponse(
+                {"ok": False, "error": "session missing (rgs_dt/seq/time_slot)"},
+                status=400,
+            )
+
+        seq = int(seq)
+        t = now14()
+
+        # 2) body food_ids
+        payload = json.loads(request.body.decode("utf-8"))
+        food_ids = payload.get("food_ids") or []
+        if not isinstance(food_ids, list) or len(food_ids) == 0:
+            return JsonResponse({"ok": False, "error": "food_ids required"}, status=400)
+
+        food_ids = list(dict.fromkeys([int(x) for x in food_ids]))  # 중복 제거
+
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+
+                # (선택) 3) CUS_FEEL_TH 존재 검증
+                cursor.execute(
+                    """
+                    SELECT 1
+                    FROM CUS_FEEL_TH
+                    WHERE cust_id=%s AND rgs_dt=%s AND seq=%s AND time_slot=%s
+                    LIMIT 1
+                    """,
+                    [cust_id, rgs_dt, seq, time_slot],
+                )
+                if cursor.fetchone() is None:
+                    return JsonResponse(
+                        {
+                            "ok": False,
+                            "error": "CUS_FEEL_TH row not found for current key",
+                        },
+                        status=404,
+                    )
+
+                # 4) FOOD_TB 영양 조회
+                in_ph = ",".join(["%s"] * len(food_ids))
+                cursor.execute(
+                    f"""
+                    SELECT food_id, kcal, carb_g, protein_g, fat_g
+                    FROM FOOD_TB
+                    WHERE food_id IN ({in_ph})
+                    """,
+                    food_ids,
+                )
+                foods = cursor.fetchall()
+
+                found = {int(r[0]) for r in foods}
+                missing = [fid for fid in food_ids if fid not in found]
+                if missing:
+                    return JsonResponse(
+                        {"ok": False, "error": f"FOOD_TB missing food_id: {missing}"},
+                        status=400,
+                    )
+
+                # 5) totals 계산
+                total_kcal = sum(int(r[1] or 0) for r in foods)
+                total_carb = sum(int(r[2] or 0) for r in foods)
+                total_prot = sum(int(r[3] or 0) for r in foods)
+                total_fat = sum(int(r[4] or 0) for r in foods)
+
+                # 6) TH upsert
+                cursor.execute(
+                    """
+                    SELECT 1 FROM CUS_FOOD_TH
+                    WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
+                    LIMIT 1
+                    """,
+                    [cust_id, rgs_dt, seq],
+                )
+                exists_th = cursor.fetchone() is not None
+
+                if not exists_th:
+                    cursor.execute(
+                        """
+                        INSERT INTO CUS_FOOD_TH
+                        (created_time, updated_time, cust_id, rgs_dt, seq, time_slot, kcal, carb_g, protein_g, fat_g)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                        """,
+                        [
+                            t,
+                            t,
+                            cust_id,
+                            rgs_dt,
+                            seq,
+                            time_slot,
+                            total_kcal,
+                            total_carb,
+                            total_prot,
+                            total_fat,
+                        ],
+                    )
+                    th_action = "insert"
+                else:
+                    cursor.execute(
+                        """
+                        UPDATE CUS_FOOD_TH
+                        SET updated_time=%s,
+                            time_slot=%s,
+                            kcal=%s,
+                            carb_g=%s,
+                            protein_g=%s,
+                            fat_g=%s
+                        WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
+                        """,
+                        [
+                            t,
+                            time_slot,
+                            total_kcal,
+                            total_carb,
+                            total_prot,
+                            total_fat,
+                            cust_id,
+                            rgs_dt,
+                            seq,
+                        ],
+                    )
+                    th_action = "update"
+
+                # 7) TS 덮어쓰기: delete 후 insert
+                cursor.execute(
+                    """
+                    DELETE FROM CUS_FOOD_TS
+                    WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
+                    """,
+                    [cust_id, rgs_dt, seq],
+                )
+                deleted_ts = cursor.rowcount
+
+                ts_rows = []
+                for i, fid in enumerate(food_ids, start=1):
+                    ts_rows.append((t, t, cust_id, rgs_dt, seq, i, fid))
+
+                cursor.executemany(
+                    """
+                    INSERT INTO CUS_FOOD_TS
+                    (created_time, updated_time, cust_id, rgs_dt, seq, food_seq, food_id)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)
+                    """,
+                    ts_rows,
+                )
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "th_action": th_action,
+                "deleted_ts": deleted_ts,
+                "inserted_ts": len(food_ids),
+                "cust_id": cust_id,
+                "rgs_dt": rgs_dt,
+                "seq": seq,
+                "time_slot": time_slot,
+            },
+            status=200,
+        )
+
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
