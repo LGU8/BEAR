@@ -89,17 +89,90 @@ document.addEventListener("DOMContentLoaded", () => {
     if (nonZero.length === 0) return 0;
 
     const isTop = nonZero[nonZero.length - 1] === ctx.dataset;
+    if (!isTop) return 0;
 
-    // 단일 조각이면 전체 둥글게
-    if (nonZero.length === 1 && isTop) return r;
+    // ✅ 픽셀 기반 radius 제한 + 정수화(미세 seam 완화)
+    const h = Math.abs(ctx.element?.height ?? 0);
+    const rEff = h > 0 ? Math.min(r, Math.max(0, Math.floor(h / 2) - 1)) : r;
+    const rr = Math.max(0, Math.floor(rEff)); // 정수로
 
-    // 여러 조각이면 최상단만 윗모서리 둥글게
-    if (isTop) {
-      return { topLeft: r, topRight: r, bottomLeft: 0, bottomRight: 0 };
-    }
-
-    return 0;
+    // ✅ 단일이든 다중이든 무조건 '상단만' 라운드
+    return {
+      topLeft: rr,
+      topRight: rr,
+      bottomLeft: 0,
+      bottomRight: 0,
+    };
   }
+
+  // ✅ seam(가로줄) 마스킹 플러그인 (정확한 y 위치 = yScale.getPixelForValue(total))
+// - 각 x index에서 (pos+neu+neg) 총합의 픽셀 위치를 계산해 top을 정확히 덮음
+const maskTopSeamPlugin = {
+  id: "maskTopSeam",
+  afterDatasetsDraw(chart, args, pluginOptions) {
+    const thickness = pluginOptions?.thickness ?? 2;
+
+    const { ctx, data, scales } = chart;
+    const yScale = scales?.y;
+    if (!yScale) return;
+
+    // pos/neu/neg 데이터셋(순서 고정 가정: 0,1,2)
+    // 혹시 순서가 바뀔 수 있으면 label로 찾아도 됨
+    const dsPos = data.datasets?.[0];
+    const dsNeu = data.datasets?.[1];
+    const dsNeg = data.datasets?.[2];
+    if (!dsPos || !dsNeu || !dsNeg) return;
+
+    const N = data.labels?.length ?? 0;
+
+    for (let i = 0; i < N; i++) {
+      const p = Number(dsPos.data?.[i] ?? 0);
+      const n = Number(dsNeu.data?.[i] ?? 0);
+      const g = Number(dsNeg.data?.[i] ?? 0);
+
+      const total = p + n + g;
+      if (total <= 0) continue;
+
+      // ✅ 해당 날짜의 "최상단 조각" dataset 찾기 (값이 있는 마지막 dataset)
+      let topDs = null;
+      if (g > 0) topDs = dsNeg;
+      else if (n > 0) topDs = dsNeu;
+      else if (p > 0) topDs = dsPos;
+      else continue;
+
+      // ✅ top bar element의 x/width는 meta에서 가져오고,
+      // ✅ y(top)는 total로부터 정확히 계산
+      const topIndex =
+        topDs === dsPos ? 0 : topDs === dsNeu ? 1 : 2;
+
+      const meta = chart.getDatasetMeta(topIndex);
+      const el = meta?.data?.[i];
+      if (!el) continue;
+
+      const x = el.x;
+      const w = el.width;
+
+      // ✅ 총합 기준으로 계산한 막대 top pixel
+      const yTop = yScale.getPixelForValue(total);
+
+      // backgroundColor 안전 처리
+      let fill = topDs.backgroundColor;
+      if (typeof fill === "function") fill = fill({ chart, dataset: topDs, dataIndex: i });
+      if (Array.isArray(fill)) fill = fill[i] ?? fill[0];
+      if (!fill) continue;
+
+      ctx.save();
+      ctx.fillStyle = fill;
+
+      // ✅ seam은 보통 "막대 바로 위/경계"에 생기므로 살짝 위로 올려 덮기
+      // -1을 주는 게 포인트 (너 케이스에서 두꺼워졌던 이유가 위치 오차였음)
+      ctx.fillRect(x - w / 2, yTop - 1, w, thickness);
+
+      ctx.restore();
+    }
+  },
+};
+
   
   function syncXLabelsToChartArea(chartInstance) {
     const wrap = document.getElementById("weeklyDateLabels");
@@ -164,17 +237,13 @@ document.addEventListener("DOMContentLoaded", () => {
             stack: "feeling",
             backgroundColor: "#FFD07C",
             borderSkipped: false,
+
             barThickness: 44,
             maxBarThickness: 56,
             categoryPercentage: 0.8,
             barPercentage: 0.9,
-            borderRadius: (c) => getTopRadius(c, 25),
 
-            // ✅ 추가
             borderWidth: 0,
-            borderColor: "transparent",
-            hoverBorderWidth: 0,
-            clip: 0,
           },
           {
             label: "Neutral (중립)",
@@ -182,17 +251,13 @@ document.addEventListener("DOMContentLoaded", () => {
             stack: "feeling",
             backgroundColor: "#FFE2B6",
             borderSkipped: false,
+
             barThickness: 44,
             maxBarThickness: 56,
             categoryPercentage: 0.8,
             barPercentage: 0.9,
-            borderRadius: (c) => getTopRadius(c, 25),
 
-            // ✅ 추가
             borderWidth: 0,
-            borderColor: "transparent",
-            hoverBorderWidth: 0,
-            clip: 0,
           },
           {
             label: "Negative (부정)",
@@ -200,27 +265,32 @@ document.addEventListener("DOMContentLoaded", () => {
             stack: "feeling",
             backgroundColor: "#FFB845",
             borderSkipped: false,
+
             barThickness: 44,
             maxBarThickness: 56,
             categoryPercentage: 0.8,
             barPercentage: 0.9,
-            borderRadius: (c) => getTopRadius(c, 25),
 
-            // ✅ 추가
             borderWidth: 0,
-            borderColor: "transparent",
-            hoverBorderWidth: 0,
-            clip: 0,
           }
         ],
+
       },
+      plugins: [maskTopSeamPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
         onResize: (chart) => syncXLabelsToChartArea(chart),
-
+        elements: {
+          bar: {
+            borderWidth: 0,
+            borderColor: "transparent",
+          },
+        },
         layout: { padding: { top: 8, left: 10, right: 10, bottom: 0 } },
         plugins: {
+          maskTopSeam: { thickness: 0}, // ✅ 1~3 추천
+
           legend: { display: false },
           tooltip: {
             callbacks: {
