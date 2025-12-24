@@ -17,18 +17,16 @@ $(function () {
   // 이번주 날짜 선택 방지
   const today = new Date();
   const day = today.getDay(); // 일=0, 월=1, ..., 토=6
-  const mondayThisWeek = new Date(today);
-  const diffToMonday = (day === 0 ? -6 : 1 - day);
-  mondayThisWeek.setDate(today.getDate() + diffToMonday);
-  const lastSelectableDate = new Date(mondayThisWeek);
-  lastSelectableDate.setDate(mondayThisWeek.getDate() - 1);
+  const lastWeekDay = new Date(today);
+  const diffToSunday = (day === 6 ? -6 : 0 - day);
+  lastWeekDay.setDate(today.getDate() + diffToSunday);
 
   // datepicker 초기화
   $('#week-picker').datepicker({
     format: 'yyyy-mm-dd',       // 서버에서 get_selected_date가 기대하는 형식
     language: 'ko',
     autoclose: true,
-    endDate: lastSelectableDate,        // 미래 선택 방지 (원하면 제거)
+    endDate: lastWeekDay,        // 미래 선택 방지 (원하면 제거)
     todayHighlight: false,
     orientation: 'bottom left'
   });
@@ -68,8 +66,10 @@ $(function () {
 <!-- =========================
      영양소 카드
      ========================= -->
-<div class="summary-card">
-  <!-- 제목 + 토글 한 줄 -->
+<div class="summary-card" id="weekly-nutrition-card"
+     data-has-data="{{ has_data }}"
+     data-nut-week='{{ nut_data_week|safe }}'>
+
   <div class="nutrition-header">
     <span class="nutrition-title">영양소</span>
 
@@ -84,28 +84,38 @@ $(function () {
     </div>
   </div>
 
-  <!-- 주간 영양소 그래프 -->
-  <div class="weekly-chart">
+  <!-- 그래프 -->
+  <div class="weekly-chart" id="weekly-nutrition-chart-wrap">
     <canvas id="weeklyNutritionChart"></canvas>
   </div>
-</div>
 
+  <!-- 빈 상태 -->
+  <div class="card-empty" id="weekly-nutrition-empty">
+    <span>연속 3일 이상 기록해야 주간 리포트를 확인할 수 있어요.</span>
+  </div>
+</div>
 <!-- =========================
      기분 카드
      ========================= -->
-<div class="summary-card">
+<div class="summary-card" id="weekly-mood-card"
+     data-has-data="{{ has_data }}"
+     data-over-last="{{ over_3day_last_mood|yesno:'true,false' }}"
+     data-mood-week='{{ mood_ratio_week|safe }}'>
+
   <div class="mood-header">
     <span class="mood-title">기분</span>
-
     <div class="mood-legend">
       <span class="legend-item legend-this-week">저번 주</span>
       <span class="legend-item legend-prev-week">2주 전</span>
     </div>
-
   </div>
 
-  <div class="weekly-chart">
+  <div class="weekly-chart" id="weekly-mood-chart-wrap">
     <canvas id="weeklyMoodChart"></canvas>
+  </div>
+
+  <div class="card-empty" id="weekly-mood-empty">
+    <span>연속 3일 이상 기록해야 주간 리포트를 확인할 수 있어요.</span>
   </div>
 </div>
 

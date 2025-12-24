@@ -23,12 +23,51 @@ def get_selected_date(request):
     # date 파라미터가 없으면 → 오늘 + 현재 시간
     return now
 
-def get_week_range(target_date):
+def get_last_week_range(target_date):
+    # target_date기준 저번 주의 월요일 ~ 일요일을 반환
+    weekday = target_date.weekday() # 월=0, 일=6
+    week_start = target_date - timedelta(days=weekday+7)
+    week_end = week_start + timedelta(days=6)
+    return week_start, week_end
+
+def get_this_week_range(target_date):
     # target_date가 포함된 주의 월요일 ~ 일요일을 반환
     weekday = target_date.weekday() # 월=0, 일=6
     week_start = target_date - timedelta(days=weekday)
     week_end = week_start + timedelta(days=6)
     return week_start, week_end
+
+def check_3days_record(has_data_nut, has_data_mood):
+    nut_stack, max_nut = 0, 0
+    this_mood_stack, this_max_mood = 0, 0
+    last_mood_stack, last_max_mood = 0, 0
+
+    for ele in has_data_nut:
+        if ele:
+            nut_stack += 1
+            max_nut = max(nut_stack, max_nut)
+        else:
+            nut_stack = 0
+
+    for ele in has_data_mood[:7]:
+        if ele:
+            last_mood_stack += 1
+            last_max_mood = max(last_mood_stack, last_max_mood)
+        else:
+            last_mood_stack = 0
+
+    for ele in has_data_mood[7:]:
+        if ele:
+            this_mood_stack += 1
+            this_max_mood = max(this_mood_stack, this_max_mood)
+        else:
+            this_mood_stack = 0
+
+    over_3day_nut = max_nut >= 3
+    over_3day_this_mood = this_max_mood >= 3
+    over_3day_last_mood = last_max_mood >= 3
+
+    return over_3day_nut, over_3day_this_mood, over_3day_last_mood
 
 def report_daily(request):
     selected_date = get_selected_date(request)
@@ -79,7 +118,6 @@ def report_daily(request):
                             nut_data[k]['protein'] = n[3]
                             nut_data[k]['fat'] = n[4]
                             nut_data[k]['f_name'].append(n[5])
-                print(nut_data)
 
                 sql = """
                 SELECT mood, energy
@@ -116,14 +154,111 @@ def report_daily(request):
                    "mood_ratio": json.dumps({'pos': pos, "neu": neu, "neg": neg}),
                    }
 
-    print(context)
-
     return render(request, "report/report_daily.html", context)
 
 def report_weekly(request):
-    selected_date = get_selected_date(request)
-    week_start, week_end = get_week_range(selected_date)
-    context = {"week_start": week_start.strftime("%Y-%m-%d"),
-               "week_end": week_end.strftime("%Y-%m-%d"),
-               "active_tab": "report",}
+    selected_date = request.GET.get("date")
+    cust_id = request.user.cust_id
+
+    # report 날짜 결정
+    if selected_date:
+        target_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
+        week_start, week_end = get_this_week_range(target_date)
+        mood_start, dummy = get_last_week_range(target_date)
+    else:
+        today = date.today()
+        week_start, week_end = get_last_week_range(today)
+        mood_start, dummy = get_last_week_range(week_start)
+
+    week_start_ymd = week_start.strftime("%Y%m%d")
+    week_end_ymd = week_end.strftime("%Y%m%d")
+    mood_start_ymd = mood_start.strftime("%Y%m%d")
+
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                # 영양소-요약
+                sql = """
+                SELECT rgs_dt, kcal, carb_g, protein_g, fat_g
+                FROM CUS_FOOD_TH
+                WHERE rgs_dt BETWEEN %s AND %s
+                AND cust_id = %s;
+                """
+
+                cursor.execute(sql, [week_start_ymd, week_end_ymd, cust_id])
+                nut_weekly = cursor.fetchall()
+
+                nut_data_week = {}
+                has_data_nut = []
+                for i in range(7):
+                    day = (week_start + timedelta(days=i)).strftime("%Y%m%d")
+                    nut_data_week[day] = {"kcal": 0, "carb": 0, "protein": 0, "fat": 0}
+                    for n in nut_weekly:
+                        if n[0] == day:
+                            nut_data_week[day]["kcal"] += n[1]
+                            nut_data_week[day]["carb"] += n[2]
+                            nut_data_week[day]["protein"] += n[3]
+                            nut_data_week[day]["fat"] += n[4]
+                    if nut_data_week[day]["kcal"] != 0:
+                        has_data_nut.append(True)
+                    else:
+                        has_data_nut.append(False)
+
+                # 기분
+                sql = """
+                SELECT rgs_dt, mood
+                FROM CUS_FEEL_TH
+                WHERE rgs_dt BETWEEN %s AND %s
+                AND cust_id = %s;
+                """
+
+                cursor.execute(sql, [mood_start_ymd, week_end_ymd, cust_id])
+                mood_week_all = cursor.fetchall()
+
+                mood_data_week = {}
+                has_data_mood = []
+                for i in range(14):
+                    day = (mood_start + timedelta(days=i)).strftime("%Y%m%d")
+                    mood_data_week[day] = []
+                    for n in mood_week_all:
+                        if n[0] == day:
+                            mood_data_week[day].append(n[1])
+                    if mood_data_week[day]:
+                        has_data_mood.append(True)
+                    else:
+                        has_data_mood.append(False)
+    except Exception as e:
+        return HttpResponseBadRequest(f"SELECT 오류 발생: {e}")
+
+    # 연속 3일 기록 여부 확인
+    over_3day_nut, over_3day_this_mood, over_3day_last_mood = check_3days_record(has_data_nut, has_data_mood)
+
+    if over_3day_nut and over_3day_this_mood:
+        has_data = 1
+        mood_ratio_week = {}
+        for k, i in mood_data_week.items():
+            mood_ratio_week[k] = {'pos': 0, 'neu': 0, 'neg': 0}
+            if i:
+                mood_ratio_week[k]['pos'] = (i.count('pos') / len(i))
+                mood_ratio_week[k]['neu'] = (i.count('neu') / len(i))
+                mood_ratio_week[k]['neg'] = (i.count('neg') / len(i))
+
+        context = {"week_start": week_start.strftime("%Y-%m-%d"),
+                   "week_end": week_end.strftime("%Y-%m-%d"),
+                   "active_tab": "report",
+                   "has_data": has_data,
+                   "over_3day_nut":over_3day_nut,
+                   "over_3day_this_mood": over_3day_this_mood,
+                   "over_3day_last_mood":over_3day_last_mood,
+                   "nut_data_week": json.dumps(nut_data_week),
+                   "mood_ratio_week": json.dumps(mood_ratio_week)}
+
+    else:
+        has_data = 0
+        context = {"week_start": week_start.strftime("%Y-%m-%d"),
+                   "week_end": week_end.strftime("%Y-%m-%d"),
+                   "active_tab": "report",
+                   "has_data": has_data,
+                   }
+
     return render(request, "report/report_weekly.html", context)

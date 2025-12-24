@@ -4,10 +4,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* 하루 요약 영양소 더미 데이터 (DB에서 온다고 가정) */
   const nutEl = document.getElementById("report-nut-data");
-  if (!nutEl) {
-    console.error("report-nut-data element not found");
-    return;
-  }
+//  if (!nutEl) {
+//    console.error("report-nut-data element not found");
+//    return;
+//  }
 
   const nutritionData = JSON.parse(nutEl.dataset.nutDay);
 
