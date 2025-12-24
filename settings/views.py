@@ -4,22 +4,19 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Optional, Dict, Any, List
 
-from django.db import connection
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.templatetags.static import static
-from accounts.models import CusBadge, CusProfile
-from settings.utils.security import verify_password, hash_password
-
-from settings.badges import BADGE_MASTER
-import hashlib
-
 import json
 import os
-from django.conf import settings
 
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.db import connection
+from django.shortcuts import render, redirect
+
+from accounts.models import CusBadge
+from settings.utils.security import verify_password, hash_password
 
 DEFAULT_PROFILE_BADGE = "icons_img/bear_welcome.png"
+
 
 # ============================================================
 # 0) Time helpers (DB updated_dt/updated_time 갱신용)
@@ -93,8 +90,9 @@ def _segments_10(value_0_10: int) -> List[bool]:
 
 
 # ============================================================
-# 2) cust_id 결정 (요구사항)
+# 2) cust_id 결정
 # - request.user 우선 + session fallback
+# ============================================================
 def _get_cust_id(request) -> str:
     u = getattr(request, "user", None)
     if u and getattr(u, "cust_id", None):
@@ -104,13 +102,19 @@ def _get_cust_id(request) -> str:
     if sid:
         return str(sid)
 
-    # 여기서 "" 반환은 OK (단, 호출부에서 처리해야 함)
     return ""
 
-def _get_cust_id_strict(request) -> str:
+
+def _require_cust_id_or_redirect(request):
+    """
+    settings 화면 공통 가드:
+    cust_id 없으면 로그인으로 보내서 '공백 화면' 방지
+    """
     cust_id = _get_cust_id(request)
-    # cust_id 없으면 절대 진행하지 않음
-    return cust_id
+    if not cust_id:
+        return None, redirect("accounts_app:user_login")
+    return cust_id, None
+
 
 # ============================================================
 # 3) DB helpers (Raw SQL)
@@ -138,7 +142,7 @@ def _execute(sql: str, params: tuple) -> None:
 def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
     cust_id = _get_cust_id(request)
 
-    # 1) CUST_TM
+    # cust_id가 비어도 호출될 수 있으나, view에서 가드가 걸려야 정상
     cust = _fetch_one(
         """
         SELECT cust_id, email, created_dt, nickname
@@ -148,7 +152,6 @@ def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
         (cust_id,),
     )
 
-    # 2) CUS_PROFILE_TS
     prof = _fetch_one(
         """
         SELECT
@@ -163,14 +166,9 @@ def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
         (cust_id,),
     )
 
-    # badge
     selected_badge_id = (prof.get("selected_badge_id") or "").strip()
-    if selected_badge_id:
-        profile_badge_img = f"badges_img/{selected_badge_id}.png"
-    else:
-        profile_badge_img = DEFAULT_PROFILE_BADGE
+    profile_badge_img = f"badges_img/{selected_badge_id}.png" if selected_badge_id else DEFAULT_PROFILE_BADGE
 
-    # nickname 처리 (빈 값이면 템플릿에서 안내문구 출력)
     nickname = (cust.get("nickname") or "").strip()
     nickname_is_empty = (nickname == "")
     nickname_display = nickname if nickname else "BEAR"
@@ -193,6 +191,7 @@ def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
     return {
         "active_tab": active_tab,
         "profile_badge_img": profile_badge_img,
+        "selected_badge_id": selected_badge_id,  # ✅ S2에서 split로 뽑지 말고 이걸 쓰기
 
         "cust_id": cust.get("cust_id") or cust_id,
         "email": cust.get("email") or "",
@@ -229,44 +228,50 @@ def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
     }
 
 
-def _make_badge_ids(prefix: str, n: int):
-    return [f"{prefix}{i:09d}" for i in range(1, n + 1)]
-
-def _chunk(items, size=6):
-    return [items[i:i+size] for i in range(0, len(items), size)]
-
 def _load_badge_meta():
-    # settings/badges_meta/badge_meta.json
     base_dir = os.path.dirname(os.path.abspath(__file__))
     meta_path = os.path.join(base_dir, "badges_meta", "badge_meta.json")
     with open(meta_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+
 # ============================================================
 # 5) Views (S0~S5)
-# - redirect는 모두 S0(settings_index)로 통일
 # ============================================================
+@login_required(login_url="accounts_app:user_login")
 def settings_index(request):  # S0
+    cust_id, resp = _require_cust_id_or_redirect(request)
+    if resp:
+        return resp
+
     ctx = _base_ctx(request, active_tab="settings")
     return render(request, "settings/settings_index.html", ctx)
 
 
+@login_required(login_url="accounts_app:user_login")
 def settings_account(request):  # S1
+    cust_id, resp = _require_cust_id_or_redirect(request)
+    if resp:
+        return resp
+
     ctx = _base_ctx(request, active_tab="settings")
     return render(request, "settings/settings_account.html", ctx)
 
 
 @login_required(login_url="accounts_app:user_login")
 def settings_profile_edit(request):  # S2
+    cust_id, resp = _require_cust_id_or_redirect(request)
+    if resp:
+        return resp
+
     ctx = _base_ctx(request, active_tab="settings")
-    cust_id = ctx["cust_id"]
 
     # ----------------------------
     # (A) GET에서도 배지 선택 모달에 쓸 데이터 준비
     # ----------------------------
     meta = _load_badge_meta()
     items = meta.get("items", [])
-    img_base = meta.get("img_base", "/static/badges_img")  # 현재 메타 값 유지
+    img_base = meta.get("img_base", "/static/badges_img")
 
     acquired_rows = (
         CusBadge.objects
@@ -276,7 +281,7 @@ def settings_profile_edit(request):  # S2
     acquired_set = {r["badge_id"] for r in acquired_rows}
 
     def normalize_for_picker(x):
-        badge_id = x["badge_id"]
+        badge_id = str(x.get("badge_id", "")).strip()
         is_acquired = badge_id in acquired_set
         return {
             "badge_id": badge_id,
@@ -289,11 +294,12 @@ def settings_profile_edit(request):  # S2
             "locked": (not is_acquired),
         }
 
-    picker_items = sorted([normalize_for_picker(x) for x in items], key=lambda r: r["sort_no"])
+    picker_items = sorted([normalize_for_picker(x) for x in items if x.get("badge_id")], key=lambda r: r["sort_no"])
 
     ctx.update({
         "picker_items": picker_items,
-        "selected_badge_id": (ctx.get("profile_badge_img", "").split("/")[-1].replace(".png", "") if ctx.get("profile_badge_img") else ""),
+        # ✅ split로 뽑지 말고 base_ctx에서 내려준 selected_badge_id 사용
+        "selected_badge_id": ctx.get("selected_badge_id", ""),
     })
 
     # ----------------------------
@@ -301,13 +307,11 @@ def settings_profile_edit(request):  # S2
     # ----------------------------
     if request.method == "POST":
         nickname = (request.POST.get("nickname") or "").strip()
-        gender = (request.POST.get("gender") or "").strip()         # "M"/"F"
-        birth_dt = (request.POST.get("birth_dt") or "").strip()     # "YYYYMMDD"
+        gender = (request.POST.get("gender") or "").strip()
+        birth_dt = (request.POST.get("birth_dt") or "").strip()
         height_cm = (request.POST.get("height_cm") or "").strip()
         weight_kg = (request.POST.get("weight_kg") or "").strip()
-
-        # ✅ 추가: 대표 배지
-        selected_badge_id = (request.POST.get("selected_badge_id") or "").strip()  # "E000..." or "F000..." or ""
+        selected_badge_id = (request.POST.get("selected_badge_id") or "").strip()
 
         if gender and gender not in {"M", "F"}:
             ctx["error"] = "성별 값 오류"
@@ -317,9 +321,8 @@ def settings_profile_edit(request):  # S2
             ctx["error"] = "생년월일 형식 오류(YYYYMMDD)"
             return render(request, "settings/settings_profile_edit.html", ctx)
 
-        # ✅ 잠김 배지 선택 방지(서버 검증)
+        # 잠김 배지 선택 방지(서버 검증)
         if selected_badge_id:
-            # 실제 획득 배지만 선택 가능
             has_badge = CusBadge.objects.filter(cust_id=cust_id, badge_id=selected_badge_id).exists()
             if not has_badge:
                 ctx["error"] = "아직 획득하지 않은 배지는 선택할 수 없어요."
@@ -328,7 +331,6 @@ def settings_profile_edit(request):  # S2
         upd_dt = _now_yyyymmdd()
         upd_time = _now_yyyymmddhhmmss()
 
-        # nickname -> CUST_TM only
         _execute(
             """
             UPDATE CUST_TM
@@ -338,7 +340,6 @@ def settings_profile_edit(request):  # S2
             (nickname or None, upd_dt, upd_time, cust_id),
         )
 
-        # profile -> CUS_PROFILE_TS (nickname 컬럼은 절대 건드리지 않음)
         _execute(
             """
             UPDATE CUS_PROFILE_TS
@@ -347,9 +348,15 @@ def settings_profile_edit(request):  # S2
                 updated_time=%s
             WHERE cust_id=%s
             """,
-            (gender or None, birth_dt or None, height_cm or None, weight_kg or None,
-             (selected_badge_id or None),
-             upd_time, cust_id),
+            (
+                gender or None,
+                birth_dt or None,
+                height_cm or None,
+                weight_kg or None,
+                selected_badge_id or None,
+                upd_time,
+                cust_id,
+            ),
         )
 
         return redirect("settings_app:settings_index")
@@ -357,9 +364,13 @@ def settings_profile_edit(request):  # S2
     return render(request, "settings/settings_profile_edit.html", ctx)
 
 
+@login_required(login_url="accounts_app:user_login")
 def settings_preferences_edit(request):  # S3
+    cust_id, resp = _require_cust_id_or_redirect(request)
+    if resp:
+        return resp
+
     ctx = _base_ctx(request, active_tab="settings")
-    cust_id = ctx["cust_id"]
 
     if request.method == "POST":
         def _to_int(x, default=0):
@@ -395,9 +406,13 @@ def settings_preferences_edit(request):  # S3
     return render(request, "settings/settings_preferences_edit.html", ctx)
 
 
+@login_required(login_url="accounts_app:user_login")
 def settings_activity_goal_edit(request):  # S4
+    cust_id, resp = _require_cust_id_or_redirect(request)
+    if resp:
+        return resp
+
     ctx = _base_ctx(request, active_tab="settings")
-    cust_id = ctx["cust_id"]
 
     if request.method == "POST":
         activity_level = (request.POST.get("activity_level") or "").strip()
@@ -422,37 +437,36 @@ def settings_activity_goal_edit(request):  # S4
 
     return render(request, "settings/settings_activity_goal_edit.html", ctx)
 
+
 @login_required(login_url="accounts_app:user_login")
 def settings_password(request):  # S5
+    cust_id, resp = _require_cust_id_or_redirect(request)
+    if resp:
+        return resp
+
     ctx = _base_ctx(request, active_tab="settings")
-    cust_id = _get_cust_id(request)
 
     if request.method == "POST":
         cur_pw = (request.POST.get("current_password") or "").strip()
         new_pw = (request.POST.get("new_password") or "").strip()
         new_pw2 = (request.POST.get("new_password_confirm") or "").strip()
 
-        # 1) required
         if not cur_pw or not new_pw or not new_pw2:
             ctx["error"] = "모든 항목을 입력해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 2) 길이
         if len(new_pw) < 8:
             ctx["error"] = "새 비밀번호는 8자 이상으로 입력해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 3) 확인 일치
         if new_pw != new_pw2:
             ctx["error"] = "새 비밀번호와 확인이 일치하지 않습니다."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 4) 동일 방지 (raw 기준)
         if cur_pw == new_pw:
             ctx["error"] = "새 비밀번호는 현재 비밀번호와 다르게 입력해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 5) 현재 상태 조회
         cust_auth = _fetch_one(
             """
             SELECT password, retry_cnt, lock_yn
@@ -469,12 +483,11 @@ def settings_password(request):  # S5
         retry_cnt = int(cust_auth.get("retry_cnt") or 0)
         db_hash = (cust_auth.get("password") or "").strip()
 
-        # 6) 잠금 차단
         if lock_yn == "Y":
             ctx["error"] = "계정이 잠겨 있어요. 관리자에게 문의해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 7) 현재 비밀번호 검증 (✅ Django 해시 + SHA256 레거시 모두 지원)
+        # ✅ 레거시 SHA256 + Django 해시 모두 지원
         if not verify_password(cur_pw, db_hash):
             retry_cnt += 1
             new_lock = "Y" if retry_cnt >= 5 else "N"
@@ -493,7 +506,7 @@ def settings_password(request):  # S5
             ctx["error"] = "현재 비밀번호가 올바르지 않습니다."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 8) 변경 저장 (✅ 앞으로는 Django 표준 해시로 통일)
+        # ✅ 앞으로는 Django 표준 해시로 통일
         new_hash = hash_password(new_pw)
         upd_dt = _now_yyyymmdd()
         upd_time = _now_yyyymmddhhmmss()
@@ -511,37 +524,25 @@ def settings_password(request):  # S5
 
     return render(request, "settings/settings_password.html", ctx)
 
+
 @login_required(login_url="accounts_app:user_login")
 def settings_badges(request):
-    """
-    로그인 사용자 기반 도감:
-    - CUS_BADGE_TM 기준 획득/잠김
-    - 수집율 계산
-    - 정렬: (획득 먼저) + 획득은 최신 획득 우선 + 미획득은 sort_no
-    """
-    # 0) base ctx
+    cust_id, resp = _require_cust_id_or_redirect(request)
+    if resp:
+        return resp
+
     ctx = _base_ctx(request, active_tab="collection")
 
-    # 1) cust_id 통일
-    cust_id = _get_cust_id(request)
-    if not cust_id:
-        return redirect("accounts_app:user_login")
-
-    # 2) badge meta 로드
     meta = _load_badge_meta()
     items = meta.get("items", [])
 
-    # img_base normalize: 항상 "/static/..."로
     img_base = (meta.get("img_base") or "/static/badges_img").strip()
     if not img_base.startswith("/"):
         img_base = "/" + img_base
     if not img_base.startswith("/static/"):
-        # 혹시 "badges_img"처럼 들어오면 /static 붙이기
         if img_base.startswith("/badges_img"):
             img_base = "/static" + img_base
-        # 그 외는 그대로 두되, 프로젝트 규칙상 /static/... 권장
 
-    # 3) DB에서 획득 배지 조회
     acquired_rows = (
         CusBadge.objects
         .filter(cust_id=cust_id)
@@ -550,7 +551,6 @@ def settings_badges(request):
 
     acquired_map = {}
     for badge_id, acquired_time in acquired_rows:
-        # acquired_time이 datetime일 수도, str일 수도 있음
         if acquired_time is None:
             acquired_map[str(badge_id)] = ""
         else:
@@ -558,13 +558,11 @@ def settings_badges(request):
                 acquired_map[str(badge_id)] = acquired_time.strftime("%Y%m%d%H%M%S")
             else:
                 s = str(acquired_time).strip()
-                # "YYYY-MM-DD HH:MM:SS" 같은 경우 숫자만 추출해서 정렬키로 사용
                 digits = "".join(ch for ch in s if ch.isdigit())
                 acquired_map[str(badge_id)] = digits if digits else s
 
     acquired_set = set(acquired_map.keys())
 
-    # 4) meta normalize + locked 반영
     def normalize_item(x):
         badge_id = str(x.get("badge_id", "")).strip()
         is_acquired = badge_id in acquired_set
@@ -572,35 +570,29 @@ def settings_badges(request):
 
         return {
             "badge_id": badge_id,
-            "category": x.get("category"),  # "F" or "E"
+            "category": x.get("category"),
             "sort_no": int(x.get("sort_no", 999999)),
             "img_url": f"{img_base}/{badge_id}.png",
-
             "title": x.get("title", ""),
             "desc": x.get("desc", ""),
             "hint": x.get("hint", ""),
-
             "locked": (not is_acquired),
-            "acquired_time": acquired_time,  # 획득 배지만 값 있음(정렬키로도 사용)
+            "acquired_time": acquired_time,
         }
 
     norm = [normalize_item(x) for x in items if x.get("badge_id")]
 
-    # 5) 정렬키(안전형)
     def _sort_key(r):
         if not r.get("locked", True):
             at = r.get("acquired_time") or ""
-            # 숫자정렬이 가능하면 최신 우선
             if at.isdigit():
                 return (0, -int(at), r.get("sort_no", 999999))
-            # 숫자 아닌 경우: 문자열 역순 대신 sort_no로 보조
             return (0, 0, r.get("sort_no", 999999))
         return (1, r.get("sort_no", 999999))
 
     food_badges = sorted([x for x in norm if x["category"] == "F"], key=_sort_key)
     emotion_badges = sorted([x for x in norm if x["category"] == "E"], key=_sort_key)
 
-    # 6) 수집율
     total = len(norm)
     acquired = len(acquired_set)
     rate = int(round((acquired / total) * 100)) if total else 0
@@ -613,6 +605,6 @@ def settings_badges(request):
         "badge_total": total,
         "badge_acquired": acquired,
         "badge_rate": rate,
-        "active_tab": "collection",  # ✅ 통일
+        "active_tab": "collection",
     })
     return render(request, "settings/settings_badges.html", ctx)
