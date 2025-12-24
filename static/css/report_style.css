@@ -447,6 +447,11 @@
   gap: 20px;
 }
 
+.legend-title {
+  font-size: 14px;
+  margin-right: -5px;
+}
+
 .legend-item {
   position: relative;
   display: inline-flex;
@@ -479,7 +484,6 @@
   background-color: currentColor;
   transform: translateY(-50%);
 }
-
 
 /* 저번 주: 진한 주황 실선 */
 .legend-this-week::before {

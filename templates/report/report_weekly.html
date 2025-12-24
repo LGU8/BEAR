@@ -49,7 +49,8 @@ $(function () {
 <!-- =========================
      오늘의 요약 카드
      ========================= -->
-<div class="summary-card">
+<div class="summary-card" id="weekly-feedback-card"
+     data-has-data="{{ has_data }}">
   <div class="summary-title">
     <span>오늘의 요약</span>
   </div>
@@ -59,6 +60,14 @@ $(function () {
     <div class="feedback-text">
       오늘은 조금 힘들었겠지만, 긍정적인 기운이 더 많았어. 단백질이 풍부한 식사로 힘을 보충해보자!
       햇살 가득한 저녁이 너를 따뜻하게 감싸줬을 거야.
+    </div>
+  </div>
+
+  <div class="feedback-card card-empty" id="weekly-feedback-empty">
+    <img class="feedback-ico" src="{% static 'icons_img/bear_report.png' %}" alt="bear feedback">
+    <div class="feedback-text">
+      기록이 부족해요. <br>
+      다음 리포트를 확인하기 위해 기록을 하러 떠나 볼까요? 😉
     </div>
   </div>
 </div>
@@ -105,6 +114,7 @@ $(function () {
   <div class="mood-header">
     <span class="mood-title">기분</span>
     <div class="mood-legend">
+      <span class="legend-title">긍정 비율  :</span>
       <span class="legend-item legend-this-week">저번 주</span>
       <span class="legend-item legend-prev-week">2주 전</span>
     </div>

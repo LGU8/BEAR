@@ -24,6 +24,27 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ======================================================
+   오늘의 요약 카드 (피드백)
+   ====================================================== */
+  (function () {
+    const card = document.getElementById("weekly-feedback-card");
+    if (!card) return;
+
+    const hasData = card.dataset.hasData === "1";
+
+    const normalText = card.querySelector(".feedback-card:not(.card-empty)");
+    const emptyText  = card.querySelector("#weekly-feedback-empty");
+
+    if (hasData) {
+    normalText.style.display = "";
+    emptyText.style.display  = "none";
+    } else {
+    normalText.style.display = "none";
+    emptyText.style.display  = "";
+    }
+  })();
+
+  /* ======================================================
      공통 상수
      ====================================================== */
   const LABELS = ["월", "화", "수", "목", "금", "토", "일"];
@@ -73,8 +94,8 @@ document.addEventListener("DOMContentLoaded", () => {
       spanGaps: true,
       tension: 0.35,
       borderColor: isActive ? COLOR_ACTIVE : COLOR_INACTIVE,
-      borderWidth: isActive ? 4 : 2.5,
-      pointRadius: ctx => ctx.raw === null ? 0 : (isActive ? 5 : 4),
+      borderWidth: isActive ? 3 : 2.5,
+      pointRadius: ctx => ctx.raw === null ? 0 : (isActive ? 4 : 3),
       pointBackgroundColor: ctx =>
         ctx.raw === null ? "#6f6f6f" : (isActive ? COLOR_ACTIVE : COLOR_INACTIVE),
       fill: false,
@@ -168,7 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
     spanGaps: true,
     tension: 0.35,
     borderColor: COLOR_ACTIVE,
-    borderWidth: 4,
+    borderWidth: 3,
     pointRadius: ctx => ctx.raw === null ? 0 : 4,
     pointBackgroundColor: COLOR_ACTIVE,
     fill: false
@@ -180,11 +201,11 @@ document.addEventListener("DOMContentLoaded", () => {
       data: extractPosArray(0),
       spanGaps: true,
       tension: 0.35,
-      borderColor: "#BDBDBD",
-      borderDash: [6, 6],
+      borderColor: "#FFD17C",
+      borderDash: [5, 5],
       borderWidth: 3,
-      pointRadius: ctx => ctx.raw === null ? 0 : 4,
-      pointBackgroundColor: "#BDBDBD",
+      pointRadius: ctx => ctx.raw === null ? 0 : 3,
+      pointBackgroundColor: "#FFD17C",
       fill: false
     });
   } else {
@@ -211,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
           },
           y: {
             beginAtZero: true,
-            max: 100,
+            grace: "5%",
             ticks: { display: false },
             grid: { color: "rgba(0,0,0,0.1)" }
           }
