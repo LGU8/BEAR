@@ -26,7 +26,7 @@ def get_selected_date(request):
     return now
 
 # daily_report함수
-def daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily, need_update):
+def daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily):
     daily_data = {"cust_id": cust_id,
                   "date": selected_date.strftime("%Y%m%d"),
                   "positive_ratio": float(feeling_daily[0][0]),
@@ -46,31 +46,16 @@ def daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily, need_u
     try:
         with connection.cursor() as cursor:
             today_time = datetime.now().strftime("%Y%m%d%H%M%S")
-            today = date.today().strftime("%Y%m%d")
+            sql = """
+            INSERT INTO REPORT_TH (created_time, updated_time, cust_id, rgs_dt, type, period_start, period_end, content)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
 
-            if need_update:
-                sql = """
-                UPDATE REPORT_TH 
-                SET updated_time = %s, rgs_dt = %s, content = %s
-                WHERE cust_id = %s 
-                AND type = 'D' 
-                AND period_start = %s
-                """
-
-                data = [today_time, today, feedback['summary'],
-                        cust_id, daily_data['date']]
-            else:
-                sql = """
-                INSERT INTO REPORT_TH (created_time, updated_time, cust_id, rgs_dt, type, period_start, period_end, content)
-                    VALUES (%s, %s, %s, %s, 'D', %s, %s, %s)
-                """
-
-                data = [today_time, today_time, cust_id, daily_data['date'], daily_data['date'], daily_data['date'], feedback['summary']]
+            data = [today_time, today_time, id, daily_data['date'], 'D', daily_data['date'], daily_data['date'], feedback['summary']]
 
             cursor.execute(sql, data)
     except Exception as e:
-        print("DB INSERT ERROR:", e)
-        raise RuntimeError("REPORT_DB_INSERT_FAILED") from e
+        return HttpResponseBadRequest(f"INSERT 오류 발생: {e}")
     return feedback['summary']
 
 def check_generate_daily_report(selected_date, nut_data):
@@ -89,126 +74,6 @@ def check_generate_daily_report(selected_date, nut_data):
         return has_dinner_data or is_after_8pm
     else:
         return 1
-
-def report_daily(request):
-    selected_date = get_selected_date(request)
-    cust_id = request.user.cust_id
-    view_dt = selected_date.strftime("%Y%m%d")
-
-    try:
-        with transaction.atomic():
-            with connection.cursor() as cursor:
-                # 영양소-요약
-                sql = """
-                SELECT Recommended_calories, 
-                    round((Recommended_calories*(Ratio_carb/10))/4) AS Recom_carb, 
-                    round((Recommended_calories*(Ratio_protein/10))/4) AS Recom_pro,
-                    round((Recommended_calories*(Ratio_fat/10))/4) AS Recom_fat,
-                    h.time_slot, h.kcal, h.carb_g, h.protein_g, h.fat_g, 
-                    GROUP_CONCAT(name SEPARATOR ', ') AS NAME,
-                    sum(kcal) OVER() AS total_kcal, 
-                    sum(carb_g) OVER() AS total_carb, 
-                    sum(protein_g) OVER() AS total_protein, 
-                    sum(fat_g) OVER() AS total_fat,
-                    max(max(h.updated_time)) OVER() AS last_update
-                FROM CUS_FOOD_TH h
-                JOIN (SELECT * FROM CUS_PROFILE_TS) p
-                ON h.cust_id = p.cust_id
-                JOIN (SELECT * FROM CUS_FOOD_TS) s
-                ON h.cust_id = s.cust_id AND h.rgs_dt = s.rgs_dt AND h.seq = s.seq
-                JOIN (SELECT name, food_id FROM FOOD_TB) b
-                ON s.food_id = b.food_id
-                WHERE h.cust_id = %s AND h.rgs_dt = %s
-                GROUP BY time_slot; 
-                """
-
-                cursor.execute(sql, [cust_id, view_dt])
-                nut_daily = cursor.fetchall()
-
-                # 감정 요약
-                sql = """
-                SELECT
-                    SUM(CASE WHEN f.mood = 'pos' THEN 1 ELSE 0 END) / COUNT(*) AS pos_ratio,
-                    SUM(CASE WHEN f.mood = 'neu' THEN 1 ELSE 0 END) / COUNT(*) AS neu_ratio,
-                    SUM(CASE WHEN f.mood = 'neg' THEN 1 ELSE 0 END) / COUNT(*) AS neg_ratio,
-                    GROUP_CONCAT(DISTINCT w.word SEPARATOR ', ') AS keywords,
-                    rpt.updated_time AS last_update,
-                    rpt.content      AS feedback
-                FROM CUS_FEEL_TH f
-                LEFT JOIN CUS_FEEL_TS ts
-                  ON ts.cust_id = f.cust_id AND ts.rgs_dt  = f.rgs_dt
-                LEFT JOIN COM_FEEL_TM w ON w.feel_id = ts.feel_id
-                LEFT JOIN REPORT_TH rpt
-                  ON rpt.cust_id = f.cust_id AND rpt.period_start = %s AND rpt.type = 'D'
-                WHERE f.cust_id = %s
-                  AND f.rgs_dt  = %s;
-                """
-                cursor.execute(sql, [view_dt, cust_id, view_dt])
-                feeling_daily = cursor.fetchall()
-
-    except Exception as e:
-        return HttpResponseBadRequest(f"SELECT 오류 발생: {e}")
-
-    if not feeling_daily or not nut_daily:
-        has_data = 0
-        context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
-                   "active_tab": "report",
-                   "has_data": has_data,
-                   "can_report": 1}
-    else:
-        has_data = 1
-
-        # 영양소
-        nut_data = {"recom": {"kcal": int(nut_daily[0][0]), "carb": int(nut_daily[0][1]),
-                              "protein": int(nut_daily[0][2]), "fat": int(nut_daily[0][3])},
-                    "M": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": ""},
-                    "L": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": ""},
-                    "D": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": ""},
-                    "total": {"kcal": int(nut_daily[0][10]), "carb": int(nut_daily[0][11]),
-                              "protein": int(nut_daily[0][12]), "fat": int(nut_daily[0][13])}}
-
-        for n in nut_daily:
-            for k in nut_data.keys():
-                if n[4] == k:
-                    nut_data[k]['kcal'] = n[5]
-                    nut_data[k]['carb'] = n[6]
-                    nut_data[k]['protein'] = n[7]
-                    nut_data[k]['fat'] = n[8]
-                    nut_data[k]['f_name'] = n[9]
-
-        can_report = check_generate_daily_report(selected_date, nut_data)
-
-        if not can_report:
-            context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
-                       "active_tab": "report",
-                       "has_data": has_data,
-                       "can_report": can_report}
-        else:
-            # 감정
-            feel_data = {"pos": float(feeling_daily[0][0]),
-                         "neu": float(feeling_daily[0][1]),
-                         "neg": float(feeling_daily[0][2])}
-
-            record_updated = nut_daily[0][-1]
-            feedback_updated =  feeling_daily[0][-2]
-
-            if feeling_daily[0][-1]:
-                if record_updated > feedback_updated:
-                    feedback = daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily, True)
-                else:
-                    feedback = feeling_daily[0][-1]
-            else:
-                feedback = daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily, False)
-
-            context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
-                       "active_tab": "report",
-                       "has_data": has_data,
-                       "can_report": can_report,
-                       "nut_day": json.dumps(nut_data, ensure_ascii=False),
-                       "mood_day": json.dumps(feel_data),
-                       "feedback": feedback,}
-
-    return render(request, "report/report_daily.html", context)
 
 # weekly_report 함수
 def get_last_week_range(target_date):
@@ -264,7 +129,7 @@ def weekly_feedback_input(cust_id, week_start_ymd, week_end_ymd, nut_data_week, 
                   "period_end": week_end_ymd,
                   "daily_feeling_records": filtered_mood,
                   "daily_nutrition": nut_data_week}
-
+    print(weekly_data)
     feedback = make_weekly_feedback(weekly_data)
     try:
         with connection.cursor() as cursor:
@@ -291,6 +156,116 @@ def weekly_feedback_input(cust_id, week_start_ymd, week_end_ymd, nut_data_week, 
         print("DB INSERT ERROR:", e)
         raise RuntimeError("REPORT_DB_INSERT_FAILED") from e
     return feedback['summary']
+
+def report_daily(request):
+    selected_date = get_selected_date(request)
+    cust_id = request.user.cust_id
+    rgs_dt = selected_date.strftime("%Y%m%d")
+
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                # 영양소-요약
+                sql = """
+                SELECT Recommended_calories, 
+                    round((Recommended_calories*(Ratio_carb/10))/4) AS Recom_carb, 
+                    round((Recommended_calories*(Ratio_protein/10))/4) AS Recom_pro,
+                    round((Recommended_calories*(Ratio_fat/10))/4) AS Recom_fat,
+                    h.time_slot, h.kcal, h.carb_g, h.protein_g, h.fat_g, 
+                    GROUP_CONCAT(name SEPARATOR ', ') AS NAME,
+                    sum(kcal) OVER() AS total_kcal, sum(carb_g) OVER() AS total_carb, 
+                   sum(protein_g) OVER() AS total_protein, sum(fat_g) OVER() AS total_fat
+                FROM CUS_FOOD_TH h
+                JOIN (SELECT * FROM CUS_PROFILE_TS) p
+                ON h.cust_id = p.cust_id
+                JOIN (SELECT * FROM CUS_FOOD_TS) s
+                ON h.cust_id = s.cust_id AND h.rgs_dt = s.rgs_dt AND h.seq = s.seq
+                JOIN (SELECT name, food_id FROM FOOD_TB) b
+                ON s.food_id = b.food_id
+                WHERE h.cust_id = %s AND h.rgs_dt = %s
+                GROUP BY time_slot; 
+                """
+
+                cursor.execute(sql, [cust_id, rgs_dt])
+                nut_daily = cursor.fetchall()
+
+                # 감정 요약
+                sql = """
+                SELECT SUM(CASE WHEN c.mood = 'pos' THEN 1 ELSE 0 END)/COUNT(*) AS pos_ratio,
+                       SUM(CASE WHEN c.mood = 'neu' THEN 1 ELSE 0 END)/COUNT(*) AS neu_ratio,
+                       SUM(CASE WHEN c.mood = 'neg' THEN 1 ELSE 0 END)/COUNT(*) AS neg_ratio,
+                       (SELECT GROUP_CONCAT(word SEPARATOR ', ') FROM COM_FEEL_TM w
+                        JOIN (SELECT feel_id
+                              FROM CUS_FEEL_TS
+                              WHERE cust_id = %s
+                              AND rgs_dt = %s) c
+                        ON w.feel_id = c.feel_id) AS keywords,
+                        (SELECT content FROM REPORT_TH 
+                         WHERE cust_id = %s AND rgs_dt = %s AND type = 'D') AS feedback
+                FROM CUS_FEEL_TH c
+                WHERE cust_id = %s AND rgs_dt = %s; 
+                """
+                cursor.execute(sql, [cust_id, rgs_dt]*3)
+                feeling_daily = cursor.fetchall()
+
+    except Exception as e:
+        return HttpResponseBadRequest(f"SELECT 오류 발생: {e}")
+
+    if not feeling_daily or not nut_daily:
+        has_data = 0
+        context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
+                   "active_tab": "report",
+                   "has_data": has_data,}
+    else:
+        has_data = 1
+
+        # 영양소
+        nut_data = {"recom": {"kcal": int(nut_daily[0][0]), "carb": int(nut_daily[0][1]),
+                              "protein": int(nut_daily[0][2]), "fat": int(nut_daily[0][3])},
+                    "M": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": ""},
+                    "L": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": ""},
+                    "D": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": ""},
+                    "total": {"kcal": int(nut_daily[0][10]), "carb": int(nut_daily[0][11]),
+                              "protein": int(nut_daily[0][12]), "fat": int(nut_daily[0][13])}}
+
+        for n in nut_daily:
+            for k in nut_data.keys():
+                if n[4] == k:
+                    nut_data[k]['kcal'] = n[5]
+                    nut_data[k]['carb'] = n[6]
+                    nut_data[k]['protein'] = n[7]
+                    nut_data[k]['fat'] = n[8]
+                    nut_data[k]['f_name'] = n[9]
+
+        can_report = check_generate_daily_report(selected_date, nut_data)
+
+        if not can_report:
+            context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
+                       "active_tab": "report",
+                       "has_data": has_data,
+                       "can_report": can_report}
+
+        else:
+            # 감정
+            feel_data = {"pos": float(feeling_daily[0][0]),
+                         "neu": float(feeling_daily[0][1]),
+                         "neg": float(feeling_daily[0][2])}
+
+            if feeling_daily[0][4]:
+                feedback = feeling_daily[0][4]
+            else:
+                feedback = daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily)
+
+            context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
+                       "active_tab": "report",
+                       "has_data": has_data,
+                       "can_report": can_report,
+                       "nut_day": json.dumps(nut_data, ensure_ascii=False),
+                       "mood_day": json.dumps(feel_data),
+                       "feedback": feedback,
+                       }
+
+    return render(request, "report/report_daily.html", context)
 
 def report_weekly(request):
     selected_date = request.GET.get("date")
