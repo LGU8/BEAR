@@ -3,8 +3,7 @@ from datetime import date, datetime, timedelta, time
 from django.db import connection, transaction
 from django.http import HttpResponseBadRequest
 import json
-from ml.report import report_daily_langchain
-from ml.report.report_daily_langchain import make_daily_feedback
+from ml.report_llm.report_langchain import make_daily_feedback
 
 
 def get_selected_date(request):
@@ -26,24 +25,54 @@ def get_selected_date(request):
     # date 파라미터가 없으면 → 오늘 + 현재 시간
     return now
 
-def daily_total_nutrition(nut_data):
-    total_nut = {"kcal": 0, "carb": 0, "protein": 0, "fat": 0}
+def daily_feedback_input(id, date, nut_data, feeling_daily):
+    daily_data = {"cust_id": id,
+                  "date": date.strftime("%Y%m%d"),
+                  "positive_ratio": float(feeling_daily[0][0]),
+                  "neutral_ratio": float(feeling_daily[0][1]),
+                  "negative_ratio": float(feeling_daily[0][2]),
+                  "feeling_keywords": feeling_daily[0][3],
+                  "kcal_needs": nut_data['recom'].get('kcal'),
+                  "carb_needs": nut_data['recom'].get('carb'),
+                  "protein_needs": nut_data['recom'].get('protein'),
+                  "fat_needs": nut_data['recom'].get('fat'),
+                  "kcal_intake": nut_data['total'].get('kcal'),
+                  "carb_intake": nut_data['total'].get('carb'),
+                  "protein_intake": nut_data['total'].get('protein'),
+                  "fat_intake": nut_data['total'].get('fat'),
+                  }
+    feedback = json.loads(make_daily_feedback(daily_data))
+    try:
+        with connection.cursor() as cursor:
+            today_time = datetime.now().strftime("%Y%m%d%H%M%S")
+            sql = """
+            INSERT INTO REPORT_TH (created_time, updated_time, cust_id, rgs_dt, type, period_start, period_end, content)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
 
-    for index, value in enumerate(nut_data.values()):
-        if index > 0:
-            total_nut["kcal"] += value["kcal"]
-            total_nut["carb"] += value["carb"]
-            total_nut["protein"] += value["protein"]
-            total_nut["fat"] += value["fat"]
+            data = [today_time, today_time, id, daily_data['date'], 'D', daily_data['date'], daily_data['date'], feedback['summary']]
 
-    return total_nut
+            cursor.execute(sql, data)
+    except Exception as e:
+        return HttpResponseBadRequest(f"INSERT 오류 발생: {e}")
+    return feedback['summary']
 
-def daily_keywords(keywords):
-    keywords_daily = []
-    for words in keywords:
-        for w in words:
-            keywords_daily.append(w)
-    return keywords_daily
+def check_generate_daily_report(selected_date, nut_data):
+    today = date.today().strftime("%Y%m%d")
+    selected_data = selected_date.strftime("%Y%m%d")
+    if today == selected_data:
+        dinner = nut_data.get("D", {})
+        has_dinner_data = any(
+            dinner.get(k, 0) > 0
+            for k in ["kcal", "carb", "protein", "fat"]
+        )
+
+        # 2. 현재 시간이 저녁 8시 이후인지
+        now = datetime.now().time()
+        is_after_8pm = now >= time(20, 0)
+        return has_dinner_data or is_after_8pm
+    else:
+        return 1
 
 def get_last_week_range(target_date):
     # target_date기준 저번 주의 월요일 ~ 일요일을 반환
@@ -99,111 +128,105 @@ def report_daily(request):
     try:
         with transaction.atomic():
             with connection.cursor() as cursor:
-                # 권장 칼로리
-                sql = """
-                SELECT Recommended_calories, Ratio_carb, Ratio_protein, Ratio_fat FROM CUS_PROFILE_TS WHERE cust_id = %s
-                """
-                cursor.execute(sql, [cust_id])
-                row = cursor.fetchone()
-                recom_kcal = round(row[0])
-                ratio_carb = round(row[1])
-                ratio_pro = round(row[2])
-                ratio_fat = round(row[3])
-
-                recom_carb = round((recom_kcal*(ratio_carb/10))/4)
-                recom_pro = round((recom_kcal*(ratio_pro/10))/4)
-                recom_fat = round((recom_kcal*(ratio_fat/10))/9)
-
                 # 영양소-요약
                 sql = """
-                SELECT time_slot, kcal, carb_g, protein_g, fat_g, 
-                    (SELECT name FROM FOOD_TB b WHERE b.food_id = s.food_id) AS Name
+                SELECT Recommended_calories, 
+                    round((Recommended_calories*(Ratio_carb/10))/4) AS Recom_carb, 
+                    round((Recommended_calories*(Ratio_protein/10))/4) AS Recom_pro,
+                    round((Recommended_calories*(Ratio_fat/10))/4) AS Recom_fat,
+                    h.time_slot, h.kcal, h.carb_g, h.protein_g, h.fat_g, 
+                    GROUP_CONCAT(name SEPARATOR ', ') AS NAME,
+                    sum(kcal) OVER() AS total_kcal, sum(carb_g) OVER() AS total_carb, 
+                   sum(protein_g) OVER() AS total_protein, sum(fat_g) OVER() AS total_fat
                 FROM CUS_FOOD_TH h
+                JOIN (SELECT * FROM CUS_PROFILE_TS) p
+                ON h.cust_id = p.cust_id
                 JOIN (SELECT * FROM CUS_FOOD_TS) s
-                on h.cust_id = s.cust_id AND h.rgs_dt = s.rgs_dt AND h.seq = s.seq
-                WHERE h.cust_id = %s AND h.rgs_dt = %s; 
+                ON h.cust_id = s.cust_id AND h.rgs_dt = s.rgs_dt AND h.seq = s.seq
+                JOIN (SELECT name, food_id FROM FOOD_TB) b
+                ON s.food_id = b.food_id
+                WHERE h.cust_id = %s AND h.rgs_dt = %s
+                GROUP BY time_slot; 
                 """
 
                 cursor.execute(sql, [cust_id, rgs_dt])
                 nut_daily = cursor.fetchall()
 
-                nut_data = {"recom": {"kcal": recom_kcal, "carb": recom_carb, "protein": recom_pro, "fat": recom_fat},
-                            "M": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": []},
-                            "L": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": []},
-                            "D": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": []}}
-
-                for n in nut_daily:
-                    for k in nut_data.keys():
-                        if n[0] == k:
-                            nut_data[k]['kcal'] = n[1]
-                            nut_data[k]['carb'] = n[2]
-                            nut_data[k]['protein'] = n[3]
-                            nut_data[k]['fat'] = n[4]
-                            nut_data[k]['f_name'].append(n[5])
-
+                # 감정 요약
                 sql = """
-                SELECT mood, energy
-                FROM CUS_FEEL_TH
-                WHERE cust_id = %s
-                AND rgs_dt = %s; 
+                SELECT SUM(CASE WHEN c.mood = 'pos' THEN 1 ELSE 0 END)/COUNT(*) AS pos_ratio,
+                       SUM(CASE WHEN c.mood = 'neu' THEN 1 ELSE 0 END)/COUNT(*) AS neu_ratio,
+                       SUM(CASE WHEN c.mood = 'neg' THEN 1 ELSE 0 END)/COUNT(*) AS neg_ratio,
+                       (SELECT GROUP_CONCAT(word SEPARATOR ', ') FROM COM_FEEL_TM w
+                        JOIN (SELECT feel_id
+                              FROM CUS_FEEL_TS
+                              WHERE cust_id = %s
+                              AND rgs_dt = %s) c
+                        ON w.feel_id = c.feel_id) AS keywords,
+                        (SELECT content FROM REPORT_TH 
+                         WHERE cust_id = %s AND rgs_dt = %s AND type = 'D') AS feedback
+                FROM CUS_FEEL_TH c
+                WHERE cust_id = %s AND rgs_dt = %s; 
                 """
-                cursor.execute(sql, [cust_id, rgs_dt])
-                feel_daily = cursor.fetchall()
-
-                sql = """
-                SELECT word
-                FROM COM_FEEL_TM w
-                JOIN (SELECT feel_id
-                        FROM CUS_FEEL_TS
-                        WHERE cust_id = %s
-                        AND rgs_dt = %s) c
-                ON w.feel_id = c.feel_id;
-                """
-                cursor.execute(sql, [cust_id, rgs_dt])
-                keywords = cursor.fetchall()
-
-                mood = []
-                for feel in feel_daily:
-                    mood.append(feel[0])
+                cursor.execute(sql, [cust_id, rgs_dt]*3)
+                feeling_daily = cursor.fetchall()
 
     except Exception as e:
         return HttpResponseBadRequest(f"SELECT 오류 발생: {e}")
 
-    if not mood or not nut_daily:
+    if not feeling_daily or not nut_daily:
         has_data = 0
         context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
                    "active_tab": "report",
                    "has_data": has_data,}
     else:
         has_data = 1
-        pos = (mood.count('pos') / len(mood))
-        neu = (mood.count('neu') / len(mood))
-        neg = (mood.count('neg') / len(mood))
 
-        # feedback 용 데이터
-        total_nut = daily_total_nutrition(nut_data)
-        keywords_daily = daily_keywords(keywords)
+        # 영양소
+        nut_data = {"recom": {"kcal": int(nut_daily[0][0]), "carb": int(nut_daily[0][1]),
+                              "protein": int(nut_daily[0][2]), "fat": int(nut_daily[0][3])},
+                    "M": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": ""},
+                    "L": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": ""},
+                    "D": {"kcal": 0, "carb": 0, "protein": 0, "fat": 0, "f_name": ""},
+                    "total": {"kcal": int(nut_daily[0][10]), "carb": int(nut_daily[0][11]),
+                              "protein": int(nut_daily[0][12]), "fat": int(nut_daily[0][13])}}
 
-        daily_data = {"cust_id": cust_id,
-                      "date": selected_date.strftime("%Y-%m-%d"),
-                      "positive_ratio": pos,
-                      "neutral_ratio": neu,
-                      "negative_ratio": neg,
-                      "feeling_keywords": keywords_daily,
-                      "total_kcal": total_nut['kcal'],
-                      "total_carb": total_nut['carb'],
-                      "total_protein": total_nut['protein'],
-                      "total_fat": total_nut['fat'],
-        }
-        feedback = json.loads(make_daily_feedback(daily_data))
+        for n in nut_daily:
+            for k in nut_data.keys():
+                if n[4] == k:
+                    nut_data[k]['kcal'] = n[5]
+                    nut_data[k]['carb'] = n[6]
+                    nut_data[k]['protein'] = n[7]
+                    nut_data[k]['fat'] = n[8]
+                    nut_data[k]['f_name'] = n[9]
 
-        context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
-                   "active_tab": "report",
-                   "has_data": has_data,
-                   "nut_day": json.dumps(nut_data),
-                   "mood_ratio": json.dumps({'pos': pos, "neu": neu, "neg": neg}),
-                   "feedback": feedback,
-                   }
+        can_report = check_generate_daily_report(selected_date, nut_data)
+
+        if not can_report:
+            context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
+                       "active_tab": "report",
+                       "has_data": has_data,
+                       "can_report": can_report}
+
+        else:
+            # 감정
+            feel_data = {"pos": float(feeling_daily[0][0]),
+                         "neu": float(feeling_daily[0][1]),
+                         "neg": float(feeling_daily[0][2])}
+
+            if feeling_daily[0][4]:
+                feedback = feeling_daily[0][4]
+            else:
+                feedback = daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily)
+
+            context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
+                       "active_tab": "report",
+                       "has_data": has_data,
+                       "can_report": can_report,
+                       "nut_day": json.dumps(nut_data, ensure_ascii=False),
+                       "mood_day": json.dumps(feel_data),
+                       "feedback": feedback,
+                       }
 
     return render(request, "report/report_daily.html", context)
 

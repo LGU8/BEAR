@@ -84,16 +84,10 @@ def record_mood(request):
                         )
                         """,
                         [
-                            date_time,
-                            date_time,
-                            cust_id,
-                            rgs_dt,
-                            seq,
-                            time_slot,
-                            mood,
-                            energy,
-                            mood,
-                            energy,
+                            date_time, date_time, cust_id,
+                            rgs_dt, seq, time_slot,
+                            mood, energy,
+                            mood, energy,
                             stable_yn,
                         ],
                     )
@@ -106,9 +100,7 @@ def record_mood(request):
                         """
                         UPDATE CUS_FEEL_TH
                         SET
-                            updated_time = %s,
-                            mood = %s,
-                            energy = %s,
+                            updated_time = %s, mood = %s, energy = %s,
                             cluster_val = (SELECT cluster_val
                                              FROM COM_FEEL_CLUSTER_TM
                                             WHERE mood = %s AND energy = %s),
@@ -118,15 +110,10 @@ def record_mood(request):
                           AND time_slot = %s
                         """,
                         [
-                            date_time,
-                            mood,
-                            energy,
-                            mood,
-                            energy,
+                            date_time, mood, energy,
+                            mood, energy,
                             stable_yn,
-                            cust_id,
-                            rgs_dt,
-                            time_slot,
+                            cust_id, rgs_dt, time_slot,
                         ],
                     )
 

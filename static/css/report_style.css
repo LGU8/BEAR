@@ -178,7 +178,8 @@
 }
 
 .feedback-text {
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 450;
   line-height: 1.8;
   padding-right: 30px;
 }
@@ -353,6 +354,14 @@
 /* ─────────────────────────────
    Mood 카드
    ───────────────────────────── */
+#daily-mood-card[data-has-data="1"] #weekly-mood-empty {
+  display: none !important;
+}
+
+#daily-mood-card[data-has-data="0"] #daily-mood-chart-wrap {
+  display: none !important;
+}
+
 /* Mood Card - LEFT  */
 .mood-left {
   display: flex;
