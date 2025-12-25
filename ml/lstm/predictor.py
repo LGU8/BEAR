@@ -23,8 +23,8 @@ from .model import LSTMClassifier
 # =========================
 HIGH_RISK_SET = {0, 2}
 THRESHOLD = 0.30  # p0+p2 >= 0.30 이면 위험
-WINDOW = 7  # 최근 7개 record
-GATE_DAYS = 3  # 직전 3일 고정
+WINDOW = 7        # 최근 7개 record
+GATE_DAYS = 3     # 최근 3일 고정 (D 포함)
 
 
 # =========================
@@ -36,9 +36,7 @@ class Artifacts:
     scaler: Any
     model: LSTMClassifier
     device: torch.device
-    cluster_mean: Dict[
-        str, Tuple[float, float]
-    ]  # cluster_val -> (mean_valence, mean_arousal)
+    cluster_mean: Dict[str, Tuple[float, float]]  # cluster_val -> (mean_valence, mean_arousal)
 
 
 def _time_onehot(time_slot: str) -> Tuple[float, float, float]:
@@ -82,17 +80,17 @@ def _yyyymmdd(dt) -> str:
     return dt.strftime("%Y%m%d")
 
 
-def _prev_days(D_yyyymmdd: str) -> Tuple[str, str, str]:
+def _recent_days_including_D(D_yyyymmdd: str) -> Tuple[str, str, str]:
     """
-    D 기준 직전 3일: (D-3, D-2, D-1)
+    ✅ D 포함 최근 3일: (D-2, D-1, D)
     """
     from datetime import datetime, timedelta
 
     D = datetime.strptime(D_yyyymmdd, "%Y%m%d").date()
+    d0 = D
     d1 = D - timedelta(days=1)
     d2 = D - timedelta(days=2)
-    d3 = D - timedelta(days=3)
-    return (_yyyymmdd(d3), _yyyymmdd(d2), _yyyymmdd(d1))
+    return (_yyyymmdd(d2), _yyyymmdd(d1), _yyyymmdd(d0))
 
 
 @lru_cache(maxsize=1)
@@ -145,7 +143,11 @@ def load_artifacts() -> Artifacts:
         cluster_mean[str(cv)] = (mv, ma)
 
     return Artifacts(
-        cfg=cfg, scaler=scaler, model=model, device=device, cluster_mean=cluster_mean
+        cfg=cfg,
+        scaler=scaler,
+        model=model,
+        device=device,
+        cluster_mean=cluster_mean,
     )
 
 
@@ -154,9 +156,9 @@ def load_artifacts() -> Artifacts:
 # =========================
 def gate_keyword_3days(cust_id: str, D_yyyymmdd: str) -> Tuple[bool, List[str]]:
     """
-    직전 3일(D-3~D-1) 각각 CUS_FEEL_TS에 keyword 1건 이상 존재해야 통과.
+    ✅ 최근 3일(D-2~D) 각각 CUS_FEEL_TS에 keyword 1건 이상 존재해야 통과.
     """
-    d3, d2, d1 = _prev_days(D_yyyymmdd)
+    d2, d1, d0 = _recent_days_including_D(D_yyyymmdd)
     missing: List[str] = []
 
     sql_exists = """
@@ -166,7 +168,7 @@ def gate_keyword_3days(cust_id: str, D_yyyymmdd: str) -> Tuple[bool, List[str]]:
         LIMIT 1
     """
 
-    for day in [d3, d2, d1]:
+    for day in [d2, d1, d0]:
         row = _fetchone_dict(sql_exists, (cust_id, day))
         if row is None:
             missing.append(day)
@@ -179,13 +181,13 @@ def gate_keyword_3days(cust_id: str, D_yyyymmdd: str) -> Tuple[bool, List[str]]:
 # =========================
 def fetch_window_records(cust_id: str, D_yyyymmdd: str) -> List[Dict[str, Any]]:
     """
-    D-3~D-1 범위의 CUS_FEEL_TH record를 모아
+    ✅ D-2~D 범위의 CUS_FEEL_TH record를 모아
     (rgs_dt asc, time_slot asc, seq asc) 정렬 후 마지막 7개 반환.
 
     record key: cust_id, rgs_dt, seq
     필요값: time_slot, cluster_val
     """
-    d3, d2, d1 = _prev_days(D_yyyymmdd)
+    d2, d1, d0 = _recent_days_including_D(D_yyyymmdd)
 
     sql = """
         SELECT cust_id, rgs_dt, seq, time_slot, cluster_val
@@ -193,7 +195,7 @@ def fetch_window_records(cust_id: str, D_yyyymmdd: str) -> List[Dict[str, Any]]:
         WHERE cust_id = %s
           AND rgs_dt IN (%s, %s, %s)
     """
-    rows = _fetchall_dict(sql, (cust_id, d3, d2, d1))
+    rows = _fetchall_dict(sql, (cust_id, d2, d1, d0))
 
     # 정렬
     rows.sort(key=lambda r: (r["rgs_dt"], _slot_order(r["time_slot"]), int(r["seq"])))
@@ -231,7 +233,6 @@ def valence_arousal_for_record(
 
     if feel_ids:
         # feel_id들로 COM_FEEL_TM 평균
-        # IN 절 파라미터 안전 구성
         placeholders = ",".join(["%s"] * len(feel_ids))
         sql_agg = f"""
             SELECT AVG(valence) AS mean_valence,
@@ -328,7 +329,7 @@ def predict_negative_risk(
     if D_yyyymmdd is None:
         D_yyyymmdd = _yyyymmdd(timezone.localdate())
 
-    # 1) Gate
+    # 1) Gate (✅ D-2~D)
     ok, missing_days = gate_keyword_3days(cust_id, D_yyyymmdd)
     if not ok:
         return {
@@ -336,13 +337,13 @@ def predict_negative_risk(
             "reason": "데이터가 부족합니다",
             "detail": {
                 "type": "gate_keyword_3days",
-                "rule": "직전 3일(D-3~D-1) 매일 키워드 1회 이상 필요",
+                "rule": "최근 3일(D-2~D) 매일 키워드 1회 이상 필요",
                 "asof": D_yyyymmdd,
                 "missing_days": missing_days,
             },
         }
 
-    # 2) Window records
+    # 2) Window records (✅ D-2~D)
     records = fetch_window_records(cust_id, D_yyyymmdd)
     if len(records) < WINDOW:
         return {
@@ -350,11 +351,11 @@ def predict_negative_risk(
             "reason": "데이터가 부족합니다",
             "detail": {
                 "type": "window_insufficient",
-                "rule": "직전 3일 범위에서 최소 7개의 기록(M/L/D)이 필요",
+                "rule": "최근 3일 범위(D-2~D)에서 최소 7개의 기록(M/L/D)이 필요",
                 "asof": D_yyyymmdd,
                 "need": WINDOW,
                 "have": len(records),
-                "days": list(_prev_days(D_yyyymmdd)),
+                "days": list(_recent_days_including_D(D_yyyymmdd)),
             },
         }
 
@@ -387,23 +388,20 @@ def predict_negative_risk(
         }
 
     # 5) LSTM inference
-    x_t = torch.tensor(Xs, dtype=torch.float32, device=art.device).unsqueeze(
-        0
-    )  # (1,7,7)
+    x_t = torch.tensor(Xs, dtype=torch.float32, device=art.device).unsqueeze(0)  # (1,7,7)
 
     with torch.no_grad():
         logits = art.model(x_t)  # (1,6)
-        probs = F.softmax(logits, dim=1).cpu().numpy()  # (1,6)
-        probs = probs.reshape(-1)  # (6,)
-    p0 = float(probs[0])
-    p2 = float(probs[2])
-    p1 = float(probs[1])
-    p3 = float(probs[3])
-    p5 = float(probs[5])
-    p4 = float(probs[4])
-    p_highrisk = p0 + p2 
+        probs = F.softmax(logits, dim=1).cpu().numpy().reshape(-1)  # (6,)
 
-    # p_highrisk = float(probs[0] + probs[2])
+    p0 = float(probs[0])
+    p1 = float(probs[1])
+    p2 = float(probs[2])
+    p3 = float(probs[3])
+    p4 = float(probs[4])
+    p5 = float(probs[5])
+
+    p_highrisk = p0 + p2
     is_risky = bool(p_highrisk >= THRESHOLD)
     pred_class = int(np.argmax(probs))
 
@@ -414,8 +412,8 @@ def predict_negative_risk(
         "threshold": THRESHOLD,
         "p_highrisk": p_highrisk,
         "p0": p0,
-        "p2": p2,
         "p1": p1,
+        "p2": p2,
         "p3": p3,
         "p4": p4,
         "p5": p5,

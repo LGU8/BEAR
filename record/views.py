@@ -304,10 +304,56 @@ def timeline(request):
         },
         ensure_ascii=False,
     )
-    # 5) 부정감정 예측 (LSTM)
-    # 기준일 D = 오늘(정책)
-    D = timezone.localdate().strftime("%Y%m%d")
-    neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=D)
+   
+   # 기준일 D (최신 기록일)
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT MAX(rgs_dt) FROM CUS_FEEL_TH WHERE cust_id = %s",
+            [cust_id]
+        )
+        row = cursor.fetchone()
+
+    D_str = str(row[0]) if row and row[0] else timezone.localdate().strftime("%Y%m%d")
+    D_date = datetime.strptime(D_str, "%Y%m%d").date()
+
+    neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=D_str)
+
+    # ✅ 예측 결과 DB 저장
+    if neg_pred.get("eligible"):
+        now_ts = timezone.localtime().strftime("%Y%m%d%H%M%S")
+
+        # ⭐ 핵심: D의 다음날 아침(M)
+        target_date = (D_date + timedelta(days=1)).strftime("%Y%m%d")
+        target_slot = "M"
+
+        p_high = float(neg_pred.get("p_highrisk") or 0.0)
+        risk_score = int(round(p_high * 100))
+        risk_level = "y" if risk_score >= 30 else "n"
+
+        upsert_sql = """
+        INSERT INTO CUS_FEEL_RISK_TH (
+            created_time, updated_time,
+            cust_id, rgs_dt, time_slot,
+            risk_score, risk_level
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            updated_time = VALUES(updated_time),
+            risk_score   = VALUES(risk_score),
+            risk_level   = VALUES(risk_level);
+        """
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                upsert_sql,
+                [now_ts, now_ts, cust_id, target_date, target_slot, risk_score, risk_level]
+            )
+
+   
+
+
+
+    
     # =========================
     # (추가) UI용 상태 계산
     #  - ui_active_idx: 0=긍정, 1=중립, 2=부정
