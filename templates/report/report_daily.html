@@ -83,11 +83,6 @@ $(function () {
     </div>
   </div>
 
-  <!-- 빈 상태 -->
-  <div class="card-empty" id="daily-nutrition-empty">
-    <span>아직 이 날의 기록을 남기지 않았어요.</span>
-  </div>
-
   {% if can_report %}
   <!-- 요약 내용 (기본 노출) -->
   <div id="report-nut-data" data-nut-day='{{ nut_day|safe }}'></div>
@@ -161,7 +156,13 @@ $(function () {
         </div>
       </div>
     </div>
+
+  <!-- 빈 상태 -->
+  <div class="card-empty" id="daily-nutrition-empty">
+    <span>아직 이 날의 기록을 남기지 않았어요.</span>
+  </div>
   {% else %}
+
   <div class="card-empty">
     <span>저녁 식사 기록 또는 저녁 8시 이후에 확인 가능해요!</span>
   </div>
@@ -195,15 +196,16 @@ $(function () {
         </div>
       </div>
     </div>
+
+    <div class="card-empty" id="weekly-mood-empty">
+      <span>아직 이 날의 기록을 남기지 않았어요.</span>
+    </div>
+
     {% else %}
     <div class="card-empty">
       <span>저녁 식사 기록 또는 저녁 8시 이후에 확인 가능해요!</span>
     </div>
     {% endif %}
-
-    <div class="card-empty" id="weekly-mood-empty">
-      <span>아직 이 날의 기록을 남기지 않았어요.</span>
-    </div>
   </div>
 
 {% endblock %}
