@@ -58,8 +58,7 @@ $(function () {
   <div class="feedback-card">
     <img class="feedback-ico" src="{% static 'icons_img/bear_report.png' %}" alt="bear feedback">
     <div class="feedback-text">
-      오늘은 조금 힘들었겠지만, 긍정적인 기운이 더 많았어. 단백질이 풍부한 식사로 힘을 보충해보자!
-      햇살 가득한 저녁이 너를 따뜻하게 감싸줬을 거야.
+      {{ feedback }}
     </div>
   </div>
 
@@ -109,7 +108,7 @@ $(function () {
 <div class="summary-card" id="weekly-mood-card"
      data-has-data="{{ has_data }}"
      data-over-last="{{ over_3day_last_mood|yesno:'true,false' }}"
-     data-mood-week='{{ mood_ratio_week|safe }}'>
+     data-mood-week='{{ mood_data_week|safe }}'>
 
   <div class="mood-header">
     <span class="mood-title">기분</span>

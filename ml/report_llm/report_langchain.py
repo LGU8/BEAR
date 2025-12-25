@@ -1,5 +1,6 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.output_parsers import JsonOutputParser
 import json
 from dotenv import load_dotenv
 
@@ -71,3 +72,80 @@ def make_daily_feedback(daily_data):
 
     # 6) 결과 출력
     return response.content
+
+def make_weekly_feedback(weekly_data):
+    # API_KEY Load
+    load_dotenv()  # ← 이것이 .env 파일을 실제로 불러옴!
+
+    # 1) 모델 준비
+    llm = ChatOpenAI(model="gpt-4o-mini")
+    parser = JsonOutputParser()
+
+    # 2) System Prompt (역할 정의)
+    system_prompt = """
+    너는 귀여운 리포트 곰돌이야.  
+    지난 한 주를 함께 지켜본 친구처럼, 다정하고 밝게 이야기해 줘.
+
+    말투 규칙:
+    - 친구에게 말하듯 귀엽게 말해. (‘~했어’, ‘~하자!’, ‘~해볼래?’만 사용)
+    - ‘~요’, ‘~습니다’ 같은 딱딱한 표현은 절대 쓰지 마.
+    - 엘리멘탈 영화의 웨이드처럼 또는 MBTI의 F가 100%인 사람처럼 공감력 높고 감정 표현이 풍부해야 해.
+
+    출력 규칙:
+    - 출력은 반드시 JSON 형태여야 해.
+    - summary는 정확히 두 문장으로 구성해야 해.
+      1) “지난 한 주는 ~”으로 시작하고, 감정 흐름과 식습관 패턴을 반드시 둘 다 포함한 한 문장을 작성해.
+         - 감정만 말하는 것도 금지, 식습관만 말하는 것도 금지야.
+         - 두 요소는 문장 안에서 동일한 비중으로 언급해.
+      2) 다음 주를 위한 응원 또는 성찰을 돕는 귀엽고 부드러운 격려 한 문장을 작성해.
+         - 이 두 번째 문장에는 은은한 시적 표현을 한 개만 넣어.
+         - 예: “마음에 포근한 빛이 번졌으면 해.”  
+               “네 일주일에 작은 온기가 스며들길 바랄게.”  
+               “다음 주엔 더 따뜻한 숨결이 찾아오면 좋겠어.”
+         - 과한 비유는 금지야. 부드럽고 짧은 감성 표현만 사용해.
+    - 두 문장의 전체 길이는 약 50~60자 분량으로 작성해.
+    - 75자를 넘기지 않도록 최대한 맞춰 줘.
+
+    식습관 규칙:
+    - 식습관 코멘트는 반드시 포함해야 해.
+    - 아래 중 하나를 반드시 언급해:
+      • 주간 식습관 리듬(안정적/들쑥날쑥 등)
+      • 탄·단·지 영양 균형의 흐름
+      • 끼니를 챙겨 먹은 리듬
+      • 식사의 분위기(가벼움/따뜻함/풍부함 등)
+    - 칼로리 숫자는 말하지 마.
+
+    감정 규칙:
+    - negative_ratio 많은 날은 조용히 공감해.
+    - positive_ratio 많은 날은 함께 기뻐해.
+    - feeling_keywords가 없으면 감정 비율로 감정을 설명해.
+
+    과도한 추측 금지. 데이터 기반으로만 작성해.
+
+    출력 규칙(JSON):
+    - 출력 형식은 반드시 아래와 동일해야 해.
+    - 키 이름, 구조, 타입을 절대 변경하지 마.
+    - JSON 객체 외의 어떤 텍스트도 출력하지 마.
+    - ```json 과 같은 코드블록을 절대 사용하지 마.
+
+    {"summary": string}
+    """
+
+    # 4) 메시지 구성
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=json.dumps(weekly_data, ensure_ascii=False)),
+    ]
+
+    # 5) LLM 호출
+    response = llm.invoke(messages)
+
+    # 6) 결과 출력
+    raw = response.content
+
+    try:
+        return parser.parse(raw)
+    except Exception as e:
+        print("LLM RAW OUTPUT ↓↓↓")
+        print(raw)
+        raise RuntimeError("LLM_JSON_PARSE_FAILED") from e

@@ -3,9 +3,9 @@ from datetime import date, datetime, timedelta, time
 from django.db import connection, transaction
 from django.http import HttpResponseBadRequest
 import json
-from ml.report_llm.report_langchain import make_daily_feedback
+from ml.report_llm.report_langchain import make_daily_feedback, make_weekly_feedback
 
-
+# 공통 함수
 def get_selected_date(request):
     date_str = request.GET.get("date")
     today = date.today()
@@ -25,9 +25,10 @@ def get_selected_date(request):
     # date 파라미터가 없으면 → 오늘 + 현재 시간
     return now
 
-def daily_feedback_input(id, date, nut_data, feeling_daily):
-    daily_data = {"cust_id": id,
-                  "date": date.strftime("%Y%m%d"),
+# daily_report함수
+def daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily):
+    daily_data = {"cust_id": cust_id,
+                  "date": selected_date.strftime("%Y%m%d"),
                   "positive_ratio": float(feeling_daily[0][0]),
                   "neutral_ratio": float(feeling_daily[0][1]),
                   "negative_ratio": float(feeling_daily[0][2]),
@@ -74,6 +75,7 @@ def check_generate_daily_report(selected_date, nut_data):
     else:
         return 1
 
+# weekly_report 함수
 def get_last_week_range(target_date):
     # target_date기준 저번 주의 월요일 ~ 일요일을 반환
     weekday = target_date.weekday() # 월=0, 일=6
@@ -119,6 +121,41 @@ def check_3days_record(has_data_nut, has_data_mood):
     over_3day_last_mood = last_max_mood >= 3
 
     return over_3day_nut, over_3day_this_mood, over_3day_last_mood
+
+def weekly_feedback_input(cust_id, week_start_ymd, week_end_ymd, nut_data_week, mood_data_week, need_update):
+    filtered_mood = {k: v for k, v in mood_data_week.items() if k >= week_start_ymd}
+    weekly_data = {"cust_id": cust_id,
+                  "period_start": week_start_ymd,
+                  "period_end": week_end_ymd,
+                  "daily_feeling_records": filtered_mood,
+                  "daily_nutrition": nut_data_week}
+    print(weekly_data)
+    feedback = make_weekly_feedback(weekly_data)
+    try:
+        with connection.cursor() as cursor:
+            today_time = datetime.now().strftime("%Y%m%d%H%M%S")
+            today = date.today().strftime("%Y%m%d")
+            if need_update:
+                sql = """
+                UPDATE REPORT_TH 
+                SET updated_time = %s, rgs_dt = %s, content = %s
+                WHERE cust_id = %s AND type = 'W' 
+                AND period_start = %s AND period_end = %s
+                """
+                data = [today_time, today, feedback['summary'],
+                        cust_id, week_start_ymd, week_end_ymd]
+            else:
+                sql = """
+                INSERT INTO REPORT_TH (created_time, updated_time, cust_id, rgs_dt, type, period_start, period_end, content)
+                    VALUES (%s, %s, %s, %s, 'W', %s, %s, %s)
+                """
+                data = [today_time, today_time, cust_id, today, week_start_ymd, week_end_ymd, feedback['summary']]
+
+            cursor.execute(sql, data)
+    except Exception as e:
+        print("DB INSERT ERROR:", e)
+        raise RuntimeError("REPORT_DB_INSERT_FAILED") from e
+    return feedback['summary']
 
 def report_daily(request):
     selected_date = get_selected_date(request)
@@ -253,10 +290,13 @@ def report_weekly(request):
             with connection.cursor() as cursor:
                 # 영양소-요약
                 sql = """
-                SELECT rgs_dt, kcal, carb_g, protein_g, fat_g
+                SELECT rgs_dt, 
+                       SUM(kcal) AS kcal, SUM(carb_g) AS carb, SUM(protein_g) AS protein, SUM(fat_g) AS fat,
+                       max(max(updated_time)) OVER() AS last_update
                 FROM CUS_FOOD_TH
                 WHERE rgs_dt BETWEEN %s AND %s
-                AND cust_id = %s;
+                AND cust_id = %s
+                GROUP BY rgs_dt;
                 """
 
                 cursor.execute(sql, [week_start_ymd, week_end_ymd, cust_id])
@@ -264,43 +304,69 @@ def report_weekly(request):
 
                 nut_data_week = {}
                 has_data_nut = []
+
+                nut_map = {
+                    row[0]: {"kcal": int(row[1]), "carb": int(row[2]), "protein": int(row[3]), "fat": int(row[4])}
+                    for row in nut_weekly
+                }
+
                 for i in range(7):
                     day = (week_start + timedelta(days=i)).strftime("%Y%m%d")
-                    nut_data_week[day] = {"kcal": 0, "carb": 0, "protein": 0, "fat": 0}
-                    for n in nut_weekly:
-                        if n[0] == day:
-                            nut_data_week[day]["kcal"] += n[1]
-                            nut_data_week[day]["carb"] += n[2]
-                            nut_data_week[day]["protein"] += n[3]
-                            nut_data_week[day]["fat"] += n[4]
-                    if nut_data_week[day]["kcal"] != 0:
-                        has_data_nut.append(True)
-                    else:
-                        has_data_nut.append(False)
+                    nut_day = nut_map.get(day, {"kcal": 0, "carb": 0, "protein": 0, "fat": 0})
+                    nut_data_week[day] = nut_day
+                    has_data_nut.append(nut_day["kcal"] != 0)
 
                 # 기분
                 sql = """
-                SELECT rgs_dt, mood
-                FROM CUS_FEEL_TH
-                WHERE rgs_dt BETWEEN %s AND %s
-                AND cust_id = %s;
+                SELECT
+                  feel.rgs_dt,
+                  SUM(CASE WHEN feel.mood = 'pos' THEN 1 ELSE 0 END) / COUNT(*) AS pos_ratio_day,
+                  SUM(CASE WHEN feel.mood = 'neu' THEN 1 ELSE 0 END) / COUNT(*) AS neu_ratio_day,
+                  SUM(CASE WHEN feel.mood = 'neg' THEN 1 ELSE 0 END) / COUNT(*) AS neg_ratio_day,
+                  GROUP_CONCAT(DISTINCT w.word SEPARATOR ', ') AS keywords,
+                  (SELECT updated_time
+                    FROM REPORT_TH
+                    WHERE cust_id = feel.cust_id
+                      AND period_start = %s AND period_end   = %s
+                      AND type = 'W') AS last_update,
+                  (SELECT content
+                    FROM REPORT_TH 
+                    WHERE cust_id = feel.cust_id
+                      AND period_start = %s AND period_end   = %s
+                      AND type = 'W') AS feedback
+                FROM CUS_FEEL_TH feel
+                LEFT JOIN CUS_FEEL_TS c
+                  ON c.cust_id = feel.cust_id
+                 AND c.rgs_dt  = feel.rgs_dt
+                LEFT JOIN COM_FEEL_TM w
+                  ON w.feel_id = c.feel_id
+                WHERE feel.cust_id = %s
+                  AND feel.rgs_dt BETWEEN %s AND %s
+                GROUP BY feel.rgs_dt
+                ORDER BY feel.rgs_dt;
                 """
 
-                cursor.execute(sql, [mood_start_ymd, week_end_ymd, cust_id])
+                data = ([week_start_ymd, week_end_ymd] * 2 +
+                        [cust_id, mood_start_ymd, week_end_ymd])
+
+                cursor.execute(sql, data)
                 mood_week_all = cursor.fetchall()
 
                 mood_data_week = {}
                 has_data_mood = []
+
+                mood_map = {
+                    row[0]: {"pos": float(row[1]), "neu": float(row[2]), "neg": float(row[3]), "keywords": row[4]}
+                    for row in mood_week_all
+                }
+
                 for i in range(14):
                     day = (mood_start + timedelta(days=i)).strftime("%Y%m%d")
-                    mood_data_week[day] = []
-                    for n in mood_week_all:
-                        if n[0] == day:
-                            mood_data_week[day].append(n[1])
-                    if mood_data_week[day]:
-                        has_data_mood.append(True)
-                    else:
-                        has_data_mood.append(False)
+                    mood_day = mood_map.get(day, {"pos": 0, "neu": 0, "neg": 0, "keywords": ""})
+                    mood_data_week[day] = mood_day
+                    has_data_mood.append(any([mood_day["pos"], mood_day["neu"], mood_day["neg"]]))
+
+
     except Exception as e:
         return HttpResponseBadRequest(f"SELECT 오류 발생: {e}")
 
@@ -309,13 +375,23 @@ def report_weekly(request):
 
     if over_3day_nut and over_3day_this_mood:
         has_data = 1
-        mood_ratio_week = {}
-        for k, i in mood_data_week.items():
-            mood_ratio_week[k] = {'pos': 0, 'neu': 0, 'neg': 0}
-            if i:
-                mood_ratio_week[k]['pos'] = (i.count('pos') / len(i))
-                mood_ratio_week[k]['neu'] = (i.count('neu') / len(i))
-                mood_ratio_week[k]['neg'] = (i.count('neg') / len(i))
+
+        feedback = mood_week_all[-1][-1]
+        feedback_updated = mood_week_all[-1][-2]
+        record_updated = nut_weekly[0][5]
+
+        exclude_key = {'keywords'}
+        mood_data_week_for_html = {
+            day: {k: v for k, v in data.items() if k not in exclude_key}
+            for day, data in mood_data_week.items()
+        }
+
+        if feedback:
+            need_update = record_updated > feedback_updated
+            if need_update:
+                feedback = weekly_feedback_input(cust_id, week_start_ymd, week_end_ymd, nut_data_week, mood_data_week, need_update)
+        else:
+            feedback = weekly_feedback_input(cust_id, week_start_ymd, week_end_ymd, nut_data_week, mood_data_week, False)
 
         context = {"week_start": week_start.strftime("%Y-%m-%d"),
                    "week_end": week_end.strftime("%Y-%m-%d"),
@@ -325,8 +401,8 @@ def report_weekly(request):
                    "over_3day_this_mood": over_3day_this_mood,
                    "over_3day_last_mood":over_3day_last_mood,
                    "nut_data_week": json.dumps(nut_data_week),
-                   "mood_ratio_week": json.dumps(mood_ratio_week)}
-
+                   "mood_data_week": json.dumps(mood_data_week_for_html),
+                   "feedback": feedback}
     else:
         has_data = 0
         context = {"week_start": week_start.strftime("%Y-%m-%d"),
