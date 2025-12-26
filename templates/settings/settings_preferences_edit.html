@@ -12,7 +12,7 @@
 {% endblock %}
 
 {% block main_area %}
-<section class="settings-page">
+<section class="settings-page s3">
   <article class="settings-card edit-card">
 
     <!-- 헤더 -->
@@ -24,7 +24,7 @@
       <div class="edit-header-spacer"></div>
     </div>
 
-    <!-- ✅ DB 연동 대비: POST 폼 -->
+    <!-- POST -->
     <form id="prefForm" method="post" action="{% url 'settings_app:preferences_edit' %}">
       {% csrf_token %}
 
@@ -33,7 +33,10 @@
       <input type="hidden" name="ratio_protein" id="ratioProtein" value="{{ ratio_protein|default:0 }}">
       <input type="hidden" name="ratio_fat" id="ratioFat" value="{{ ratio_fat|default:0 }}">
 
-      <!-- 질문 1: 탄수화물 -->
+      <!-- 안내 문구(선택): 필요 없으면 제거해도 됨 -->
+      {# <div class="pref-edit-guide">각 항목을 눌러 조절해요. 합계는 10이어야 저장돼요.</div> #}
+
+      <!-- Q1: 탄수화물 -->
       <div class="pref-edit-block">
         <div class="pref-edit-top">
           <img class="pref-edit-icon" src="{% static 'settings_img/icon_rice.png' %}" alt="carb">
@@ -56,7 +59,7 @@
         </div>
       </div>
 
-      <!-- 질문 2: 단백질 -->
+      <!-- Q2: 단백질 -->
       <div class="pref-edit-block">
         <div class="pref-edit-top">
           <img class="pref-edit-icon" src="{% static 'settings_img/icon_shrimp.png' %}" alt="protein">
@@ -79,7 +82,7 @@
         </div>
       </div>
 
-      <!-- 질문 3: 지방 -->
+      <!-- Q3: 지방 -->
       <div class="pref-edit-block">
         <div class="pref-edit-top">
           <img class="pref-edit-icon" src="{% static 'settings_img/icon_beef.png' %}" alt="fat">
@@ -102,9 +105,9 @@
         </div>
       </div>
 
-      <!-- 합계 안내(선택) -->
+      <!-- 합계 안내 -->
       <div class="sum-hint" aria-live="polite">
-        합계 <span id="sumNow">0</span>/10
+        합계 <span id="sumNow">{{ ratio_sum|default:0 }}</span>/10
       </div>
 
       <!-- 저장 -->

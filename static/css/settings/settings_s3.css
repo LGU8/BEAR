@@ -1,28 +1,34 @@
 /* =========================
-   Settings S3 (선호도 수정) 전용 - ALIGN FIX
+   Settings S3 (선호도 수정) 전용 - SAFE SCOPE
+   - 핵심:
+     1) 중앙 정렬(시안 느낌)
+     2) 질문(520) + 아이콘(76) 정렬 유지
+     3) 다른 페이지 오염 방지: .settings-page.s3 .edit-card 스코프
    ========================= */
 
-/* 0) 문항 블록: "아이콘(76) + 내용(520)"을 한 덩어리로 중앙 배치 */
-.pref-edit-block {
-  /* 카드(980) 안에서 컨텐츠만 보기 좋게 묶기 */
+.settings-page.s3 .edit-card {
+  /* 필요 시 카드 내부 여백만 조절 */
+}
+
+/* 블록을 카드 안에서 보기 좋게 */
+.settings-page.s3 .edit-card .pref-edit-block {
   width: fit-content;
   margin: 0 auto;
   padding: 14px 0;
 }
 
-/* 1) 상단(아이콘+질문)을 딱 고정 폭으로 중앙 정렬 */
-.pref-edit-top {
+/* 아이콘 + 질문을 고정폭으로 중앙 배치 */
+.settings-page.s3 .edit-card .pref-edit-top {
   display: grid;
-  grid-template-columns: 76px 520px; /* 핵심: 1fr 금지 */
+  grid-template-columns: 76px 520px;
   gap: 12px;
   align-items: center;
-
   width: fit-content;
   margin: 0 auto 10px;
 }
 
-/* 아이콘: 아이콘 컬럼 중앙 */
-.pref-edit-icon {
+/* 아이콘 */
+.settings-page.s3 .edit-card .pref-edit-icon {
   width: 54px;
   height: 54px;
   object-fit: contain;
@@ -30,94 +36,111 @@
   margin: 0 auto;
 }
 
-.settings-page .edit-card .back-btn img {
-  width: 32px;
-  height: 32px;
-}
-/* 질문: 내용 컬럼 내부에서 중앙(기존 의도 유지) */
-.pref-edit-q {
-  width: 520px;              /* 핵심: 폭 고정 */
-  font-weight: 600;
+/* 질문 */
+.settings-page.s3 .edit-card .pref-edit-q {
+  width: 520px;
+  font-weight: 700;
   font-size: 15px;
   line-height: 1.35;
   text-align: center;
-  margin: 0;                 /* 불필요한 auto 제거 */
+  margin: 0;
 }
 
-/* 2) 슬라이더: 질문과 같은 "내용 컬럼" 시작선으로 정렬 */
-.seg-slider {
+/* 슬라이더: 질문 시작선에 맞춰 정렬 */
+.settings-page.s3 .edit-card .seg-slider {
   width: 520px;
-  margin-left: calc(76px + 12px);   /* 아이콘 컬럼 + gap 만큼 들여쓰기 */
-  margin-right: 0;
-
+  margin-left: calc(76px + 12px);
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   gap: 8px;
 }
 
 /* seg 버튼 */
-.seg-slider .seg {
+.settings-page.s3 .edit-card .seg-slider .seg {
   appearance: none;
   -webkit-appearance: none;
   height: 24px;
   padding: 0;
-
   border-radius: 7px;
-  border: 2px solid rgba(244,121,0,0.45);
-  background: rgba(255,255,255,0.70);
-
+  border: 2px solid rgba(244, 121, 0, 0.45);
+  background: rgba(255, 255, 255, 0.70);
   cursor: pointer;
   outline: none;
 }
 
-.seg-slider .seg.is-on {
+.settings-page.s3 .edit-card .seg-slider .seg.is-on {
   background: var(--orange-1);
   border-color: var(--orange-1);
 }
 
-.seg-slider .seg:focus-visible {
-  box-shadow: 0 0 0 3px rgba(244,121,0,0.18);
+.settings-page.s3 .edit-card .seg-slider .seg:focus-visible {
+  box-shadow: 0 0 0 3px rgba(244, 121, 0, 0.18);
 }
 
-.seg-slider .seg:active { transform: translateY(1px); }
+.settings-page.s3 .edit-card .seg-slider .seg:active {
+  transform: translateY(1px);
+}
 
-/* 3) 합계 안내: 컨텐츠 덩어리 기준 중앙 */
-.sum-hint {
+/* 힌트 */
+.settings-page.s3 .edit-card .seg-hint {
+  width: 520px;
+  margin-left: calc(76px + 12px);
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.45);
+  text-align: left;
+}
+
+/* 합계 안내 */
+.settings-page.s3 .edit-card .sum-hint {
   width: fit-content;
   margin: 12px auto 0;
   text-align: center;
   font-size: 13px;
-  font-weight: 600;
-  color: rgba(0,0,0,0.55);
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.55);
 }
 
-.sum-hint #sumNow {
-  font-weight: 800;
+.settings-page.s3 .edit-card .sum-hint #sumNow {
+  font-weight: 900;
   color: var(--orange-1);
 }
 
-/* 4) 모바일: 2컬럼 → 1컬럼 느낌으로 자연스럽게 축소 */
+/* back icon 크기 (S2와 겹치면 이 줄은 제거 가능) */
+.settings-page.s3 .edit-card .back-btn img {
+  width: 32px;
+  height: 32px;
+}
+
+/* 모바일 */
 @media (max-width: 420px) {
-  .pref-edit-top {
+  .settings-page.s3 .edit-card .pref-edit-top {
     grid-template-columns: 64px 1fr;
     width: 100%;
     margin: 0 0 10px;
   }
 
-  .pref-edit-q {
+  .settings-page.s3 .edit-card .pref-edit-q {
     width: auto;
     font-size: 13px;
-    text-align: left; /* 모바일에서 가독성 ↑ */
+    text-align: left;
   }
 
-  .seg-slider {
+  .settings-page.s3 .edit-card .seg-slider {
     width: 100%;
-    margin-left: 0;     /* 모바일에서는 들여쓰기 제거 */
+    margin-left: 0;
     gap: 6px;
   }
 
-  .seg-slider .seg {
+  .settings-page.s3 .edit-card .seg-slider .seg {
     height: 20px;
     border-radius: 6px;
+  }
+
+  .settings-page.s3 .edit-card .seg-hint {
+    width: 100%;
+    margin-left: 0;
+    text-align: left;
   }
 }

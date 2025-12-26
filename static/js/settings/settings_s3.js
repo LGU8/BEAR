@@ -1,7 +1,8 @@
 /* =========================
-   settings_s3.js
+   settings_s3.js (Preferences Edit)
    - 10칸 segmented click
    - 합=10 강제(자동 보정)
+   - ✅ 같은 칸을 다시 누르면 1칸 감소(= 0까지 가능)
    - 변경 시 저장 버튼 활성화
    ========================= */
 
@@ -89,7 +90,7 @@
     saveBtn.disabled = !ok;
   }
 
-  // ✅ 합=10 강제 보정
+  // 합=10 강제 보정(너의 기존 의도 유지)
   function rebalance(key, newValue) {
     newValue = clamp(newValue, 0, 10);
     state[key] = newValue;
@@ -138,23 +139,25 @@
     const s = sum();
     if (s === 10) return;
 
-    // 우선 fat을 기준으로 맞추고, 범위 넘어가면 rebalance로 안전 처리
     const targetFat = clamp(state.fat + (10 - s), 0, 10);
     rebalance("fat", targetFat);
   }
 
-  // 이벤트 바인딩
+  // 이벤트
   sliders.forEach((slider) => {
     slider.addEventListener("click", (e) => {
       const btn = e.target.closest(".seg");
       if (!btn) return;
 
       const key = slider.dataset.key;
-      const idx = parseInt(btn.dataset.idx || "0", 10);
-
       if (!key) return;
 
-      rebalance(key, idx);
+      const idx = parseInt(btn.dataset.idx || "0", 10);
+
+      // ✅ 같은 칸을 다시 누르면 1칸 감소(=0 가능)
+      const next = (idx === state[key]) ? (idx - 1) : idx;
+
+      rebalance(key, next);
       renderAll();
       updateSaveBtn();
     });
@@ -165,7 +168,7 @@
   renderAll();
   updateSaveBtn();
 
-  // 제출 직전 최종 검증
+  // 제출 직전 검증
   form.addEventListener("submit", (e) => {
     if (!isValid()) {
       e.preventDefault();

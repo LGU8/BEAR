@@ -6,11 +6,13 @@ from typing import Optional, Dict, Any, List
 
 import json
 import os
+import re
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.db import connection
+from django.db import connection, transaction
 from django.shortcuts import render, redirect
+from django.utils import timezone
 
 from accounts.models import CusBadge
 from settings.utils.security import verify_password, hash_password
@@ -142,7 +144,6 @@ def _execute(sql: str, params: tuple) -> None:
 def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
     cust_id = _get_cust_id(request)
 
-    # cust_id가 비어도 호출될 수 있으나, view에서 가드가 걸려야 정상
     cust = _fetch_one(
         """
         SELECT cust_id, email, created_dt, nickname
@@ -191,7 +192,7 @@ def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
     return {
         "active_tab": active_tab,
         "profile_badge_img": profile_badge_img,
-        "selected_badge_id": selected_badge_id,  # ✅ S2에서 split로 뽑지 말고 이걸 쓰기
+        "selected_badge_id": selected_badge_id,
 
         "cust_id": cust.get("cust_id") or cust_id,
         "email": cust.get("email") or "",
@@ -228,11 +229,162 @@ def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
     }
 
 
-def _load_badge_meta():
+# ============================================================
+# 4-1) Badge meta safe loader (JSONDecodeError 방지)
+# ============================================================
+def _load_badge_meta() -> Dict[str, Any]:
+    """
+    - 파일이 비었거나, 깨졌거나, BOM(utf-8-sig)이거나, 경로가 어긋나도
+      화면이 죽지 않게 안전하게 로드
+    """
     base_dir = os.path.dirname(os.path.abspath(__file__))
     meta_path = os.path.join(base_dir, "badges_meta", "badge_meta.json")
-    with open(meta_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+
+    # 기본 골격
+    default = {
+        "img_base": "/static/badges_img",
+        "items": [],
+        "_meta_path": meta_path,
+        "_meta_error": "",
+    }
+
+    if not os.path.exists(meta_path):
+        default["_meta_error"] = f"badge_meta.json not found: {meta_path}"
+        return default
+
+    try:
+        # BOM까지 방어하려고 utf-8-sig
+        with open(meta_path, "r", encoding="utf-8-sig") as f:
+            raw = f.read()
+
+        if not raw or not raw.strip():
+            default["_meta_error"] = f"badge_meta.json is empty: {meta_path}"
+            return default
+
+        data = json.loads(raw)
+
+        # 최소 키 보정
+        if not isinstance(data, dict):
+            default["_meta_error"] = "badge_meta.json root must be object"
+            return default
+
+        if "items" not in data or not isinstance(data.get("items"), list):
+            data["items"] = []
+
+        if "img_base" not in data or not isinstance(data.get("img_base"), str):
+            data["img_base"] = "/static/badges_img"
+
+        data["_meta_path"] = meta_path
+        data["_meta_error"] = ""
+        return data
+
+    except json.JSONDecodeError as e:
+        default["_meta_error"] = f"JSONDecodeError: {str(e)}"
+        return default
+    except Exception as e:
+        default["_meta_error"] = f"meta load error: {str(e)}"
+        return default
+
+
+# ============================================================
+# 4-2) Badge rule evaluator (Model 매핑 없이 Raw SQL로 판정)
+# ============================================================
+_SAFE_IDENT = re.compile(r"^[A-Z0-9_]+$")
+
+
+def _safe_ident(name: str) -> bool:
+    return bool(name and _SAFE_IDENT.match(name))
+
+
+def _count_rows(table: str, cust_id: str, filters: Dict[str, Any]) -> int:
+    """
+    count 타입에서 metric=rows 처리용.
+    - table/column은 화이트리스트 정규식으로만 허용(대문자/숫자/_)
+    - filters는 key/value 단순 equality만 지원
+    """
+    if not _safe_ident(table):
+        return 0
+
+    where = ["cust_id = %s"]
+    params: List[Any] = [cust_id]
+
+    # filters = {} → 조건 없음(정상) → 전체 count
+    for k, v in (filters or {}).items():
+        if not _safe_ident(str(k).upper()):
+            continue
+        where.append(f"{k} = %s")
+        params.append(v)
+
+    sql = f"SELECT COUNT(*) AS cnt FROM {table} WHERE " + " AND ".join(where)
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, tuple(params))
+        row = cursor.fetchone()
+        return int(row[0] or 0) if row else 0
+
+
+def _eval_badge_unlock(cust_id: str, badge_item: Dict[str, Any]) -> bool:
+    unlock_type = (badge_item.get("unlock_type") or "").strip()
+    rule = badge_item.get("unlock_rule") or {}
+
+    if unlock_type != "count":
+        return False
+
+    table = (rule.get("table") or "").strip()
+    metric = (rule.get("metric") or "rows").strip()
+    filters = rule.get("filters") or {}
+    need = int(rule.get("count") or 0)
+
+    if need <= 0:
+        return False
+
+    # 지금 네 JSON은 metric="rows"가 핵심
+    if metric == "rows":
+        value = _count_rows(table, cust_id, filters)
+        return value >= need
+
+    # 추후 확장(예: 특정 컬럼 Count) 필요하면 여기서만 확장
+    # (안전상 기본은 미지원)
+    return False
+
+
+def _sync_acquired_badges(cust_id: str, items: List[Dict[str, Any]]) -> None:
+    """
+    - 조건을 만족하는 뱃지는 DB(CusBadge)에 자동 insert
+    - 이미 있으면 skip
+    """
+    if not cust_id:
+        return
+
+    # 현재 DB에 있는 badge_id
+    existing = set(
+        CusBadge.objects.filter(cust_id=cust_id).values_list("badge_id", flat=True)
+    )
+
+    to_create = []
+    now = timezone.now()
+
+    for it in items:
+        badge_id = str(it.get("badge_id") or "").strip()
+        if not badge_id:
+            continue
+        if badge_id in existing:
+            continue
+
+        if _eval_badge_unlock(cust_id, it):
+            # CusBadge 모델 필드명이 아래와 다르면 여기만 맞추면 됨
+            to_create.append(
+                CusBadge(
+                    cust_id=cust_id,
+                    badge_id=badge_id,
+                    acquired_time=now,
+                )
+            )
+
+    if to_create:
+        # 중복 삽입 방지(경쟁 상황) 위해 ignore_conflicts 권장
+        with transaction.atomic():
+            CusBadge.objects.bulk_create(to_create, ignore_conflicts=True)
 
 
 # ============================================================
@@ -266,9 +418,7 @@ def settings_profile_edit(request):  # S2
 
     ctx = _base_ctx(request, active_tab="settings")
 
-    # ----------------------------
     # (A) GET에서도 배지 선택 모달에 쓸 데이터 준비
-    # ----------------------------
     meta = _load_badge_meta()
     items = meta.get("items", [])
     img_base = meta.get("img_base", "/static/badges_img")
@@ -285,7 +435,7 @@ def settings_profile_edit(request):  # S2
         is_acquired = badge_id in acquired_set
         return {
             "badge_id": badge_id,
-            "category": x.get("category"),  # "E" or "F"
+            "category": x.get("category"),
             "sort_no": int(x.get("sort_no", 999999)),
             "img_url": f"{img_base}/{badge_id}.png",
             "title": x.get("title", ""),
@@ -294,17 +444,19 @@ def settings_profile_edit(request):  # S2
             "locked": (not is_acquired),
         }
 
-    picker_items = sorted([normalize_for_picker(x) for x in items if x.get("badge_id")], key=lambda r: r["sort_no"])
+    picker_items = sorted(
+        [normalize_for_picker(x) for x in items if x.get("badge_id")],
+        key=lambda r: r["sort_no"]
+    )
 
     ctx.update({
         "picker_items": picker_items,
-        # ✅ split로 뽑지 말고 base_ctx에서 내려준 selected_badge_id 사용
         "selected_badge_id": ctx.get("selected_badge_id", ""),
+        "badge_meta_error": meta.get("_meta_error", ""),  # 디버그 표시용(템플릿에서 선택)
+        "badge_meta_path": meta.get("_meta_path", ""),
     })
 
-    # ----------------------------
     # (B) POST: 개인정보 + 대표배지 저장
-    # ----------------------------
     if request.method == "POST":
         nickname = (request.POST.get("nickname") or "").strip()
         gender = (request.POST.get("gender") or "").strip()
@@ -323,7 +475,10 @@ def settings_profile_edit(request):  # S2
 
         # 잠김 배지 선택 방지(서버 검증)
         if selected_badge_id:
-            has_badge = CusBadge.objects.filter(cust_id=cust_id, badge_id=selected_badge_id).exists()
+            has_badge = CusBadge.objects.filter(
+                cust_id=cust_id,
+                badge_id=selected_badge_id
+            ).exists()
             if not has_badge:
                 ctx["error"] = "아직 획득하지 않은 배지는 선택할 수 없어요."
                 return render(request, "settings/settings_profile_edit.html", ctx)
@@ -487,7 +642,7 @@ def settings_password(request):  # S5
             ctx["error"] = "계정이 잠겨 있어요. 관리자에게 문의해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        # ✅ 레거시 SHA256 + Django 해시 모두 지원
+        # 레거시 SHA256 + Django 해시 모두 지원
         if not verify_password(cur_pw, db_hash):
             retry_cnt += 1
             new_lock = "Y" if retry_cnt >= 5 else "N"
@@ -506,7 +661,7 @@ def settings_password(request):  # S5
             ctx["error"] = "현재 비밀번호가 올바르지 않습니다."
             return render(request, "settings/settings_password.html", ctx)
 
-        # ✅ 앞으로는 Django 표준 해시로 통일
+        # 앞으로는 Django 표준 해시로 통일
         new_hash = hash_password(new_pw)
         upd_dt = _now_yyyymmdd()
         upd_time = _now_yyyymmddhhmmss()
@@ -535,6 +690,9 @@ def settings_badges(request):
 
     meta = _load_badge_meta()
     items = meta.get("items", [])
+
+    # (핵심) 조건 만족 뱃지 자동 획득 동기화
+    _sync_acquired_badges(cust_id, items)
 
     img_base = (meta.get("img_base") or "/static/badges_img").strip()
     if not img_base.startswith("/"):
@@ -606,5 +764,9 @@ def settings_badges(request):
         "badge_acquired": acquired,
         "badge_rate": rate,
         "active_tab": "collection",
+
+        # meta 디버그 (원하면 템플릿에서 숨겨도 됨)
+        "badge_meta_error": meta.get("_meta_error", ""),
+        "badge_meta_path": meta.get("_meta_path", ""),
     })
     return render(request, "settings/settings_badges.html", ctx)

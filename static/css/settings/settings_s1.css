@@ -1,39 +1,29 @@
 /* static/css/settings/settings_s1.css */
 
 /* =========================
-   Settings S1 (settings_account.html 전용) - SAFE SCOPE
-   - 목표:
-     1) 박스는 불투명(화이트) 느낌
-     2) 활동량/목표 정렬 안정화
-     3) S0/S2/S3... 전역 오염 방지(스코프 제한)
+   Settings S1 - SAFE SCOPE
    ========================= */
 
-/* ---------------------------------
-   0) 헤더/버튼 톤
----------------------------------- */
-/* settings_s0.css or settings_s1.css */
-.settings-page {
+.settings-page.s1 {
   max-width: 980px;
   margin: 0 auto;
 }
 
-.settings-page .section-card .section-head { margin-bottom: 10px; }
+/* 헤더/버튼 톤 */
+.settings-page.s1 .section-card .section-head { margin-bottom: 10px; }
 
-.settings-page .section-card .btn-edit,
-.settings-page .profile-card .btn-edit {
+.settings-page.s1 .section-card .btn-edit,
+.settings-page.s1 .profile-card .btn-edit {
   padding: 8px 12px;
   font-size: 12px;
   border-radius: var(--radius-pill);
 }
 
-.settings-page .section-card .section-ico { width: 34px; height: 34px; }
-.settings-page .section-card .section-title span { font-size: 15px; font-weight: 800; }
+.settings-page.s1 .section-card .section-ico { width: 34px; height: 34px; }
+.settings-page.s1 .section-card .section-title span { font-size: 15px; font-weight: 800; }
 
-/* ---------------------------------
-   1) 프로필 카드: 이메일 pill / unit
-   - ✅ S1에서만 적용되도록 스코프 제한
----------------------------------- */
-.settings-page .profile-card .profile-email-pill {
+/* 프로필 카드: 이메일 pill / unit */
+.settings-page.s1 .profile-card .profile-email-pill {
   background: rgba(255, 226, 182, 0.85);
   color: rgba(0, 0, 0, 0.75);
   font-size: 11px;
@@ -41,29 +31,30 @@
   padding: 3px 10px;
 }
 
-.settings-page .profile-card .profile-stats .unit {
+.settings-page.s1 .profile-card .profile-email-pill.is-empty {
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.settings-page.s1 .profile-card .profile-stats .unit {
   font-size: 11px;
   font-weight: 700;
   margin-left: 2px;
   color: rgba(0, 0, 0, 0.85);
 }
 
-/* ---------------------------------
-   2) 먹을거(Preferences)
-   - pref-row는 base에서 grid를 갖고 있으니
-     여기서는 “박스/톤/내부 spacing”만 안정화
----------------------------------- */
-.settings-page .section-card .pref-row {
+/* Preferences */
+.settings-page.s1 .section-card .pref-row {
   position: relative;
   padding: 12px 10px 14px 10px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.92);
   margin-top: 10px;
 }
+.settings-page.s1 .section-card .pref-row:first-of-type { margin-top: 0; }
 
-.settings-page .section-card .pref-row:first-of-type { margin-top: 0; }
-
-.settings-page .section-card .pref-row::after {
+.settings-page.s1 .section-card .pref-row::after {
   content: "";
   position: absolute;
   right: 10px;
@@ -75,13 +66,13 @@
   opacity: 0.9;
 }
 
-.settings-page .section-card .pref-ico {
+.settings-page.s1 .section-card .pref-ico {
   width: 38px;
   height: 38px;
   margin-top: 2px;
 }
 
-.settings-page .section-card .pref-text {
+.settings-page.s1 .section-card .pref-text {
   font-size: 12px;
   font-weight: 600;
   line-height: 1.35;
@@ -89,7 +80,7 @@
   padding-right: 20px;
 }
 
-.settings-page .section-card .seg-bar {
+.settings-page.s1 .section-card .seg-bar {
   width: 100%;
   padding-right: 20px;
 
@@ -100,22 +91,20 @@
   margin-top: 8px;
 }
 
-.settings-page .section-card .seg-bar .seg {
+.settings-page.s1 .section-card .seg-bar .seg {
   height: 11px;
   border: 1px solid rgba(244, 121, 0, 0.55);
   border-radius: 5px;
   background: #FFFFFF;
 }
 
-.settings-page .section-card .seg-bar .seg.is-on {
+.settings-page.s1 .section-card .seg-bar .seg.is-on {
   background: var(--orange-1);
   border-color: var(--orange-1);
 }
 
-/* ---------------------------------
-   3) 움직임(Activity)
----------------------------------- */
-.settings-page .section-card .move-box {
+/* Activity */
+.settings-page.s1 .section-card .move-box {
   background: rgba(255, 255, 255, 0.92);
   border-radius: 14px;
   padding: 10px 12px;
@@ -123,7 +112,7 @@
   position: relative;
 }
 
-.settings-page .section-card .move-box::before {
+.settings-page.s1 .section-card .move-box::before {
   content: "";
   position: absolute;
   left: 10px;
@@ -135,7 +124,7 @@
   opacity: 0.9;
 }
 
-.settings-page .section-card .move-box .move-left {
+.settings-page.s1 .section-card .move-box .move-left {
   display: grid;
   grid-template-columns: 54px 1fr;
   column-gap: 10px;
@@ -143,21 +132,21 @@
   padding-left: 8px;
 }
 
-.settings-page .section-card .move-box .move-label {
+.settings-page.s1 .section-card .move-box .move-label {
   font-size: 12px;
   font-weight: 800;
   margin: 0;
   line-height: 1.1;
 }
 
-.settings-page .section-card .move-box .move-value {
+.settings-page.s1 .section-card .move-box .move-value {
   font-size: 12px;
   font-weight: 800;
   line-height: 1.25;
   margin: 0;
 }
 
-.settings-page .section-card .move-box .move-sub {
+.settings-page.s1 .section-card .move-box .move-sub {
   display: block;
   margin-top: 2px;
   font-size: 10px;
@@ -166,10 +155,8 @@
   white-space: pre-line;
 }
 
-/* ---------------------------------
-   4) 목표(Goal)
----------------------------------- */
-.settings-page .section-card .goal-box {
+/* Goal */
+.settings-page.s1 .section-card .goal-box {
   margin-top: 10px;
   background: rgba(255, 255, 255, 0.92);
   border-radius: 14px;
@@ -182,7 +169,7 @@
   align-items: center;
 }
 
-.settings-page .section-card .goal-box::before {
+.settings-page.s1 .section-card .goal-box::before {
   content: "";
   position: absolute;
   left: 10px;
@@ -194,14 +181,14 @@
   opacity: 0.9;
 }
 
-.settings-page .section-card .goal-box > .move-label {
+.settings-page.s1 .section-card .goal-box > .move-label {
   margin: 0;
   padding-left: 8px;
   font-size: 12px;
   font-weight: 800;
 }
 
-.settings-page .section-card .goal-row {
+.settings-page.s1 .section-card .goal-row {
   margin-top: 0;
   display: flex;
   justify-content: space-around;
@@ -209,41 +196,39 @@
   gap: 10px;
 }
 
-.settings-page .section-card .goal-item {
+.settings-page.s1 .section-card .goal-item {
   text-align: center;
   opacity: 0.5;
   transition: opacity 0.2s ease;
   background: transparent;
 }
 
-.settings-page .section-card .goal-item img {
+.settings-page.s1 .section-card .goal-item img {
   width: 34px;
   height: 34px;
   margin: 0 auto 6px;
 }
 
-.settings-page .section-card .goal-item div {
+.settings-page.s1 .section-card .goal-item div {
   font-size: 10px;
   color: var(--text-sub);
   font-weight: 500;
 }
 
-.settings-page .section-card .goal-item.is-active { opacity: 1; }
-.settings-page .section-card .goal-item.is-active div {
+.settings-page.s1 .section-card .goal-item.is-active { opacity: 1; }
+.settings-page.s1 .section-card .goal-item.is-active div {
   color: var(--orange-1);
   font-weight: 800;
 }
 
-/* ---------------------------------
-   5) 모바일
----------------------------------- */
+/* Mobile */
 @media (max-width: 420px) {
-  .settings-page .section-card .move-box { padding: 10px 10px; }
-  .settings-page .section-card .move-box .move-left { grid-template-columns: 48px 1fr; }
+  .settings-page.s1 .section-card .move-box { padding: 10px 10px; }
+  .settings-page.s1 .section-card .move-box .move-left { grid-template-columns: 48px 1fr; }
 
-  .settings-page .section-card .goal-box { padding: 10px 10px; grid-template-columns: 48px 1fr; }
-  .settings-page .section-card .goal-item img { width: 32px; height: 32px; }
+  .settings-page.s1 .section-card .goal-box { padding: 10px 10px; grid-template-columns: 48px 1fr; }
+  .settings-page.s1 .section-card .goal-item img { width: 32px; height: 32px; }
 
-  .settings-page .section-card .pref-row { padding: 12px 8px 14px 8px; }
-  .settings-page .section-card .seg-bar { gap: 2px; }
+  .settings-page.s1 .section-card .pref-row { padding: 12px 8px 14px 8px; }
+  .settings-page.s1 .section-card .seg-bar { gap: 2px; }
 }
