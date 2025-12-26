@@ -433,6 +433,19 @@ def timeline(request):
             # ✅ 예측은 source_date 기준으로 수행
             neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=source_date)
 
+            # predictor 호출 직후(neg_pred 만든 다음) 템플릿 안정화
+            if not neg_pred.get("eligible", False):
+                detail = neg_pred.get("detail") or {}
+                md = detail.get("missing_days")
+                if md is None:
+                    md = neg_pred.get("missing_days", [])
+                if not isinstance(md, list):
+                    md = []
+                # 둘 다에 동기화
+                detail["missing_days"] = md
+                neg_pred["missing_days"] = md
+                neg_pred["detail"] = detail
+
             # ✅ 예측 결과 DB 저장(저장은 target 키로)
             if neg_pred.get("eligible"):
                 now_ts = timezone.localtime().strftime("%Y%m%d%H%M%S")
