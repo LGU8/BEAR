@@ -187,6 +187,50 @@ def camera(request):
 def scan_result(request):
     return render(request, "record/scan_result.html")
 
+def _next_target_from_latest(cust_id: str) -> tuple[str, str]:
+    """
+    최신 CUS_FEEL_TH 기록을 기준으로 '다음 슬롯'을 계산
+    - M -> 같은날 L
+    - L -> 같은날 D
+    - D -> 다음날 M
+    """
+    sql = """
+        SELECT rgs_dt, time_slot
+        FROM CUS_FEEL_TH
+        WHERE cust_id = %s
+        ORDER BY
+            rgs_dt DESC,
+            CASE time_slot
+                WHEN 'D' THEN 3
+                WHEN 'L' THEN 2
+                WHEN 'M' THEN 1
+                ELSE 0
+            END DESC,
+            seq DESC
+        LIMIT 1
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [cust_id])
+        row = cursor.fetchone()
+
+    if not row or not row[0] or not row[1]:
+        # 기록이 없으면 "오늘 M"을 타겟으로(또는 저장 생략 정책도 가능)
+        today = timezone.localdate().strftime("%Y%m%d")
+        return (today, "M")
+
+    latest_rgs_dt = str(row[0])        # 'YYYYMMDD'
+    latest_slot = str(row[1]).upper()  # 'M'/'L'/'D'
+
+    if latest_slot == "M":
+        return (latest_rgs_dt, "L")
+    if latest_slot == "L":
+        return (latest_rgs_dt, "D")
+
+    # latest_slot == "D" or 기타
+    latest_date = datetime.strptime(latest_rgs_dt, "%Y%m%d").date()
+    next_date = (latest_date + timedelta(days=1)).strftime("%Y%m%d")
+    return (next_date, "M")
+
 
 def timeline(request):
     """
@@ -322,9 +366,8 @@ def timeline(request):
     if neg_pred.get("eligible"):
         now_ts = timezone.localtime().strftime("%Y%m%d%H%M%S")
 
-        # ⭐ 핵심: D의 다음날 아침(M)
-        target_date = (D_date + timedelta(days=1)).strftime("%Y%m%d")
-        target_slot = "M"
+        target_date, target_slot = _next_target_from_latest(cust_id)
+
 
         p_high = float(neg_pred.get("p_highrisk") or 0.0)
         risk_score = int(round(p_high * 100))
@@ -342,6 +385,7 @@ def timeline(request):
             risk_score   = VALUES(risk_score),
             risk_level   = VALUES(risk_level);
         """
+
 
         with connection.cursor() as cursor:
             cursor.execute(
