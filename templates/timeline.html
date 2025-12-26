@@ -58,14 +58,20 @@
           <div class="negpred-empty-text">
             <p class="negpred-empty-title">⚠️데이터가 부족합니다</p>
             <p class="negpred-empty-desc">
-              키워드 입력이 없는 날짜가 존재합니다.
+              {% if neg_pred.detail.type == "no_recent_record" %}
+                아래 날짜에 감정 기록이 없어 예측할 수 없어
+              {% else %}
+                키워드 입력이 없는 날짜가 존재합니다.
+              {% endif %}
             </p>
 
-            {% if neg_pred.detail.type == "gate_keyword_3days" %}
+
+            {% if neg_pred.detail.type == "gate_keyword_3days" or neg_pred.detail.type == "no_recent_record" %}
               <p class="negpred-empty-dates">
                 {{ neg_pred.detail.missing_days|join:", " }}
               </p>
             {% endif %}
+
           </div>
 
         </div>

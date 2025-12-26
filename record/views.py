@@ -7,7 +7,7 @@ from report.views import get_selected_date
 from conf.views import _safe_get_cust_id
 from django.utils import timezone
 from ml.lstm.predictor import predict_negative_risk
-from django.utils import timezone
+from django.db import connection
 
 
 # Create your views here.
@@ -84,10 +84,16 @@ def record_mood(request):
                         )
                         """,
                         [
-                            date_time, date_time, cust_id,
-                            rgs_dt, seq, time_slot,
-                            mood, energy,
-                            mood, energy,
+                            date_time,
+                            date_time,
+                            cust_id,
+                            rgs_dt,
+                            seq,
+                            time_slot,
+                            mood,
+                            energy,
+                            mood,
+                            energy,
                             stable_yn,
                         ],
                     )
@@ -110,10 +116,15 @@ def record_mood(request):
                           AND time_slot = %s
                         """,
                         [
-                            date_time, mood, energy,
-                            mood, energy,
+                            date_time,
+                            mood,
+                            energy,
+                            mood,
+                            energy,
                             stable_yn,
-                            cust_id, rgs_dt, time_slot,
+                            cust_id,
+                            rgs_dt,
+                            time_slot,
                         ],
                     )
 
@@ -187,49 +198,77 @@ def camera(request):
 def scan_result(request):
     return render(request, "record/scan_result.html")
 
-def _next_target_from_latest(cust_id: str) -> tuple[str, str]:
+
+def _exists_feel_on_date(cust_id: str, rgs_dt: str) -> bool:
+    sql = """
+        SELECT 1
+        FROM CUS_FEEL_TH
+        WHERE cust_id = %s AND rgs_dt = %s
+        LIMIT 1
     """
-    최신 CUS_FEEL_TH 기록을 기준으로 '다음 슬롯'을 계산
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [cust_id, rgs_dt])
+        return cursor.fetchone() is not None
+
+
+def _pick_source_date_today_or_yesterday(cust_id: str) -> str | None:
+    """
+    source_date 선택 정책(고정):
+    - 오늘 기록 있으면 오늘
+    - 없으면 어제 기록 있으면 어제
+    - 둘 다 없으면 None
+    """
+    today = timezone.localdate()
+    today_ymd = today.strftime("%Y%m%d")
+    yest_ymd = (today - timedelta(days=1)).strftime("%Y%m%d")
+
+    if _exists_feel_on_date(cust_id, today_ymd):
+        return today_ymd
+    if _exists_feel_on_date(cust_id, yest_ymd):
+        return yest_ymd
+    return None
+
+
+def _pick_source_slot_DLM(cust_id: str, rgs_dt: str) -> str | None:
+    """
+    같은 rgs_dt 내 최신 slot 정책(고정): D > L > M
+    """
+    sql = """
+        SELECT time_slot
+        FROM CUS_FEEL_TH
+        WHERE cust_id = %s AND rgs_dt = %s
+        GROUP BY time_slot
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [cust_id, rgs_dt])
+        slots = {str(r[0]).upper() for r in cursor.fetchall() if r and r[0]}
+
+    if "D" in slots:
+        return "D"
+    if "L" in slots:
+        return "L"
+    if "M" in slots:
+        return "M"
+    return None
+
+
+def _target_from_source(source_date_ymd: str, source_slot: str) -> tuple[str, str]:
+    """
+    다음 슬롯(target) 전이 정책(고정):
     - M -> 같은날 L
     - L -> 같은날 D
     - D -> 다음날 M
     """
-    sql = """
-        SELECT rgs_dt, time_slot
-        FROM CUS_FEEL_TH
-        WHERE cust_id = %s
-        ORDER BY
-            rgs_dt DESC,
-            CASE time_slot
-                WHEN 'D' THEN 3
-                WHEN 'L' THEN 2
-                WHEN 'M' THEN 1
-                ELSE 0
-            END DESC,
-            seq DESC
-        LIMIT 1
-    """
-    with connection.cursor() as cursor:
-        cursor.execute(sql, [cust_id])
-        row = cursor.fetchone()
+    s = source_slot.upper()
+    if s == "M":
+        return (source_date_ymd, "L")
+    if s == "L":
+        return (source_date_ymd, "D")
 
-    if not row or not row[0] or not row[1]:
-        # 기록이 없으면 "오늘 M"을 타겟으로(또는 저장 생략 정책도 가능)
-        today = timezone.localdate().strftime("%Y%m%d")
-        return (today, "M")
-
-    latest_rgs_dt = str(row[0])        # 'YYYYMMDD'
-    latest_slot = str(row[1]).upper()  # 'M'/'L'/'D'
-
-    if latest_slot == "M":
-        return (latest_rgs_dt, "L")
-    if latest_slot == "L":
-        return (latest_rgs_dt, "D")
-
-    # latest_slot == "D" or 기타
-    latest_date = datetime.strptime(latest_rgs_dt, "%Y%m%d").date()
-    next_date = (latest_date + timedelta(days=1)).strftime("%Y%m%d")
-    return (next_date, "M")
+    # D(또는 기타) -> 다음날 M
+    d = datetime.strptime(source_date_ymd, "%Y%m%d").date()
+    next_ymd = (d + timedelta(days=1)).strftime("%Y%m%d")
+    return (next_ymd, "M")
 
 
 def timeline(request):
@@ -348,65 +387,100 @@ def timeline(request):
         },
         ensure_ascii=False,
     )
-   
-   # 기준일 D (최신 기록일)
-    with connection.cursor() as cursor:
-        cursor.execute(
-            "SELECT MAX(rgs_dt) FROM CUS_FEEL_TH WHERE cust_id = %s",
-            [cust_id]
-        )
-        row = cursor.fetchone()
-
-    D_str = str(row[0]) if row and row[0] else timezone.localdate().strftime("%Y%m%d")
-    D_date = datetime.strptime(D_str, "%Y%m%d").date()
-
-    neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=D_str)
-
-    # ✅ 예측 결과 DB 저장
-    if neg_pred.get("eligible"):
-        now_ts = timezone.localtime().strftime("%Y%m%d%H%M%S")
-
-        target_date, target_slot = _next_target_from_latest(cust_id)
-
-
-        p_high = float(neg_pred.get("p_highrisk") or 0.0)
-        risk_score = int(round(p_high * 100))
-        risk_level = "y" if risk_score >= 30 else "n"
-
-        upsert_sql = """
-        INSERT INTO CUS_FEEL_RISK_TH (
-            created_time, updated_time,
-            cust_id, rgs_dt, time_slot,
-            risk_score, risk_level
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE
-            updated_time = VALUES(updated_time),
-            risk_score   = VALUES(risk_score),
-            risk_level   = VALUES(risk_level);
-        """
-
-
-        with connection.cursor() as cursor:
-            cursor.execute(
-                upsert_sql,
-                [now_ts, now_ts, cust_id, target_date, target_slot, risk_score, risk_level]
-            )
-
-   
-
-
-
-    
     # =========================
-    # (추가) UI용 상태 계산
-    #  - ui_active_idx: 0=긍정, 1=중립, 2=부정
-    #  - ui_status_text: 상태 문구
+    # (2) 부정 감정 예측: source(today/어제) -> target(다음 슬롯)
+    # =========================
+
+    source_date = _pick_source_date_today_or_yesterday(cust_id)
+
+    today_ymd = timezone.localdate().strftime("%Y%m%d")
+    yest_ymd = (timezone.localdate() - timedelta(days=1)).strftime("%Y%m%d")
+
+    if source_date is None:
+        neg_pred = {
+            "eligible": False,
+            "reason": "데이터가 없습니다",
+            "detail": {
+                "type": "no_recent_record",
+                "rule": "오늘/어제 중 감정 기록이 있어야 예측 가능합니다",
+                "asof": today_ymd,
+                # ✅ 정확히 '어느 날짜 데이터가 없음'인지 명시
+                "missing_days": [yest_ymd, today_ymd],
+            },
+        }
+        target_date, target_slot = None, None
+
+    else:
+        source_slot = _pick_source_slot_DLM(cust_id, source_date)
+
+        if source_slot is None:
+            # source_date는 있는데 slot이 없다? (이론상 거의 없음) -> 데이터 없음 처리
+            neg_pred = {
+                "eligible": False,
+                "reason": "데이터가 없습니다",
+                "detail": {
+                    "type": "no_recent_record",
+                    "rule": "오늘/어제 중 감정 기록이 있어야 예측 가능합니다",
+                    "asof": source_date,
+                },
+            }
+            target_date, target_slot = None, None
+
+        else:
+            # target 계산(다음 슬롯)
+            target_date, target_slot = _target_from_source(source_date, source_slot)
+
+            # ✅ 예측은 source_date 기준으로 수행
+            neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=source_date)
+
+            # ✅ 예측 결과 DB 저장(저장은 target 키로)
+            if neg_pred.get("eligible"):
+                now_ts = timezone.localtime().strftime("%Y%m%d%H%M%S")
+
+                p_high = float(neg_pred.get("p_highrisk") or 0.0)
+                risk_score = int(round(p_high * 100))
+                # UI/정책 기준(p0+p2>=0.30)과 1:1 매칭: risk_score>=30
+                risk_level = "y" if risk_score >= 30 else "n"
+
+                upsert_sql = """
+                INSERT INTO CUS_FEEL_RISK_TH (
+                    created_time, updated_time,
+                    cust_id, target_date, target_slot,
+                    risk_score, risk_level
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    updated_time = VALUES(updated_time),
+                    risk_score   = VALUES(risk_score),
+                    risk_level   = VALUES(risk_level);
+                """
+
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        upsert_sql,
+                        [
+                            now_ts,
+                            now_ts,
+                            cust_id,
+                            target_date,
+                            target_slot,
+                            risk_score,
+                            risk_level,
+                        ],
+                    )
+
+    # =========================
+    # (추가) UI용 상태 계산(기존 유지 + 데이터 없음 케이스 보강)
     # =========================
     neg_pred["ui_active_idx"] = 1
     neg_pred["ui_status_text"] = "예측 준비 중"
 
-    if neg_pred.get("eligible", False):
+    if not neg_pred.get("eligible", False):
+        # ✅ 오늘/어제 기록 자체가 없음
+        if neg_pred.get("detail", {}).get("type") == "no_recent_record":
+            neg_pred["ui_active_idx"] = 1
+            neg_pred["ui_status_text"] = "데이터 없음"
+    else:
         p = neg_pred.get("p_highrisk", 0.0)
         try:
             p = float(p)
@@ -422,6 +496,7 @@ def timeline(request):
         else:
             neg_pred["ui_active_idx"] = 0
             neg_pred["ui_status_text"] = "안정적이에요"
+    # (여기까지: chart_json 만들고, neg_pred 만들고, ui_active_idx/ui_status_text까지 세팅 완료된 상태)
 
     context = {
         "active_tab": "timeline",
@@ -429,10 +504,7 @@ def timeline(request):
         "week_end": week_end,
         "chart_json": chart_json,
         "neg_pred": neg_pred,
-        # 아래 3개는 네 기존 context에 있던 값이면 유지, 아니면 제거 가능
-        "risk_label": "위험해요ㅠㅠ",
-        "risk_score": 0.78,
-        "llm_ment": "오늘은 기분이 좋지 않았네요. 가벼운 산책은 어때요?",
+        # ✅ 행동추천은 추후 붙일 거니까 지금은 빈 문자열로 고정
+        "llm_ment": "",
     }
-
     return render(request, "timeline.html", context)
