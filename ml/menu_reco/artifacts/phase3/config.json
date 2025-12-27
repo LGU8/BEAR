@@ -1,0 +1,8 @@
+{
+  "alpha": 1.0,
+  "w_map": {
+    "pref_cluster": 0.5,
+    "healthy_532": 0.6,
+    "explore_new": 0.3
+  }
+}

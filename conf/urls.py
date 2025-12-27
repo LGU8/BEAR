@@ -27,5 +27,8 @@ urlpatterns = [
 
     # report가 include 방식이라면, 해당 앱의 views.py에도 @login_required가 있어야 합니다.
     path("report/", include("report.urls")),
+
+    # menu_reco api root
+    path("api/", include("api.urls")),
 ]
 
