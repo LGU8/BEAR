@@ -133,15 +133,21 @@
 <!-- (3) LLM 멘트 -->
 <section class="timeline-section">
   <div class="timeline-card">
-    <div class="timeline-card-head">
-      <h4 class="timeline-title">행동 추천</h4>
-    </div>
+    <div class="timeline-card-inner">
 
-    <div class="llm-box">
-      <p>{{ llm_ment }}</p>
+      <div class="timeline-card-head">
+        <h4 class="timeline-title">행동 추천</h4>
+      </div>
+
+      <div class="llm-box {% if neg_pred.ui_active_idx == 2 %}is-risk{% endif %}">
+
+        <p class="llm-text">{{ llm_ment }}</p>
+      </div>
+
     </div>
   </div>
 </section>
+
 
 <!-- ✅ Chart data -->
 <script id="weeklyEmotionData" type="application/json">

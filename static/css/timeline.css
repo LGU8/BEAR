@@ -152,7 +152,7 @@
   z-index: 9999 !important;
 }
 
-/* 말풍선 삼각형 제거 */
+/* ✅ 말풍선 삼각형 제거 (중복 선언 1개로 통일) */
 .datepicker-dropdown::before,
 .datepicker-dropdown::after{
   display: none !important;
@@ -169,12 +169,6 @@
 .datepicker-dropdown .datepicker-months span.month.focused,
 .datepicker-dropdown .datepicker-years span.year.focused{
   background-color: #FFD17C !important;
-}
-
-/* 기본 arrow 숨김 */
-.datepicker-dropdown:before,
-.datepicker-dropdown:after{
-  display: none !important;
 }
 
 /* ======================================================
@@ -196,7 +190,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-
 }
 
 /* 아이콘 3개: 가로 정렬 + 반응형 간격 */
@@ -294,6 +287,52 @@
   font-weight: 600;
   color: #F5941E;
   word-break: keep-all;
+}
+
+/* ======================================================
+   LLM Ment Box (행동 추천/응원)
+   - 흰 배경 카드 + 가운데 정렬 텍스트
+   - ui_active_idx==2 일 때 is-risk 톤 적용
+   ====================================================== */
+.llm-box{
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 16px;
+  margin-top: 12px;
+  box-sizing: border-box;
+
+  /* 카드 느낌 */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+
+  /* 텍스트 중앙 배치 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 템플릿이 <p>만 쓰는 구조라 p에 직접 스타일 */
+.llm-box p{
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #333;
+  text-align: center;
+
+  /* 한국어 줄바꿈 자연스럽게 */
+  word-break: keep-all;
+}
+
+/* ✅ 위험 톤(부정 아이콘 활성: ui_active_idx == 2) */
+.llm-box.is-risk{
+  /* 너무 빨갛지 않게 “연한 경고 톤” */
+  background: #FFF6F6;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+  border: 1px solid rgba(245, 148, 30, 0.18); /* BEAR 톤 살짝 섞기 */
+}
+
+/* 위험 톤일 때 텍스트 살짝 강조(과하지 않게) */
+.llm-box.is-risk p{
+  color: #2B2B2B;
 }
 
 /* ======================================================

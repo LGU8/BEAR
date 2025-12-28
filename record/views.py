@@ -8,7 +8,8 @@ from conf.views import _safe_get_cust_id
 from django.utils import timezone
 from ml.lstm.predictor import predict_negative_risk
 from django.db import connection
-
+from ml.behavior_llm.behavior_service import generate_and_save_behavior_recom
+import traceback
 
 # Create your views here.
 def record_mood(request):
@@ -481,6 +482,16 @@ def timeline(request):
                             risk_level,
                         ],
                     )
+                try:
+                    generate_and_save_behavior_recom(
+                        cust_id=cust_id,
+                        target_date=target_date,
+                        target_slot=target_slot,
+                    )
+                except Exception as e:
+                    print("### 행동추천 생성 실패 ###")
+                    print(e)
+                    traceback.print_exc()
 
     # =========================
     # (추가) UI용 상태 계산(기존 유지 + 데이터 없음 케이스 보강)
@@ -511,6 +522,26 @@ def timeline(request):
             neg_pred["ui_status_text"] = "안정적이에요"
     # (여기까지: chart_json 만들고, neg_pred 만들고, ui_active_idx/ui_status_text까지 세팅 완료된 상태)
 
+     # =========================
+    # (추가) 행동추천 멘트 조회: CUS_BEH_RECOM_TH.content → llm_ment
+    # =========================
+    llm_ment = ""
+
+    if target_date and target_slot:
+        sql_recom = """
+            SELECT content
+            FROM CUS_BEH_RECOM_TH
+            WHERE cust_id = %s
+              AND target_date = %s
+              AND target_slot = %s
+            LIMIT 1
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(sql_recom, [cust_id, target_date, target_slot])
+            row = cursor.fetchone()
+            if row and row[0]:
+                llm_ment = str(row[0])
+
     context = {
         "active_tab": "timeline",
         "week_start": week_start,
@@ -518,6 +549,6 @@ def timeline(request):
         "chart_json": chart_json,
         "neg_pred": neg_pred,
         # ✅ 행동추천은 추후 붙일 거니까 지금은 빈 문자열로 고정
-        "llm_ment": "",
+        "llm_ment": llm_ment,
     }
     return render(request, "timeline.html", context)
