@@ -202,11 +202,13 @@ def report_daily(request):
                               AND rgs_dt = %s) c
                         ON w.feel_id = c.feel_id) AS keywords,
                         (SELECT content FROM REPORT_TH 
-                         WHERE cust_id = %s AND rgs_dt = %s AND type = 'D') AS feedback
+                         WHERE cust_id = %s AND type = 'D'
+                         AND period_start = %s AND period_end = %s) AS feedback
                 FROM CUS_FEEL_TH c
                 WHERE cust_id = %s AND rgs_dt = %s; 
                 """
-                cursor.execute(sql, [cust_id, rgs_dt]*3)
+                data = [cust_id, rgs_dt, cust_id, rgs_dt, rgs_dt, cust_id, rgs_dt]
+                cursor.execute(sql, data)
                 feeling_daily = cursor.fetchall()
 
     except Exception as e:
