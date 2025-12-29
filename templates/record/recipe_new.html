@@ -1,0 +1,28 @@
+{% extends "record_base_clean.html" %}
+{% load static %}
+
+{% block main_area %}
+<section class="card">
+  <h2 class="section-title">레시피 작성하기</h2>
+
+  <!-- ✅ 레시피명 추가 -->
+  <div class="field">
+    <label class="label" for="recipe-title">레시피명</label>
+    <input id="recipe-title" class="input" type="text" placeholder="예: 나만의 김치볶음밥 레시피">
+  </div>
+
+  <!-- 기존 1,2,3 단계 -->
+  <div class="steps">
+    <textarea id="step-1" class="textarea" placeholder="1."></textarea>
+    <textarea id="step-2" class="textarea" placeholder="2."></textarea>
+    <textarea id="step-3" class="textarea" placeholder="3."></textarea>
+  </div>
+
+  <!-- 재료 추가 영역(기존 UI 구조에 맞춰 구성) -->
+  <div class="ingredients">
+    <!-- 검색 input + 결과 + 체크 UI -->
+  </div>
+
+  <button id="btn-recipe-save" class="btn btn-primary" type="button">저장</button>
+</section>
+{% endblock %}

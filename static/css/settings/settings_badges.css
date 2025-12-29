@@ -1,0 +1,487 @@
+/* static/css/settings/settings_badges.css */
+
+/* ==============
+   Page
+   ============== */
+.badges-page { gap: 16px; }
+
+.badges-progress-card { padding: 18px; }
+.badges-progress-head { display:flex; align-items:center; justify-content:space-between; }
+.badges-progress-title { font-weight:800; font-size:14px; }
+
+/* Progress bar */
+.badges-progress-bar {
+  margin-top: 10px;
+  width: 100%;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: #FFFFFF;
+  border: 1px solid rgba(244, 121, 0, 0.25);
+  overflow: hidden;
+}
+.badges-progress-bar > span {
+  display:block;
+  height:100%;
+  width: 0%;
+  background: var(--orange-1);
+  border-radius: var(--radius-pill);
+}
+
+/* ==============
+   Section Header
+   ============== */
+.badges-section-head {
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.badges-section-title { font-weight:800; font-size:14px; }
+.badges-section-sub { font-weight:300; font-size:10px; color: var(--text-sub); }
+
+/* ==============
+   Slider
+   ============== */
+.badge-slider {
+  position: relative;
+  background: rgba(255,255,255,0.35);
+  border-radius: var(--radius-lg);
+  padding: 14px 46px; /* 버튼 영역 안전 여백 */
+  overflow: hidden;
+}
+
+/* track / viewport */
+.badge-viewport { overflow: hidden; }
+.badge-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: transform;
+}
+.badge-page {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: auto;
+  gap: 14px 10px;
+  padding: 6px 10px;
+}
+
+/* ✅ id -> title */
+.badge-title{
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(0,0,0,0.52);
+  max-width: 96px;
+  margin-left: auto;
+  margin-right: auto;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-item.is-locked .badge-title{
+  color: rgba(0,0,0,0.22);
+}
+
+/* ==============
+   Nav buttons
+   - 카드 hover 시 노출
+   - 메인 컬러
+   ============== */
+.badge-nav{
+  position:absolute;
+  top: 50%;
+
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: none;
+
+  background: var(--orange-1);
+  color: #fff;
+  box-shadow: 0 10px 18px rgba(244,121,0,0.18);
+
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+
+  z-index: 50;
+
+  /* 기본 숨김 */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) scale(0.96);
+  transition: opacity 140ms ease, transform 140ms ease, filter 140ms ease;
+}
+
+.badge-nav--prev { left: 8px; }
+.badge-nav--next { right: 8px; }
+
+.badges-section-card:hover .badge-nav,
+.badges-section-card:focus-within .badge-nav{
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) scale(1);
+}
+
+.badge-nav:hover{ filter: brightness(1.03); }
+.badge-nav:disabled{
+  opacity: 0.25 !important;
+  cursor: default;
+  filter: none;
+}
+
+/* 모바일: hover가 없으니 노출 정책(옵션 A: 항상 보이기) */
+@media (max-width: 560px){
+  .badge-nav{
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* ==============
+   Badge item
+   ============== */
+.badge-item { text-align:center; user-select:none; cursor: pointer; }
+.badge-bubble {
+  width: 78px;
+  height: 78px;
+  border-radius: 999px;
+  background: rgba(255, 209, 124, 0.45);
+  margin: 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position: relative;
+  overflow:hidden;
+}
+
+.badge-img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  display:block;
+}
+
+/* acquired ring */
+.badge-item:not(.is-locked) .badge-bubble{
+  outline: 2px solid rgba(244,121,0,0.14);
+}
+
+/* locked */
+.badge-item.is-locked .badge-img {
+  opacity: 0.30;
+  filter: grayscale(0.15) saturate(0.85);
+}
+
+/* Hover overlay (힌트) */
+.badge-overlay {
+  position:absolute;
+  inset:0;
+  padding: 10px 8px;
+
+  /* ✅ 따뜻한 톤 + 가독성 강화 */
+  background: rgba(255, 244, 229, 0.86);
+  backdrop-filter: blur(2px);
+
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 160ms ease, transform 160ms ease;
+
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:6px;
+}
+.badge-item:hover .badge-overlay { opacity: 1; transform: translateY(0); }
+
+.badge-overlay-title {
+  font-weight: 1000;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-item.is-locked .badge-overlay-title::before{
+  content: "🔒 ";
+}
+.badge-overlay-hint {
+  font-weight: 700;
+  font-size: 9px;
+  color: rgba(0,0,0,0.70);
+  line-height: 1.35;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* =========================================================
+   Modal (도감 전용) - badges-page scope lock
+   ========================================================= */
+.badges-page .badge-modal{
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 999999;
+}
+.badges-page .badge-modal.is-open{ display:block; }
+
+.badges-page .badge-modal__dim{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.28);
+}
+
+/* panel */
+.badges-page .badge-modal__content{
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.98);
+
+  width: min(560px, calc(100vw - 28px));
+  max-height: min(82vh, calc(100vh - 56px));
+  overflow: auto;
+
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 16px;
+
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms ease;
+  -webkit-overflow-scrolling: touch;
+}
+.badges-page .badge-modal.is-open .badge-modal__content{
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.badges-page .badge-modal__close{
+  position: sticky;
+  top: 0;
+  margin-left: auto;
+
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.06);
+
+  background: rgba(255,255,255,0.72);
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+
+  display: grid;
+  place-items: center;
+}
+
+/* layout */
+.badges-page .badge-modal__body{
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+@media (max-width: 420px){
+  .badges-page .badge-modal__body{
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+}
+
+/* image wrap */
+.badges-page .badge-modal__imgwrap{
+  width: 160px;
+  height: 160px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position: relative;
+  overflow: hidden;
+
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.badges-page .badge-modal__imgwrap:hover{
+  transform: scale(1.02);
+  box-shadow: 0 14px 30px rgba(244,121,0,0.18);
+}
+
+.badges-page .badge-modal.is-unlocked .badge-modal__imgwrap{
+  background: rgba(255, 236, 210, 0.65);
+  outline: 2px solid rgba(244,121,0,0.18);
+  box-shadow: 0 12px 26px rgba(244,121,0,0.14);
+}
+
+/* img */
+.badges-page .badge-modal__imgwrap img{
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  display:block;
+  transition: filter 180ms ease, transform 180ms ease, opacity 160ms ease;
+}
+.badges-page .badge-modal__imgwrap:hover img{
+  transform: scale(1.06);
+  filter: saturate(1.05);
+}
+
+/* locked: blur + dim */
+.badges-page .badge-modal.is-locked .badge-modal__imgwrap img{
+  opacity: 0.22;
+  filter: blur(2px) grayscale(0.25) saturate(0.8);
+  transform: scale(1.02);
+}
+.badges-page .badge-modal.is-locked .badge-modal__imgwrap::after{
+  content: "LOCKED";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: rgba(0,0,0,0.25);
+}
+
+/* click bounce */
+.badges-page .badge-modal__imgwrap.is-bounce{
+  animation: badgeBounce 260ms ease;
+}
+@keyframes badgeBounce{
+  0%{ transform: scale(1); }
+  50%{ transform: scale(1.04); }
+  100%{ transform: scale(1); }
+}
+
+/* meta */
+.badges-page .badge-modal__title{ font-weight: 900; font-size: 16px; }
+.badges-page .badge-modal__desc{
+  margin-top: 8px;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.55;
+  color: rgba(0,0,0,0.78);
+}
+.badges-page .badge-modal__hint{
+  margin-top: 12px;
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(0,0,0,0.78);
+  background: rgba(255,255,255,0.58);
+  border: 1px solid rgba(244,121,0,0.16);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+/* locked: desc 숨기고 hint 강조 */
+.badges-page .badge-modal.is-locked .badge-modal__desc{
+  opacity: 0.0;
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+.badges-page .badge-modal.is-locked .badge-modal__hint{
+  background: rgba(255, 226, 182, 0.55);
+  border-color: rgba(244,121,0,0.25);
+}
+
+/* acquired */
+.badges-page .badge-modal__acquired{
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(0,0,0,0.62);
+  display: none;
+}
+
+.badges-page .badge-modal__acquired .acq-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px 10px;
+  border-radius: 999px;
+
+  background: rgba(255,255,255,0.70);
+  border: 1px solid rgba(244,121,0,0.18);
+
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.70);
+
+  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+}
+
+/* 라벨 */
+.badges-page .badge-modal__acquired .acq-label{
+  color: rgba(0,0,0,0.55);
+  font-weight: 900;
+}
+
+/* 값 */
+.badges-page .badge-modal__acquired .acq-value{
+  color: rgba(0,0,0,0.82);
+  font-weight: 1000;
+  letter-spacing: 0.1px;
+}
+
+/* locked면 획득일은 숨김 유지 */
+.badges-page .badge-modal.is-locked .badge-modal__acquired{
+  display: none !important;
+}
+
+.badges-page .badge-modal__footer{
+  margin-top: 12px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap: wrap;
+}
+
+.badges-page .badge-modal__pill{
+  display:inline-flex;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.62);
+  border: 1px solid rgba(0,0,0,0.06);
+  font-weight: 900;
+  font-size: 11px;
+  color: rgba(0,0,0,0.72);
+}
+.badges-page .badge-modal.is-locked .badge-modal__pill{
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.06);
+}
+
+.badges-page .badge-modal__cta{
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+
+  background: var(--orange-1);
+  color: #fff;
+  text-decoration: none;
+
+  font-weight: 900;
+  font-size: 12px;
+  box-shadow: 0 10px 18px rgba(244,121,0,0.16);
+}
+.badges-page .badge-modal__cta:hover{ filter: brightness(1.02); }

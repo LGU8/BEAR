@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/record_mood.css' %}">
+<script src="{% static 'js/record_mood.js' %}"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/locales/bootstrap-datepicker.ko.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- 날짜 선택 -->
+<div class="record-datepicker" id="date-picker-trigger">
+  <span class="record-datepicker-icon">📅</span>
+  <span class="record-datepicker-text">{{ selected_date }}</span>
+  <input type="text" id="date-picker" class="record-datepicker-input" placeholder="날짜 선택">
+</div>
+
+<script>
+$(function () {
+  const defaultDateStr = "{{ selected_date }}";
+
+  $('#date-picker').datepicker({
+    format: 'yyyy-mm-dd',
+    language: 'ko',
+    autoclose: true,
+    endDate: new Date(),
+    todayHighlight: false,
+    orientation: 'bottom left'
+  }).on('changeDate', function (e) {
+    const selected = e.format('yyyy-mm-dd');
+
+    // 화면에 보이는 날짜 갱신
+    $('.report-datepicker-text').text(selected);
+
+    // 실제 페이지 이동 (필요한 경우)
+    window.location.search = `?date=${selected}`;
+    });
+
+  // 바 전체 클릭 시 달력 열기
+  $('#date-picker-trigger').on('click', function () {
+      $('#date-picker').datepicker('show');
+  });
+});
+
+</script>
+
+<form method="post" >
+{% csrf_token %}
+
+<!-- 서버로 보낼 실제 값 (저장소) -->
+<input type="hidden" name="time_slot" id="time-input">
+<input type="hidden" name="mood" id="mood-input">
+<input type="hidden" name="energy" id="energy-input">
+<input type="hidden" name="keyword" id="keyword-input">
+
+<!-- 시간대 선택 -->
+<div class="record-mood-card">
+  <div class="record-mood-title">
+    <span>시간 선택</span>
+  </div>
+    <div class="time-row">
+    <button type="button" class="time-item" data-time="M">
+      <img src="{% static 'record_img/morning.png' %}" alt="아침">
+      <span class="time-label">아침</span>
+    </button>
+
+    <button type="button" class="time-item" data-time="L">
+      <img src="{% static 'record_img/lunch.png' %}" alt="점심">
+      <span class="time-label">점심</span>
+    </button>
+
+    <button type="button" class="time-item" data-time="D">
+      <img src="{% static 'record_img/dinner.png' %}" alt="저녁">
+      <span class="time-label">저녁</span>
+    </button>
+  </div>
+</div>
+
+<!-- 감정-정서 선택 -->
+<div class="record-mood-card">
+  <div class="record-mood-title">
+    <span>감정 선택</span>
+  </div>
+
+  <div class="mood-row">
+    <button type="button" class="mood-option" data-mood="pos">
+      <img src="/static/icons_img/긍정.png" alt="긍정">
+      <span class="mood-label">긍정</span>
+    </button>
+
+    <button type="button" class="mood-option" data-mood="neu">
+      <img src="/static/icons_img/중립.png" alt="중립">
+      <span class="mood-label">중립</span>
+    </button>
+
+    <button type="button" class="mood-option" data-mood="neg">
+      <img src="/static/icons_img/부정.png" alt="부정">
+      <span class="mood-label">부정</span>
+    </button>
+  </div>
+</div>
+
+<!-- 감정-활성화 선택 -->
+<div class="record-mood-card">
+  <div class="record-mood-title">
+    <span>활성도 선택</span>
+  </div>
+
+  <div class="arousal-row">
+
+    <!-- LEFT: 선택된 감정 -->
+    <div class="selected-mood">
+      <img alt="">
+      <span class="selected-mood-label"></span>
+
+      <span class="selected-mood-placeholder">감정을 먼저 선택해 주세요</span>
+    </div>
+
+    <!-- RIGHT: 활성도 버튼 -->
+    <div class="arousal-options">
+      <button type="button" class="arousal-btn low" data-arousal="low">Low</button>
+      <button type="button" class="arousal-btn med" data-arousal="med">Med</button>
+      <button type="button" class="arousal-btn high" data-arousal="hig">High</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- 감정-키워드 선택 -->
+<div class="record-mood-card">
+  <div class="record-mood-title">
+    <span>키워드 선택</span>
+  </div>
+
+  <div class="keyword-container">
+    <span class="keyword-placeholder">감정과 활성화를 먼저 선택해 주세요</span>
+  </div>
+</div>
+
+<!-- 하단 버튼 -->
+<div class="bottom-actions">
+  <button type="submit" class="bottom-btn primary" name="next" value="next"> 다음 </button>
+</div>
+</form>
+
+{% endblock %}

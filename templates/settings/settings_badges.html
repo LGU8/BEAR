@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/settings/settings_base.css' %}">
+<link rel="stylesheet" href="{% static 'css/settings/settings_badges.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="settings-page badges-page">
+
+  <!-- 수집율 -->
+  <div class="settings-card badges-progress-card">
+    <div class="badges-progress-head">
+      <div class="badges-progress-title">수집율 {{ badge_rate }}%</div>
+    </div>
+    <div
+      class="badges-progress-bar"
+      role="progressbar"
+      aria-valuenow="{{ badge_rate }}"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+      <span style="width: {{ badge_rate }}%"></span>
+    </div>
+  </div>
+
+  <!-- 식단 캐릭터 -->
+  <div class="settings-card badges-section-card">
+    <div class="badges-section-head">
+      <div class="badges-section-title">식단 캐릭터</div>
+      <div class="badges-section-sub">Hover로 힌트를 확인하고, 클릭하면 상세를 볼 수 있어요.</div>
+    </div>
+
+    <div class="badge-slider" data-slider="food">
+      <button type="button" class="badge-nav badge-nav--prev" aria-label="prev">‹</button>
+
+      <div class="badge-viewport">
+        <div class="badge-track" data-track="food">
+          {% for b in food_badges %}
+            <div
+              class="badge-item {% if b.locked %}is-locked{% endif %}"
+              tabindex="0"
+              data-badge-id="{{ b.badge_id }}"
+              data-title="{{ b.title|default:b.badge_id|escape }}"
+              data-desc="{{ b.desc|default:''|escape }}"
+              data-hint="{{ b.hint|default:''|escape }}"
+              data-img-url="{{ b.img_url }}"
+              data-locked="{% if b.locked %}1{% else %}0{% endif %}"
+              data-acquired-time="{{ b.acquired_time|default_if_none:'' }}"
+            >
+              <div class="badge-bubble">
+                <img class="badge-img" src="{{ b.img_url }}" alt="{{ b.badge_id }}">
+                <div class="badge-overlay">
+                  <div class="badge-overlay-title">{{ b.title|default:b.badge_id }}</div>
+                  <div class="badge-overlay-hint">{{ b.hint|default:'' }}</div>
+                </div>
+              </div>
+
+              <!-- ✅ id -> title -->
+              <div class="badge-title">{{ b.title|default:b.badge_id }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="button" class="badge-nav badge-nav--next" aria-label="next">›</button>
+    </div>
+  </div>
+
+  <!-- 감정 캐릭터 -->
+  <div class="settings-card badges-section-card">
+    <div class="badges-section-head">
+      <div class="badges-section-title">감정 캐릭터</div>
+      <div class="badges-section-sub">Hover로 힌트를 확인하고, 클릭하면 상세를 볼 수 있어요.</div>
+    </div>
+
+    <div class="badge-slider" data-slider="emotion">
+      <button type="button" class="badge-nav badge-nav--prev" aria-label="prev">‹</button>
+
+      <div class="badge-viewport">
+        <div class="badge-track" data-track="emotion">
+          {% for b in emotion_badges %}
+            <div
+              class="badge-item {% if b.locked %}is-locked{% endif %}"
+              tabindex="0"
+              data-badge-id="{{ b.badge_id }}"
+              data-title="{{ b.title|default:b.badge_id|escape }}"
+              data-desc="{{ b.desc|default:''|escape }}"
+              data-hint="{{ b.hint|default:''|escape }}"
+              data-img-url="{{ b.img_url }}"
+              data-locked="{% if b.locked %}1{% else %}0{% endif %}"
+              data-acquired-time="{{ b.acquired_time|default_if_none:'' }}"
+            >
+              <div class="badge-bubble">
+                <img class="badge-img" src="{{ b.img_url }}" alt="{{ b.badge_id }}">
+                <div class="badge-overlay">
+                  <div class="badge-overlay-title">{{ b.title|default:b.badge_id }}</div>
+                  <div class="badge-overlay-hint">{{ b.hint|default:'' }}</div>
+                </div>
+              </div>
+
+              <!-- ✅ id -> title (감정도 통일) -->
+              <div class="badge-title">{{ b.title|default:b.badge_id }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="button" class="badge-nav badge-nav--next" aria-label="next">›</button>
+    </div>
+  </div>
+
+  <!-- ✅ Modal (도감 전용) : 반드시 badges-page 내부에 둬야 scope CSS가 적용됨 -->
+  <div class="badge-modal" id="badgeModal" aria-hidden="true">
+    <div class="badge-modal__dim" data-modal-close></div>
+
+    <div class="badge-modal__content" role="dialog" aria-modal="true" aria-labelledby="badgeModalTitle">
+      <button type="button" class="badge-modal__close" aria-label="close" data-modal-close>×</button>
+
+      <div class="badge-modal__body">
+        <div class="badge-modal__imgwrap">
+          <img id="badgeModalImg" src="" alt="">
+        </div>
+
+        <div class="badge-modal__meta">
+          <div class="badge-modal__title" id="badgeModalTitle"></div>
+          <div class="badge-modal__desc" id="badgeModalDesc"></div>
+          <div class="badge-modal__hint" id="badgeModalHint"></div>
+
+          <div class="badge-modal__acquired" id="badgeModalAcquired"></div>
+
+          <div class="badge-modal__footer">
+            <span class="badge-modal__pill" id="badgeModalLockPill" style="display:none;">잠김</span>
+            <a class="badge-modal__cta" id="badgeModalCta" href="#" role="button">이동</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/settings/settings_badges.js' %}"></script>
+{% endblock %}
