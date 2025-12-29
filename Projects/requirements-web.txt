@@ -1,0 +1,30 @@
+# ===== Django Web =====
+Django==4.2
+asgiref==3.11.0
+sqlparse==0.5.4
+
+# ===== WSGI =====
+gunicorn==21.2.0
+
+# ===== DB (RDS MySQL) =====
+mysqlclient==2.2.7
+
+# ===== Static / Security =====
+whitenoise==6.7.0
+python-dotenv==1.2.1
+
+# ===== HTTP =====
+requests==2.32.5
+urllib3==2.3.0
+charset-normalizer==3.4.4
+idna==3.11
+certifi==2025.11.12
+
+# ===== AWS =====
+boto3==1.34.162
+botocore==1.34.162
+
+# ===== JSON / Validation =====
+pydantic==2.12.5
+pydantic-settings==2.12.0
+typing_extensions==4.15.0
