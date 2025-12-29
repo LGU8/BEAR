@@ -9,6 +9,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    # ✅ 모든 run 명령이 Projects 폴더에서 실행되게 함
+    defaults:
+      run:
+        working-directory: Projects
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,4 +46,5 @@ jobs:
           application_name: ${{ secrets.EB_APP_NAME }}
           environment_name: ${{ secrets.EB_ENV_NAME }}
           version_label: ${{ github.sha }}
-          deployment_package: deploy.zip
+          # ✅ deploy.zip은 Projects 폴더 안에서 만들어졌으니 경로를 이렇게
+          deployment_package: Projects/deploy.zip
