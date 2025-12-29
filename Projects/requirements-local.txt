@@ -1,3 +1,7 @@
+# =========================
+# All-in-one (Local)
+# =========================
 -r requirements-web.txt
 -r requirements-ml.txt
 -r dev-requirements.txt
+
