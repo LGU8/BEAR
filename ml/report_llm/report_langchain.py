@@ -10,6 +10,7 @@ def make_daily_feedback(daily_data):
 
     # 1) 모델 준비
     llm = ChatOpenAI(model="gpt-4o-mini")
+    parser = JsonOutputParser()
 
     # 2) System Prompt (역할 정의)
     system_prompt = """
@@ -71,7 +72,14 @@ def make_daily_feedback(daily_data):
     response = llm.invoke(messages)
 
     # 6) 결과 출력
-    return response.content
+    raw = response.content
+
+    try:
+        return parser.parse(raw)
+    except Exception as e:
+        print("LLM RAW OUTPUT ↓↓↓")
+        print(raw)
+        raise RuntimeError("LLM_JSON_PARSE_FAILED") from e
 
 def make_weekly_feedback(weekly_data):
     # API_KEY Load

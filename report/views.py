@@ -42,7 +42,8 @@ def daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily):
                   "protein_intake": nut_data['total'].get('protein'),
                   "fat_intake": nut_data['total'].get('fat'),
                   }
-    feedback = json.loads(make_daily_feedback(daily_data))
+    feedback = make_daily_feedback(json.dumps(daily_data))
+
     try:
         with connection.cursor() as cursor:
             today_time = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -51,11 +52,12 @@ def daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily):
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
 
-            data = [today_time, today_time, id, daily_data['date'], 'D', daily_data['date'], daily_data['date'], feedback['summary']]
+            data = [today_time, today_time, cust_id, daily_data['date'], 'D', daily_data['date'], daily_data['date'], feedback['summary']]
 
             cursor.execute(sql, data)
     except Exception as e:
-        return HttpResponseBadRequest(f"INSERT 오류 발생: {e}")
+        print("DB INSERT ERROR:", e)
+        raise RuntimeError("REPORT_DB_INSERT_FAILED") from e
     return feedback['summary']
 
 def check_generate_daily_report(selected_date, nut_data):
@@ -129,7 +131,6 @@ def weekly_feedback_input(cust_id, week_start_ymd, week_end_ymd, nut_data_week, 
                   "period_end": week_end_ymd,
                   "daily_feeling_records": filtered_mood,
                   "daily_nutrition": nut_data_week}
-    print(weekly_data)
     feedback = make_weekly_feedback(weekly_data)
     try:
         with connection.cursor() as cursor:
@@ -215,7 +216,8 @@ def report_daily(request):
         has_data = 0
         context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
                    "active_tab": "report",
-                   "has_data": has_data,}
+                   "has_data": has_data,
+                   "can_report": 1}
     else:
         has_data = 1
 
