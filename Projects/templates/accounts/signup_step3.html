@@ -75,13 +75,13 @@
         <form method="post" id="nutrientForm" action="{% url 'accounts_app:signup_step3' %}">
             {% csrf_token %}
 
-            <input type="hidden" name="ratio_carb" id="ratio_carb" value="0">
-            <input type="hidden" name="ratio_protein" id="ratio_protein" value="0">
-            <input type="hidden" name="ratio_fat" id="ratio_fat" value="0">
+            <input type="hidden" name="ratio_carb" id="ratio_carb" value="{{ pref_carb|default:0 }}">
+            <input type="hidden" name="ratio_protein" id="ratio_protein" value="{{ pref_protein|default:0 }}">
+            <input type="hidden" name="ratio_fat" id="ratio_fat" value="{{ pref_fat|default:0 }}">
 
             <div class="question-box">
                 <div class="question-header">
-                    <img src="{% static 'badges_img/bear_rice_300w.png' %}" class="question-icon">
+                    <img src="{% static 'settings_img/icon_rice.png' %}" class="question-icon">
                     <div class="question-text">밥·빵·면 같은 탄수화물 음식을<br>어느 정도로 즐기나요?</div>
                 </div>
                 <div class="segment-container" data-type="carb">
@@ -95,7 +95,7 @@
 
             <div class="question-box">
                 <div class="question-header">
-                    <img src="{% static 'badges_img/bear_doughboy_300w.png' %}" class="question-icon">
+                    <img src="{% static 'settings_img/icon_shrimp.png' %}" class="question-icon">
                     <div class="question-text">고기·생선·달걀 같은 단백질 음식을<br>식사에서 얼마나 중요하게 생각하나요?</div>
                 </div>
                 <div class="segment-container" data-type="protein">
@@ -109,7 +109,7 @@
 
             <div class="question-box">
                 <div class="question-header">
-                    <img src="{% static 'badges_img/bear_치즈_300w.png' %}" class="question-icon">
+                    <img src="{% static 'settings_img/icon_beef.png' %}" class="question-icon">
                     <div class="question-text">버터·치즈와 같은 지방 음식을<br>얼마나 좋아하시나요?</div>
                 </div>
                 <div class="segment-container" data-type="fat">
@@ -129,9 +129,27 @@
     </div>
 
     <script>
-        const values = { carb: 0, protein: 0, fat: 0 };
+        const values = {
+            carb: parseInt(document.getElementById('ratio_carb').value || '0'),
+            protein: parseInt(document.getElementById('ratio_protein').value || '0'),
+            fat: parseInt(document.getElementById('ratio_fat').value || '0')
+        };
+
         const nextBtn = document.getElementById('nextBtn');
         const totalDisplay = document.getElementById('totalDisplay');
+
+        function paintInitial() {
+            document.querySelectorAll('.segment-container').forEach(container => {
+                const type = container.dataset.type;
+                const segments = container.querySelectorAll('.segment');
+                const val = values[type] || 0;
+
+                segments.forEach((s, idx) => {
+                    s.classList.toggle('active', idx < val);
+                });
+            });
+            updateTotal();
+        }
 
         document.querySelectorAll('.segment-container').forEach(container => {
             const type = container.dataset.type;
@@ -166,6 +184,8 @@
                 else totalDisplay.classList.remove('error');
             }
         }
+
+        paintInitial();
     </script>
 </body>
 </html>

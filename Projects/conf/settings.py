@@ -11,32 +11,45 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-from dotenv import load_dotenv
-import sys
+import os
+
+# 로컬에서만 .env를 읽고 싶다면 (권장)
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except Exception:
+    pass
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / ".env")
 
-RECORD_DIR = BASE_DIR / "record"
-if str(RECORD_DIR) not in sys.path:
-    sys.path.insert(0, str(RECORD_DIR))
+# =========================
+# Environment / Core
+# =========================
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-secret-key")
+
+DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
+
+# EB 도메인(환경변수로 오버라이드 가능)
+EB_DOMAIN = os.environ.get(
+    "EB_DOMAIN", "bear-app-env.eba-temmzk66.ap-northeast-2.elasticbeanstalk.com"
+)
+
+# ALLOWED_HOSTS="*.elasticbeanstalk.com,localhost,127.0.0.1" 처럼 넣는다고 가정
+_allowed_hosts = os.environ.get("ALLOWED_HOSTS", "")
+hosts = [h.strip() for h in _allowed_hosts.split(",") if h.strip()]
+if not hosts:
+    # env가 비어있을 때 최소 안전 기본값
+    hosts = ["localhost", "127.0.0.1", EB_DOMAIN]
+ALLOWED_HOSTS = hosts
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-&1hu5v_erep=*)if6z8#epr=c3&cug5yd*_frw=3_dk95yc24r"
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = ["*"]
-
-
+# =========================
 # Application definition
+# =========================
 
 INSTALLED_APPS = [
     "api",
@@ -103,23 +116,41 @@ DATABASES = {
     }
 }
 
+required_env = ["DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD", "SECRET_KEY"]
+missing = [k for k in required_env if not os.environ.get(k)]
+if missing:
+    # 환경변수 누락이면 배포 시 즉시 터지므로, EB 콘솔에서 반드시 설정해줘야 함
+    raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
 
+
+# =========================
+# Auth
+# =========================
+
+AUTHENTICATION_BACKENDS = [
+    "accounts.backends.CustBackend",  # 커스텀 backend
+    "django.contrib.auth.backends.ModelBackend",  # Django 기본 backend
+]
+
+AUTH_USER_MODEL = "accounts.Cust"
+
+# 로그인/로그아웃 URL 정책 (named url로 통일)
+LOGIN_URL = "accounts_app:login"
+LOGIN_REDIRECT_URL = "accounts_app:home"
+LOGOUT_REDIRECT_URL = "accounts_app:home"
+
+
+# =========================
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
     },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 

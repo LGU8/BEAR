@@ -29,17 +29,14 @@ def _safe_get_cust_id(request) -> str:
     if cust_id:
         return str(cust_id)
 
-    # 2) username
+    if request.user.is_authenticated and getattr(request.user, "cust_id", None):
+        return str(request.user.cust_id)
+
     if request.user.is_authenticated and getattr(request.user, "username", None):
         return str(request.user.username)
 
-    # 3) email
     if request.user.is_authenticated and getattr(request.user, "email", None):
         return str(request.user.email)
-
-    # 4) 혹시 user에 cust_id 필드가 있는 커스텀 User 모델인 경우
-    if request.user.is_authenticated and getattr(request.user, "cust_id", None):
-        return str(request.user.cust_id)
 
     return ""
 
@@ -289,13 +286,12 @@ def _build_today_donut(cust_id: str, yyyymmdd: str):
 # index 뷰: 로그인 후 첫 화면
 @login_required(login_url="/")
 def index(request):
-    # ✅ 기존 구조 유지: home.html 렌더는 그대로, 단 context만 추가
-
-    today_str = datetime.now().strftime("%Y%m%d")
     cust_id = _safe_get_cust_id(request)
     today_ymd = timezone.localdate().strftime("%Y%m%d")
 
-    donut = _build_today_donut(cust_id=cust_id, yyyymmdd=today_str)
+    # ✅ 여기만 바꾸면 NameError 즉시 해결
+    donut = _build_today_donut(cust_id=cust_id, yyyymmdd=today_ymd)
+
     daily_report = _build_daily_report_chart(cust_id, today_ymd)
     food_payload = build_today_food_payload(cust_id=cust_id, today_ymd=today_ymd)
     menu_reco = _build_menu_reco_context(cust_id=cust_id)
