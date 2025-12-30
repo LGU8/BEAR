@@ -14,7 +14,7 @@ urlpatterns = [
     # 로그인 후 이동할 홈
     path("home/", conf_views.index, name="home"),
     # 앱 단위 include
-    path("accounts/", include("accounts.urls")),
+    path("accounts/", include(("accounts.urls", "accounts_app"), namespace="accounts_app")),
     path("record/", include("record.urls")),
     path("settings/", include("settings.urls")),
     # 뷰 함수 직접 연결 (데코레이터가 붙은 conf_views의 함수인지 확인!)
