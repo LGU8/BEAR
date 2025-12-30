@@ -1,10 +1,10 @@
 /* static/css/settings/settings_s0.css */
 
 /* =========================
-   S0 (Settings Index) - FINAL
-   - Email pill color 강조
-   - Profile card click -> modal
-   - Logout row typography/size 통일
+   S0 (Settings Index)
+   - root tokens only
+   - profile card click -> modal
+   - menu rows typography unify
    ========================= */
 
 /* ---------- Profile Card Click Reset ---------- */
@@ -23,47 +23,50 @@
   cursor: pointer;
 }
 
+/* focus ring (지원 브라우저 OK, 미지원이면 무시됨) */
 .settings-page.s0 .s0-profile-card:has(.s0-profile-click:focus-visible) {
-  outline: 2px solid rgba(244, 121, 0, 0.25);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-/* 우측 chevron (프로필 카드) */
+/* 우측 chevron */
 .settings-page.s0 .s0-card-chevron {
   margin-left: auto;
   font-size: 22px;
   line-height: 1;
-  color: rgba(0,0,0,0.25);
+  color: var(--icon-dim-1);
   padding-top: 2px;
 }
 
-/* 이메일 pill: 색상 강조 */
+/* 이메일 pill: 통일 (card-inner + black) */
 .settings-page.s0 .s0-email-pill {
-  color: var(--orange-3);
-  font-weight: 700;
-  border: 1px solid rgba(244, 121, 0, 0.18);
-  background: var(--card);
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  color: var(--pill-text);
+  font-weight: 400;
 }
 
+/* 이메일 없음 (muted) */
 .settings-page.s0 .s0-email-pill.is-empty {
-  color: rgba(0,0,0,0.45);
-  border-color: rgba(0,0,0,0.08);
+  color: var(--pill-text-muted);
+  border-color: var(--pill-border);
 }
+
 
 /* stats 단위 */
 .settings-page.s0 .stat-unit {
   font-weight: 600;
   font-size: 11px;
-  color: rgba(0,0,0,0.55);
+  color: var(--stat-unit);
   margin-left: 2px;
 }
 
-/* ---------- Menu Card (Logout row 동일화) ---------- */
+/* ---------- Menu Card ---------- */
 .settings-page.s0 .s0-menu-card {
   padding: 10px 0;
 }
 
-/* 링크와 버튼을 동일한 “row component”처럼 */
+/* 링크/버튼을 동일 row처럼 */
 .settings-page.s0 .menu-item,
 .settings-page.s0 .menu-item-btn {
   width: 100%;
@@ -79,7 +82,7 @@
   border: 0;
   margin: 0;
 
-  /* typography 통일 */
+  /* typography */
   font-family: inherit;
   font-size: 14px;
   line-height: 1.2;
@@ -91,12 +94,12 @@
 .settings-page.s0 .menu-left {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
 }
 
 .settings-page.s0 .menu-ico {
-  width: 22px;
-  height: 22px;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
   display: block;
   opacity: 0.95;
@@ -111,17 +114,17 @@
 .settings-page.s0 .menu-right {
   font-size: 20px;
   line-height: 1;
-  color: rgba(0,0,0,0.35);
+  color: var(--icon-dim-2);
 }
 
 .settings-page.s0 .menu-divider {
   height: 1px;
-  background: rgba(0,0,0,0.06);
+  background: var(--divider);
   margin: 0 18px;
 }
 
 .settings-page.s0 .menu-divider--strong {
-  background: rgba(0,0,0,0.10);
+  background: var(--divider-strong);
 }
 
 /* form reset */
@@ -133,7 +136,7 @@
 @media (hover: hover) {
   .settings-page.s0 .menu-item:hover,
   .settings-page.s0 .menu-item-btn:hover {
-    background: rgba(255, 255, 255, 0.22);
+    background: var(--hover-surface);
   }
 }
 
@@ -141,7 +144,7 @@
 .settings-page.s0 .s0-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.25);
+  background: var(--modal-backdrop);
   display: none;
   align-items: center;
   justify-content: center;
@@ -155,9 +158,9 @@
 
 .settings-page.s0 .s0-modal {
   width: min(420px, 100%);
-  background: #FFF;
+  background: var(--modal-bg);
   border-radius: 16px;
-  box-shadow: 0 18px 38px rgba(0,0,0,0.18);
+  box-shadow: var(--modal-shadow);
   padding: 16px 16px 14px;
   position: relative;
 }
@@ -172,7 +175,7 @@
   border-radius: 10px;
 
   border: 0;
-  background: rgba(0,0,0,0.04);
+  background: var(--modal-close-bg);
   cursor: pointer;
 
   font-size: 20px;
@@ -190,7 +193,7 @@
   margin-top: 10px;
   font-size: 12px;
   line-height: 1.45;
-  color: rgba(0,0,0,0.70);
+  color: var(--text-strong-dim);
 }
 
 .settings-page.s0 .s0-modal-actions {
@@ -215,8 +218,8 @@
 }
 
 .settings-page.s0 .s0-modal-btn--ghost {
-  background: rgba(0,0,0,0.05);
-  color: rgba(0,0,0,0.70);
+  background: rgba(0,0,0,0.05); /* ← Step4에서 토큰화 */
+  color: var(--text-strong-dim);
 }
 
 .settings-page.s0 .s0-modal-btn--primary {

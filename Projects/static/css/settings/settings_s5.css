@@ -1,11 +1,17 @@
 /* static/css/settings/settings_s5.css */
 
 /* =========================
-   S5 (비밀번호 관리) 전용
+   S5 (비밀번호 관리) 전용 - SAFE PATCH (HTML 변경 0)
+   목표:
+   - 제목 상단 가운데(S2/S3 느낌) 복구
+   - 저장 버튼(save-btn) 스타일 확실히 복구
+   - 다른 페이지 오염 방지: .password-card 스코프
    ========================= */
 
+/* 카드 폭 */
 .settings-page .password-card {
   max-width: 928px;
+  margin: 0 auto;
 }
 
 /* back icon size */
@@ -16,7 +22,43 @@
   object-fit: contain;
 }
 
-/* 중앙 배지 영역 */
+/* =========================
+   (1) Header: 제목 가운데 강제
+   ========================= */
+.settings-page .password-card .edit-header {
+  display: grid !important;
+  grid-template-columns: 40px 1fr 40px !important;
+  align-items: center !important;
+  margin-bottom: 18px; /* 제목 아래 간격 */
+}
+
+.settings-page .password-card .back-btn,
+.settings-page .password-card .edit-header-spacer {
+  width: 40px;
+  height: 40px;
+}
+
+.settings-page .password-card .edit-title {
+  text-align: center !important;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+/* 모바일에서 살짝 컴팩트 */
+@media (max-width: 420px) {
+  .settings-page .password-card .edit-header {
+    grid-template-columns: 36px 1fr 36px !important;
+  }
+  .settings-page .password-card .back-btn,
+  .settings-page .password-card .edit-header-spacer {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* =========================
+   (2) 중앙 배지 영역
+   ========================= */
 .settings-page .password-card .pw-avatar {
   display: grid;
   justify-items: center;
@@ -30,7 +72,9 @@
   color: var(--text-sub);
 }
 
-/* 입력 블록 */
+/* =========================
+   (3) 입력 블록
+   ========================= */
 .settings-page .password-card .pw-block {
   display: grid;
   gap: 8px;
@@ -43,7 +87,6 @@
   color: var(--text);
 }
 
-/* 밑줄 input */
 .settings-page .password-card .pw-input {
   width: 100%;
   border: 0;
@@ -66,7 +109,11 @@
   color: rgba(0,0,0,0.55);
 }
 
-/* 에러/성공 메시지 */
+/* =========================
+   (4) 에러/성공 메시지
+   - HTML 그대로라 success가 pw-error 안에 섞일 수 있음
+   - 그래도 최소한 깨지지 않게 기본 스타일 유지
+   ========================= */
 .settings-page .password-card .pw-error {
   min-height: 18px;
   margin-top: 12px;
@@ -75,26 +122,74 @@
   color: rgba(220, 38, 38, 0.95);
 }
 
-/* ✅ 성공 메시지를 쓰고 싶으면 템플릿에서 success를 span으로 감싸서 사용 */
+/* success 클래스를 이미 정의해놨으니 그대로 */
 .settings-page .password-card .pw-success {
   color: rgba(22, 163, 74, 0.95);
 }
 
-/* 저장: 우하단 */
+/* =========================
+   (5) 저장 버튼: 우하단 + "버튼 형태" 강제 복구
+   ========================= */
 .settings-page .password-card .pw-footer {
   display: flex;
   justify-content: flex-end;
   margin-top: 18px;
 }
 
-/* save-btn은 S2 공용을 쓰되, 살짝 힘 주고 싶으면 아래만 추가 */
 .settings-page .password-card .save-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  min-width: 72px !important;
+  height: 38px !important;
+
+  padding: 10px 14px !important;
+  border: 0 !important;
+
+  border-radius: var(--radius-pill) !important;
+  background: var(--orange-1) !important;
+  color: #fff !important;
+
+  font-size: 12px !important;
+  font-weight: 800 !important;
+
+  text-decoration: none !important;
+  cursor: pointer !important;
+
   box-shadow: 0 10px 18px rgba(244,121,0,0.16);
 }
+
 .settings-page .password-card .save-btn:hover { filter: brightness(1.02); }
 
-@media (max-width: 420px) {
-  .settings-page .password-card .pw-avatar {
-    margin: 8px 0 14px;
-  }
+.settings-page .password-card .save-btn:disabled {
+  background: rgba(244, 121, 0, 0.35) !important;
+  color: rgba(255,255,255,0.92) !important;
+  cursor: not-allowed !important;
+}
+
+/* =========================
+   S5 PATCH: Typography 강제 복구
+   ========================= */
+
+.settings-page .password-card,
+.settings-page .password-card * {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Noto Sans KR", system-ui, sans-serif !important;
+}
+
+.settings-page .password-card .edit-title {
+  font-weight: 700 !important;
+}
+
+.settings-page .password-card .pw-label,
+.settings-page .password-card .pw-input,
+.settings-page .password-card .pw-help,
+.settings-page .password-card .pw-error,
+.settings-page .password-card .pw-avatar-hint {
+  font-weight: 600 !important;
+}
+
+.settings-page .password-card .save-btn {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Noto Sans KR", system-ui, sans-serif !important;
+  font-weight: 800 !important;
 }
