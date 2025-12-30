@@ -46,5 +46,4 @@ jobs:
           application_name: ${{ secrets.EB_APP_NAME }}
           environment_name: ${{ secrets.EB_ENV_NAME }}
           version_label: ${{ github.sha }}
-          # ✅ deploy.zip은 Projects 폴더 안에서 만들어졌으니 경로를 이렇게
           deployment_package: Projects/deploy.zip
