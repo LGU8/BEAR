@@ -16,6 +16,7 @@ import os
 # 로컬에서만 .env를 읽고 싶다면 (권장)
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except Exception:
     pass
@@ -34,8 +35,7 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
 
 # EB 도메인(환경변수로 오버라이드 가능)
 EB_DOMAIN = os.environ.get(
-    "EB_DOMAIN",
-    "bear-app-env.eba-temmzk66.ap-northeast-2.elasticbeanstalk.com"
+    "EB_DOMAIN", "bear-app-env.eba-temmzk66.ap-northeast-2.elasticbeanstalk.com"
 )
 
 # ALLOWED_HOSTS="*.elasticbeanstalk.com,localhost,127.0.0.1" 처럼 넣는다고 가정
@@ -129,14 +129,13 @@ if missing:
 # =========================
 
 AUTHENTICATION_BACKENDS = [
-    "accounts.backends.CustBackend",          # 커스텀 backend
+    "accounts.backends.CustBackend",  # 커스텀 backend
     "django.contrib.auth.backends.ModelBackend",  # Django 기본 backend
 ]
 
 AUTH_USER_MODEL = "accounts.Cust"
 
 # 로그인/로그아웃 URL 정책 (named url로 통일)
-LOGIN_URL = "accounts_app:login"
 LOGIN_REDIRECT_URL = "accounts_app:home"
 LOGOUT_REDIRECT_URL = "accounts_app:home"
 
@@ -146,7 +145,9 @@ LOGOUT_REDIRECT_URL = "accounts_app:home"
 # =========================
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
