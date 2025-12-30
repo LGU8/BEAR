@@ -129,7 +129,7 @@ if missing:
 # =========================
 
 AUTHENTICATION_BACKENDS = [
-    "accounts.backends.CustBackend",  # 커스텀 backend
+    # "accounts.backends.CustBackend",  # 커스텀 backend
     "django.contrib.auth.backends.ModelBackend",  # Django 기본 backend
 ]
 
