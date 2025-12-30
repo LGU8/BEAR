@@ -6,7 +6,6 @@ import json
 from report.views import get_selected_date
 from conf.views import _safe_get_cust_id
 from django.utils import timezone
-from ml.lstm.predictor import predict_negative_risk
 from django.db import connection
 from ml.behavior_llm.behavior_service import generate_and_save_behavior_recom
 import traceback
@@ -432,66 +431,70 @@ def timeline(request):
             target_date, target_slot = _target_from_source(source_date, source_slot)
 
             # ✅ 예측은 source_date 기준으로 수행
-            neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=source_date)
+            try:
+                from ml.lstm.predictor import predict_negative_risk
+                neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=source_date)
 
-            # predictor 호출 직후(neg_pred 만든 다음) 템플릿 안정화
-            if not neg_pred.get("eligible", False):
-                detail = neg_pred.get("detail") or {}
-                md = detail.get("missing_days")
-                if md is None:
-                    md = neg_pred.get("missing_days", [])
-                if not isinstance(md, list):
-                    md = []
-                # 둘 다에 동기화
-                detail["missing_days"] = md
-                neg_pred["missing_days"] = md
-                neg_pred["detail"] = detail
+            except ModuleNotFoundError as e:
+                neg_pred = None
+                # predictor 호출 직후(neg_pred 만든 다음) 템플릿 안정화
+                if not neg_pred.get("eligible", False):
+                    detail = neg_pred.get("detail") or {}
+                    md = detail.get("missing_days")
+                    if md is None:
+                        md = neg_pred.get("missing_days", [])
+                    if not isinstance(md, list):
+                        md = []
+                    # 둘 다에 동기화
+                    detail["missing_days"] = md
+                    neg_pred["missing_days"] = md
+                    neg_pred["detail"] = detail
 
-            # ✅ 예측 결과 DB 저장(저장은 target 키로)
-            if neg_pred.get("eligible"):
-                now_ts = timezone.localtime().strftime("%Y%m%d%H%M%S")
+                # ✅ 예측 결과 DB 저장(저장은 target 키로)
+                if neg_pred.get("eligible"):
+                    now_ts = timezone.localtime().strftime("%Y%m%d%H%M%S")
 
-                p_high = float(neg_pred.get("p_highrisk") or 0.0)
-                risk_score = int(round(p_high * 100))
-                # UI/정책 기준(p0+p2>=0.30)과 1:1 매칭: risk_score>=30
-                risk_level = "y" if risk_score >= 30 else "n"
+                    p_high = float(neg_pred.get("p_highrisk") or 0.0)
+                    risk_score = int(round(p_high * 100))
+                    # UI/정책 기준(p0+p2>=0.30)과 1:1 매칭: risk_score>=30
+                    risk_level = "y" if risk_score >= 30 else "n"
 
-                upsert_sql = """
-                INSERT INTO CUS_FEEL_RISK_TH (
-                    created_time, updated_time,
-                    cust_id, target_date, target_slot,
-                    risk_score, risk_level
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                    updated_time = VALUES(updated_time),
-                    risk_score   = VALUES(risk_score),
-                    risk_level   = VALUES(risk_level);
-                """
-
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        upsert_sql,
-                        [
-                            now_ts,
-                            now_ts,
-                            cust_id,
-                            target_date,
-                            target_slot,
-                            risk_score,
-                            risk_level,
-                        ],
+                    upsert_sql = """
+                    INSERT INTO CUS_FEEL_RISK_TH (
+                        created_time, updated_time,
+                        cust_id, target_date, target_slot,
+                        risk_score, risk_level
                     )
-                try:
-                    generate_and_save_behavior_recom(
-                        cust_id=cust_id,
-                        target_date=target_date,
-                        target_slot=target_slot,
-                    )
-                except Exception as e:
-                    print("### 행동추천 생성 실패 ###")
-                    print(e)
-                    traceback.print_exc()
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        updated_time = VALUES(updated_time),
+                        risk_score   = VALUES(risk_score),
+                        risk_level   = VALUES(risk_level);
+                    """
+
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            upsert_sql,
+                            [
+                                now_ts,
+                                now_ts,
+                                cust_id,
+                                target_date,
+                                target_slot,
+                                risk_score,
+                                risk_level,
+                            ],
+                        )
+                    try:
+                        generate_and_save_behavior_recom(
+                            cust_id=cust_id,
+                            target_date=target_date,
+                            target_slot=target_slot,
+                        )
+                    except Exception as e:
+                        print("### 행동추천 생성 실패 ###")
+                        print(e)
+                        traceback.print_exc()
 
     # =========================
     # (추가) UI용 상태 계산(기존 유지 + 데이터 없음 케이스 보강)
