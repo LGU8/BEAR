@@ -34,7 +34,9 @@ jobs:
                "*.pyc" \
                ".env" \
                "Projects/deploy.zip"
-
+      - name: DEBUG - list zip content
+        run: unzip -l deploy.zip | head -n 50
+      
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v22
         with:
