@@ -2,17 +2,12 @@ name: Deploy to Elastic Beanstalk
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
-    # ✅ 모든 run 명령이 Projects 폴더에서 실행되게 함
-    defaults:
-      run:
-        working-directory: Projects
 
     steps:
       - name: Checkout
@@ -23,19 +18,22 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      # (선택) 빌드/테스트가 Projects 기준으로 필요하면 여기서만 cd 해서 수행
+      - name: Install dependencies (optional)
         run: |
           python -m pip install --upgrade pip
-          pip install --no-cache-dir -r requirements-web.txt
+          pip install --no-cache-dir -r Projects/requirements-web.txt
 
-      - name: Create deployment package
+      - name: Create deployment package (root)
         run: |
           zip -r deploy.zip . \
-            -x "*.git*" \
+            -x ".git/*" ".github/*" \
+               "*.git*" \
                "*venv*" \
                "__pycache__/*" \
                "*.pyc" \
-               ".env"
+               ".env" \
+               "Projects/deploy.zip"
 
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v22
@@ -46,4 +44,4 @@ jobs:
           application_name: ${{ secrets.EB_APP_NAME }}
           environment_name: ${{ secrets.EB_ENV_NAME }}
           version_label: ${{ github.sha }}
-          deployment_package: Projects/deploy.zip
+          deployment_package: deploy.zip
