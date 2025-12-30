@@ -357,6 +357,22 @@
     }
   });
 
+  // -------------------------
+  // 배지 hidden 변경도 저장버튼 갱신 트리거
+  // -------------------------
+  if (selectedBadgeInput) {
+    selectedBadgeInput.addEventListener("input", () => {
+      markInteracted();
+      updateSaveBtn();
+    });
+
+    selectedBadgeInput.addEventListener("change", () => {
+      markInteracted();
+      updateSaveBtn();
+    });
+  }
+
+
   // 초기 탭(F)
   switchTab("F");
   updateSaveBtn();

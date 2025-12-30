@@ -127,34 +127,36 @@
       <a class="btn-edit" href="{% url 'settings_app:activity_goal_edit' %}">수정</a>
     </div>
 
-    <div class="move-box">
-      <div class="move-left">
-        <div class="move-label">활동량</div>
-        <div class="move-value">
-          {{ activity_level_label|default:"-" }}
-          <br>
-          <span class="move-sub">{{ activity_level_desc|default:"" }}</span>
+    <div class="s1-card-grid-2">
+      <div class="move-box">
+        <div class="move-left">
+          <div class="move-label">활동량</div>
+          <div class="move-value">
+            {{ activity_level_label|default:"-" }}
+            <br>
+            <span class="move-sub">{{ activity_level_desc|default:"" }}</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="goal-box">
-      <div class="move-label">목표</div>
+      <div class="goal-box">
+        <div class="move-label">목표</div>
 
-      <div class="goal-row">
-        <div class="goal-item {% if purpose == '1' %}is-active{% endif %}">
-          <img src="{% static 'settings_img/bear_diet.png' %}" alt="diet">
-          <div>다이어트</div>
-        </div>
+        <div class="goal-row">
+          <div class="goal-item {% if purpose == '1' %}is-active{% endif %}">
+            <img src="{% static 'settings_img/bear_diet.png' %}" alt="diet">
+            <div>다이어트</div>
+          </div>
 
-        <div class="goal-item {% if purpose == '2' %}is-active{% endif %}">
-          <img src="{% static 'settings_img/bear_maintain.png' %}" alt="maintain">
-          <div>유지</div>
-        </div>
+          <div class="goal-item {% if purpose == '2' %}is-active{% endif %}">
+            <img src="{% static 'settings_img/bear_maintain.png' %}" alt="maintain">
+            <div>유지</div>
+          </div>
 
-        <div class="goal-item {% if purpose == '3' %}is-active{% endif %}">
-          <img src="{% static 'settings_img/bear_bulkup.png' %}" alt="bulkup">
-          <div>벌크업</div>
+          <div class="goal-item {% if purpose == '3' %}is-active{% endif %}">
+            <img src="{% static 'settings_img/bear_bulkup.png' %}" alt="bulkup">
+            <div>벌크업</div>
+          </div>
         </div>
       </div>
     </div>
