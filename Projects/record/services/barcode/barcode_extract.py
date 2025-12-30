@@ -1,5 +1,5 @@
-
 from pathlib import Path
+
 
 def read_barcode_from_image(image_path: str) -> list[str]:
     """
@@ -79,8 +79,6 @@ def read_barcode_from_image(image_path: str) -> list[str]:
             print(f"[SKIP] {image_path} -> {data_str} (len={len(data_str)}, type={t})")
 
     return results
-
-
 
 
 def main():
