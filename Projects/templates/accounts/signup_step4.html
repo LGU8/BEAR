@@ -1,151 +1,167 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회원가입 - Step 4</title>
-    {% load static %}
-    <style>
-        body { background-color:#FFFBE6; margin:0; padding:0; font-family:'Noto Sans KR', sans-serif;
-               display:flex; flex-direction:column; align-items:center; min-height:100vh; }
-        .header-container { width:100%; max-width:400px; padding:40px 20px 20px; text-align:center; }
-        .bear-logo { width:100px; height:auto; margin-bottom:20px; }
-        .progress-container { width:80%; height:12px; background-color:#F0EAD6; border-radius:10px; margin:0 auto; overflow:hidden; }
-        .progress-bar { width:100%; height:100%; background-color:#F38218; border-radius:10px; }
-        .card { background-color:white; width:95%; max-width:450px; border-radius:15px; padding:30px 20px;
-                box-shadow:0 4px 10px rgba(0,0,0,0.05); margin-top:10px; box-sizing:border-box; margin-bottom:40px; }
-        h3 { font-size:1.1rem; margin-bottom:15px; color:#333; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회원가입 - Step 4</title>
+  {% load static %}
+  <style>
+    body { background-color:#FFFBE6; margin:0; padding:0; font-family:'Noto Sans KR', sans-serif;
+      display:flex; flex-direction:column; align-items:center; min-height:100vh; }
+    .header-container { width:100%; max-width:400px; padding:40px 20px 20px; text-align:center; }
+    .bear-logo { width:100px; height:auto; margin-bottom:20px; }
+    .progress-container { width:80%; height:12px; background-color:#F0EAD6; border-radius:10px; margin:0 auto; overflow:hidden; }
+    .progress-bar { width:100%; height:100%; background-color:#F38218; border-radius:10px; }
+    .card { background-color:white; width:95%; max-width:450px; border-radius:15px; padding:30px 20px;
+      box-shadow:0 4px 10px rgba(0,0,0,0.05); margin-top:10px; box-sizing:border-box; margin-bottom:40px; }
+    h3 { font-size:1.1rem; margin-bottom:15px; color:#333; }
 
-        .error-box{ background:#fff2f2; border:1px solid #ffb3b3; color:#c0392b;
-                    padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:700;
-                    margin-bottom:18px; line-height:1.35; }
+    .error-box{ background:#fff2f2; border:1px solid #ffb3b3; color:#c0392b;
+      padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:700;
+      margin-bottom:18px; line-height:1.35; }
 
-        .selection-group { display:flex; flex-direction:column; gap:12px; margin-bottom:30px; }
-        .select-card { display:flex; align-items:center; gap:15px; padding:15px; border:2px solid #F0EAD6;
-                       border-radius:12px; cursor:pointer; transition:all 0.2s; background-color:white; }
-        .select-card:hover { border-color:#F38218; background-color:#FFFDF5; }
-        .select-card.active { border-color:#F38218; background-color:#FFF8E1; box-shadow:0 2px 8px rgba(243,130,24,0.2); }
-        .select-card img { width:45px; height:45px; }
-        .select-info { flex:1; }
-        .select-title { font-weight:700; font-size:0.95rem; margin-bottom:4px; }
-        .select-desc { font-size:0.8rem; color:#888; line-height:1.3; }
+    .selection-group { display:flex; flex-direction:column; gap:12px; margin-bottom:30px; }
+    .select-card { display:flex; align-items:center; gap:15px; padding:15px; border:2px solid #F0EAD6;
+      border-radius:12px; cursor:pointer; transition:all 0.2s; background-color:white; }
+    .select-card:hover { border-color:#F38218; background-color:#FFFDF5; }
+    .select-card.active { border-color:#F38218; background-color:#FFF8E1; box-shadow:0 2px 8px rgba(243,130,24,0.2); }
+    .select-card img { width:45px; height:45px; }
+    .select-info { flex:1; }
+    .select-title { font-weight:700; font-size:0.95rem; margin-bottom:4px; }
+    .select-desc { font-size:0.8rem; color:#888; line-height:1.3; }
 
-        .purpose-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
-        .purpose-card { padding:15px 5px; border:2px solid #F0EAD6; border-radius:12px; text-align:center;
-                        cursor:pointer; transition:all 0.2s; background-color:white; }
-        .purpose-card img { width:50px; height:50px; margin-bottom:8px; }
-        .purpose-card div { font-size:0.85rem; font-weight:700; color:#555; }
-        .purpose-card.active { border-color:#F38218; background-color:#FFF8E1; }
-        .purpose-card.active div { color:#F38218; }
+    .purpose-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+    .purpose-card { padding:15px 5px; border:2px solid #F0EAD6; border-radius:12px; text-align:center;
+      cursor:pointer; transition:all 0.2s; background-color:white; }
+    .purpose-card img { width:50px; height:50px; margin-bottom:8px; }
+    .purpose-card div { font-size:0.85rem; font-weight:700; color:#555; }
+    .purpose-card.active { border-color:#F38218; background-color:#FFF8E1; }
+    .purpose-card.active div { color:#F38218; }
 
-        .btn-group { display:flex; gap:10px; margin-top:20px; }
-        .btn-prev { background-color:#F38218; color:white; border:none; padding:16px; border-radius:12px; cursor:pointer; flex:1; font-weight:700; }
-        .btn-next { background-color:#F38218; color:white; border:none; padding:16px; border-radius:12px; cursor:pointer; flex:2; font-weight:700; }
+    .btn-group { display:flex; gap:10px; margin-top:20px; }
+    .btn-prev { background-color:#F38218; color:white; border:none; padding:16px; border-radius:12px; cursor:pointer; flex:1; font-weight:700; }
+    .btn-next { background-color:#F38218; color:white; border:none; padding:16px; border-radius:12px; cursor:pointer; flex:2; font-weight:700; }
 
-        input[type="radio"] { display:none; }
-    </style>
+    input[type="radio"] { display:none; }
+  </style>
 </head>
+
 <body>
-    <div class="header-container">
-        <a href="/"><img src="{% static 'nav_img/logo.png' %}" alt="BEAR logo" class="bear-logo"></a>
-        <div class="progress-container"><div class="progress-bar"></div></div>
-    </div>
+  <div class="header-container">
+    <a href="/"><img src="{% static 'nav_img/logo.png' %}" alt="BEAR logo" class="bear-logo"></a>
+    <div class="progress-container"><div class="progress-bar"></div></div>
+  </div>
 
-    <div class="card">
-        <form method="post" action="{% url 'accounts_app:signup_step4' %}" id="step4Form">
-            {% csrf_token %}
+  <div class="card">
+    <form method="post" action="{% url 'accounts_app:signup_step4' %}" id="step4Form">
+      {% csrf_token %}
 
-            {% if error %}
-                <div class="error-box">{{ error }}</div>
-            {% endif %}
+      {% if error %}
+        <div class="error-box">{{ error }}</div>
+      {% endif %}
 
-            <h3>활동량 설정</h3>
-            <div class="selection-group">
-                <label class="select-card" data-group="activity">
-                    <input type="radio" name="activity_level" value="0" required {% if activity_level == '0' %}checked{% endif %}>
-                    <img src="{% static 'icons_img/bear_낮음.png' %}">
-                    <div class="select-info"><div class="select-title">낮음</div><div class="select-desc">사무직 등 좌식생활 위주, 대중교통 출퇴근 등, 주 1~3회 가볍게 운동</div></div>
-                </label>
+      <h3>활동량 설정</h3>
+      <div class="selection-group">
+        <label class="select-card" data-group="activity">
+          <input type="radio" name="activity_level" value="0" required {% if al == '0' %}checked{% endif %}>
+          <img src="{% static 'icons_img/bear_낮음.png' %}" alt="">
+          <div class="select-info">
+            <div class="select-title">낮음</div>
+            <div class="select-desc">사무직 등 좌식생활 위주, 대중교통 출퇴근 등, 주 1~3회 가볍게 운동</div>
+          </div>
+        </label>
 
-                <label class="select-card" data-group="activity">
-                    <input type="radio" name="activity_level" value="1" {% if activity_level == '1' %}checked{% endif %}>
-                    <img src="{% static 'icons_img/bear_중간.png' %}">
-                    <div class="select-info"><div class="select-title">중간</div><div class="select-desc">일상에서 활동량 높음, 주 3회 이상 운동</div></div>
-                </label>
+        <label class="select-card" data-group="activity">
+          <input type="radio" name="activity_level" value="1" {% if activity_level == '1' %}checked{% endif %}>
+          <img src="{% static 'icons_img/bear_중간.png' %}" alt="">
+          <div class="select-info">
+            <div class="select-title">중간</div>
+            <div class="select-desc">일상에서 활동량 높음, 주 3회 이상 운동</div>
+          </div>
+        </label>
 
-                <label class="select-card" data-group="activity">
-                    <input type="radio" name="activity_level" value="2" {% if activity_level == '2' %}checked{% endif %}>
-                    <img src="{% static 'icons_img/bear_높음.png' %}">
-                    <div class="select-info"><div class="select-title">높음</div><div class="select-desc">활동량 많은 편, 주 5회 이상 운동</div></div>
-                </label>
+        <label class="select-card" data-group="activity">
+          <input type="radio" name="activity_level" value="2" {% if activity_level == '2' %}checked{% endif %}>
+          <img src="{% static 'icons_img/bear_높음.png' %}" alt="">
+          <div class="select-info">
+            <div class="select-title">높음</div>
+            <div class="select-desc">활동량 많은 편, 주 5회 이상 운동</div>
+          </div>
+        </label>
 
-                <label class="select-card" data-group="activity">
-                    <input type="radio" name="activity_level" value="3" {% if activity_level == '3' %}checked{% endif %}>
-                    <img src="{% static 'icons_img/bear_매우 높음.png' %}">
-                    <div class="select-info"><div class="select-title">매우 높음</div><div class="select-desc">하루종일 활동(육체노동 등), 매일 운동</div></div>
-                </label>
-            </div>
+        <label class="select-card" data-group="activity">
+          <input type="radio" name="activity_level" value="3" {% if activity_level == '3' %}checked{% endif %}>
+          <img src="{% static 'icons_img/bear_매우 높음.png' %}" alt="">
+          <div class="select-info">
+            <div class="select-title">매우 높음</div>
+            <div class="select-desc">하루종일 활동(육체노동 등), 매일 운동</div>
+          </div>
+        </label>
+      </div>
 
-            <h3>목표 설정</h3>
-            <div class="purpose-grid">
-                <label class="purpose-card" data-group="purpose">
-                    <input type="radio" name="purpose" value="0" required {% if purpose == '0' %}checked{% endif %}>
-                    <img src="{% static 'settings_img/bear_diet.png' %}"><div>다이어트</div>
-                </label>
+      <h3>목표 설정</h3>
+      <div class="purpose-grid">
+        <label class="purpose-card" data-group="purpose">
+          <input type="radio" name="purpose" value="0" required {% if purpose == '0' %}checked{% endif %}>
+          <img src="{% static 'settings_img/bear_diet.png' %}" alt="">
+          <div>다이어트</div>
+        </label>
 
-                <label class="purpose-card" data-group="purpose">
-                    <input type="radio" name="purpose" value="1" {% if purpose == '1' %}checked{% endif %}>
-                    <img src="{% static 'settings_img/bear_maintain.png' %}"><div>유지</div>
-                </label>
+        <label class="purpose-card" data-group="purpose">
+          <input type="radio" name="purpose" value="1" {% if purpose == '1' %}checked{% endif %}>
+          <img src="{% static 'settings_img/bear_maintain.png' %}" alt="">
+          <div>유지</div>
+        </label>
 
-                <label class="purpose-card" data-group="purpose">
-                    <input type="radio" name="purpose" value="2" {% if purpose == '2' %}checked{% endif %}>
-                    <img src="{% static 'settings_img/bear_bulkup.png' %}"><div>벌크업</div>
-                </label>
-            </div>
+        <label class="purpose-card" data-group="purpose">
+          <input type="radio" name="purpose" value="2" {% if purpose == '2' %}checked{% endif %}>
+          <img src="{% static 'settings_img/bear_bulkup.png' %}" alt="">
+          <div>벌크업</div>
+        </label>
+      </div>
 
-            <div class="btn-group">
-                <button type="button" class="btn-prev" onclick="history.back()">이전</button>
-                <button type="submit" class="btn-next">회원가입 완료</button>
-            </div>
-        </form>
-    </div>
+      <div class="btn-group">
+        <button type="button" class="btn-prev" onclick="history.back()">이전</button>
+        <button type="submit" class="btn-next">회원가입 완료</button>
+      </div>
+    </form>
+  </div>
 
-    <script>
-        function clearActive(groupSelector){
-            document.querySelectorAll(groupSelector).forEach(c => c.classList.remove('active'));
-        }
+  <script>
+    function clearActive(groupSelector){
+      document.querySelectorAll(groupSelector).forEach(c => c.classList.remove('active'));
+    }
 
-        function applyInitialActive(){
-            document.querySelectorAll('.select-card[data-group="activity"]').forEach(card => {
-                const input = card.querySelector('input[type="radio"]');
-                if (input && input.checked) card.classList.add('active');
-            });
-            document.querySelectorAll('.purpose-card[data-group="purpose"]').forEach(card => {
-                const input = card.querySelector('input[type="radio"]');
-                if (input && input.checked) card.classList.add('active');
-            });
-        }
+    function applyInitialActive(){
+      document.querySelectorAll('.select-card[data-group="activity"]').forEach(card => {
+        const input = card.querySelector('input[type="radio"]');
+        if (input && input.checked) card.classList.add('active');
+      });
+      document.querySelectorAll('.purpose-card[data-group="purpose"]').forEach(card => {
+        const input = card.querySelector('input[type="radio"]');
+        if (input && input.checked) card.classList.add('active');
+      });
+    }
 
-        document.querySelectorAll('.select-card[data-group="activity"]').forEach(card => {
-            card.addEventListener('click', function(){
-                clearActive('.select-card[data-group="activity"]');
-                this.classList.add('active');
-                const input = this.querySelector('input[type="radio"]');
-                if (input) input.checked = true;
-            });
-        });
+    document.querySelectorAll('.select-card[data-group="activity"]').forEach(card => {
+      card.addEventListener('click', function(){
+        clearActive('.select-card[data-group="activity"]');
+        this.classList.add('active');
+        const input = this.querySelector('input[type="radio"]');
+        if (input) input.checked = true;
+      });
+    });
 
-        document.querySelectorAll('.purpose-card[data-group="purpose"]').forEach(card => {
-            card.addEventListener('click', function(){
-                clearActive('.purpose-card[data-group="purpose"]');
-                this.classList.add('active');
-                const input = this.querySelector('input[type="radio"]');
-                if (input) input.checked = true;
-            });
-        });
+    document.querySelectorAll('.purpose-card[data-group="purpose"]').forEach(card => {
+      card.addEventListener('click', function(){
+        clearActive('.purpose-card[data-group="purpose"]');
+        this.classList.add('active');
+        const input = this.querySelector('input[type="radio"]');
+        if (input) input.checked = true;
+      });
+    });
 
-        applyInitialActive();
-    </script>
+    applyInitialActive();
+  </script>
 </body>
 </html>

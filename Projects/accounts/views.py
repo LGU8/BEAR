@@ -377,6 +377,7 @@ def signup_step4(request):
         "error": "",
     }
 
+    # GET: 화면 렌더만
     if request.method != "POST":
         return render(request, "accounts/signup_step4.html", ctx)
 
@@ -390,7 +391,7 @@ def signup_step4(request):
     activity_level = str((request.POST.get("activity_level") or "").strip())
     purpose = str((request.POST.get("purpose") or "").strip())
 
-    # ctx에 즉시 반영 (POST 실패 시 복원)
+    # POST 실패 시에도 체크 유지되도록 ctx 반영
     ctx["activity_level"] = activity_level
     ctx["purpose"] = purpose
 
@@ -407,7 +408,6 @@ def signup_step4(request):
     request.session["activity_level"] = activity_level
     request.session["purpose"] = purpose
 
-    # 이전 step 세션 로드
     try:
         raw_birth_dt = (request.session.get("birth_dt") or "").replace("-", "")
         gender = (request.session.get("gender") or "M").strip()
@@ -428,7 +428,6 @@ def signup_step4(request):
         tdee = calc_tdee(bmr, activity_level)
         recommended, offset = calc_recommended_calories(tdee, purpose)
 
-        # Ratio 저장 정책: 점수 그대로(1~10)
         ratio_c, ratio_p, ratio_f = pref_carb, pref_protein, pref_fat
 
         today_8, now_14, _ = _now_parts()
@@ -478,7 +477,6 @@ def signup_step4(request):
         print(f"[Signup] Final Error: {e}")
         ctx["error"] = f"가입 처리 중 오류 발생: {e}"
         return render(request, "accounts/signup_step4.html", ctx)
-
 
 # =========================
 # 8) TEST LOGIN

@@ -17,7 +17,7 @@ urlpatterns = [
     path("home/", conf_views.index, name="home"),
 
     # 앱 단위 include
-    path("accounts/", include("accounts.urls")),
+    path("accounts/", include(("accounts.urls", "accounts_app"), namespace="accounts_app")),
     path("record/", include("record.urls")),
     path("settings/", include("settings.urls")),
 
