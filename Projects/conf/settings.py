@@ -56,7 +56,6 @@ INSTALLED_APPS = [
     "ml",
     "record",
     "settings",
-    "accounts",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
