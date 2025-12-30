@@ -40,7 +40,10 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
 
 # ALLOWED_HOSTS="*.elasticbeanstalk.com,localhost,127.0.0.1" 처럼 넣는다고 가정
 _allowed_hosts = os.environ.get("ALLOWED_HOSTS", "")
-ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(",") if h.strip()] or ["localhost"]
+hosts = [h.strip() for h in _allowed_hosts.split(",") if h.strip()]
+if not hosts:
+    hosts = ["localhost", "127.0.0.1", EB_DOMAIN]
+ALLOWED_HOSTS = hosts
 
 
 # Application definition
@@ -160,6 +163,7 @@ USE_I18N = True
 
 USE_TZ = True
 
+LOGIN_REDIRECT_URL = "accounts_app:home"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -195,6 +199,24 @@ AUTH_USER_MODEL = "accounts.Cust"
 # 2. 세션 쿠키 설정 (로컬 테스트 시 기본값이어야 합니다)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_SAVE_EVERY_REQUEST = True  # 매 요청마다 세션 저장 강제
+
+
+# =========================
+# Security / Proxy (EB)
+# =========================
+
+# EB 도메인 (환경변수로 넣어도 되고, 일단 하드코딩으로 먼저 고쳐도 됨)
+EB_DOMAIN = "bear-app-env.eba-temmzk66.ap-northeast-2.elasticbeanstalk.com"
+
+# CSRF: 반드시 스킴 포함
+CSRF_TRUSTED_ORIGINS = [
+    f"http://{EB_DOMAIN}",
+    f"https://{EB_DOMAIN}",
+]
+
+# Reverse proxy(nginx/ALB) 뒤에서 https 인식
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 # settings.py
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
