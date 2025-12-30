@@ -13,8 +13,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const hasData = card.dataset.hasData === "1";
 
     if (!hasData) {
-    chartWrap?.style && (chartWrap.style.display = "none"); // 👈 여기
-    emptyBox?.style  && (emptyBox.style.display  = "flex"); // 👈 여기
+    chartWrap?.style && (chartWrap.style.display = "none");
+    emptyBox?.style  && (emptyBox.style.display  = "flex");
     return false;
     }
 
@@ -132,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const { ctx, width, height } = chart;
       ctx.save();
-      ctx.font = "700 18px Inter, sans-serif";
+      ctx.font = "600 16px Inter, sans-serif";
       ctx.fillStyle = "#3C3C43";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -167,7 +167,14 @@ document.addEventListener("DOMContentLoaded", () => {
         animation: false,
         plugins: {
           legend: { display: false },
-          centerText: { text: `${data.kcal} kcal` }
+          centerText: { text: `${data.kcal} kcal`},
+          tooltip: {
+            callbacks: {
+              label: function(context){
+                  return ` ${context.raw} g`;
+              }
+            }
+          }
         }
       },
       plugins: [centerTextPlugin]
@@ -307,7 +314,14 @@ document.addEventListener("DOMContentLoaded", () => {
       cutout: "65%",
       plugins: {
         legend: { display: false },
-        centerText: {text: centerText}
+        centerText: {text: centerText},
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return ` ${context.raw*100} %`
+            }
+          }
+        }
         },
       },
     plugins: [centerTextPlugin]

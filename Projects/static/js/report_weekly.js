@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
             grid: { display: false },
             ticks: {
               color: xTickColor,
-              font: { size: 16, weight: "700" }
+              font: { size: 14, weight: "600" }
             }
           },
           yKcal: {
@@ -227,7 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
             grid: { display: false },
             ticks: {
               color: xTickColor,
-              font: { size: 16, weight: "700" }
+              font: { size: 14, weight: "600" }
             }
           },
           y: {
