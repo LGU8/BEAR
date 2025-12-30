@@ -1,0 +1,571 @@
+/* ==============================
+   Home 공통 레이아웃
+   ============================== */
+
+.home {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px 14px 80px;
+  box-sizing: border-box;
+}
+
+/* ==============================
+   섹션 공통
+   ============================== */
+
+.home-section {
+  margin-bottom: 24px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+
+
+.section-card {
+  background-color: #FFFFFF;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+/* ==============================
+   Empty State
+   ============================== */
+
+.empty-state {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.empty-text {
+  font-size: 13px;
+  color: #aaa;
+  margin: 0;
+}
+
+.empty-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFB845;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.empty-link:hover {
+  opacity: 0.9;
+}
+
+/* ==============================
+   메뉴 추천
+   ============================== */
+
+.reco-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.reco-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.reco-item:last-child {
+  border-bottom: none;
+}
+
+.reco-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.reco-reason {
+  font-size: 12px;
+  color: #777;
+  margin-top: 2px;
+}
+
+/* ==============================
+   Daily Report (Home Section #2)
+   ============================== */
+
+.daily-report-card {
+  padding: 14px 14px;
+}
+
+.daily-report-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Left: fixed width date box */
+.daily-report-date {
+  width: 110px;               /* ✅ 고정 폭 */
+  flex: 0 0 110px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;  
+}
+
+.daily-report-date-top {
+  font-size: 14px;
+  font-weight: 800;
+  color: #333;
+  line-height: 1.1;
+}
+
+.daily-report-date-bottom {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  line-height: 1.1;
+}
+
+/* Right: content box (divider = border-left) */
+.daily-report-body {
+  flex: 1;
+  padding-left: 12px;
+  border-left: 1px solid rgba(0, 0, 0, 0.10); /* ✅ 구분선 */
+  display: flex;
+  align-items: center;  
+}
+
+.report-content {
+  margin: 0;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.55;
+
+  /* ✅ content 일정 높이 이상 스크롤 */
+  
+  white-space: pre-line;  /* content에 \n 있으면 줄바꿈 유지 */
+}
+
+/* Empty / status 메시지 톤 */
+.report-content.is-empty {
+  color: #777;
+}
+
+/* ==============================
+   Mobile: stack layout
+   ============================== */
+
+@media (max-width: 480px) {
+  .daily-report-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .daily-report-date {
+    width: 100%;
+    align-items: center;   /* 모바일에서는 날짜 가운데 정렬 */
+    text-align: center;
+  }
+
+  .daily-report-body {
+    border-left: none;
+    padding-left: 0;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.10);
+    justify-content: center;  /* content 세로 중앙 */
+  }
+}
+
+
+
+/* ==============================
+   긍정 도넛 차트
+   ============================== */
+
+.donut-card {
+  position: relative;
+}
+
+.donut-wrap {
+  position: relative;
+  width: clamp(180px, 40vw, 260px);
+  aspect-ratio: 1 / 1;
+  height: auto;
+  min-height: 180px; /* ✅ 0 높이 방지 */
+  margin: 0 auto;
+}
+
+#positiveDonutChart {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 50%;
+}
+
+.donut-number {
+  font-size: 20px;
+  font-weight: 800;
+  color: #333;
+  line-height: 1.1;
+}
+
+.donut-caption {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.donut-legend {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #555;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-pos  { background-color: #FFB845; }
+.legend-rest { background-color: #FFD07C; }
+
+/* ==============================
+   오늘 먹은 것들
+   ============================== */
+
+
+/* ---------- Legend ---------- */
+
+.food-legend {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #666;
+  flex-wrap: wrap;
+}
+
+.food-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.legend-dot.carb    { background-color: #FFB845; } /* 탄 */
+.legend-dot.protein { background-color: #FFD07C; } /* 단 */
+.legend-dot.fat     { background-color: #FFE2B6; } /* 지 */
+
+
+/* ---------- Rows ---------- */
+
+.food-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.food-row {
+  display: grid;
+  grid-template-columns: 56px 64px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Left: slot label */
+.food-slot {
+  font-size: 13px;
+  font-weight: 700;
+  padding : 0 0 0 10px;
+  color: #333;
+}
+
+/* Middle: kcal */
+.food-kcal {
+  font-size: 12px;
+  font-weight: 700;
+  color: #333;
+}
+
+.food-kcal.is-dash {
+  color: #999;
+  font-weight: 600;
+}
+
+/* ---------- Bar ---------- */
+
+.food-bar {
+  flex: 1 1 auto;
+  min-width: 0;
+
+  display: flex;              /* ✅ 세그먼트 나란히 */
+  height: 18px;               /* ✅ 텍스트가 안 잘리는 높이 */
+  border-radius: 999px;       /* ✅ pill 형태 */
+  overflow: hidden;           /* ✅ 둥근 끝 유지 */
+  background: rgba(0,0,0,0.06);
+
+  /* 텍스트가 있는 형태라 padding은 주지 않는 게 안정적 */
+}
+.food-bar.is-empty {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Segments */
+.food-seg {
+  height: 100%;
+  display: flex;
+  align-items: center;        /* ✅ 세로 중앙 */
+  justify-content: center;    /* ✅ 가로 중앙 */
+  font-size: 11px;            /* ✅ bar 높이 대비 안전 */
+  line-height: 1;             /* ✅ 잘림 방지 핵심 */
+  font-weight: 800;
+  color: rgba(0,0,0,0.55);
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.food-seg.carb    { background-color: #FFB845; }
+.food-seg.protein { background-color: #FFD07C; }
+.food-seg.fat     { background-color: #FFE2B6; }
+
+/* 텍스트 숨김용 */
+.food-seg.no-text {
+  color: transparent;
+}
+
+
+/* =========================================================
+   ✅ 반응형: Tablet (<=768px)
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .home {
+    max-width: 100%;
+    padding: 14px 12px 76px;
+  }
+
+  .home-section {
+    margin-bottom: 22px;
+  }
+
+  .section-card {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .section-title {
+    font-size: 14px;
+  }
+
+  .section-subtitle {
+    font-size: 11px;
+  }
+
+  .reco-title {
+    font-size: 13px;
+  }
+
+  .reco-reason {
+    font-size: 11.5px;
+  }
+
+  .report-content {
+    font-size: 12.5px;
+  }
+
+  .donut-wrap {
+    width: 210px;
+  }
+
+  .donut-number {
+    font-size: 24px;
+  }
+
+  .donut-caption {
+    font-size: 11.5px;
+  }
+
+  .legend-item {
+    font-size: 11.5px;
+  }
+  .food-card {
+    padding: 12px;
+  }
+
+  .food-row {
+    grid-template-columns: 54px 60px 1fr;
+    gap: 9px;
+  }
+
+  .food-slot {
+    font-size: 12.5px;
+  }
+
+  .food-kcal {
+    font-size: 11.5px;
+  }
+
+  .food-bar {
+    height: 20px;
+  }
+
+  .food-seg {
+    font-size: 10.5px;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+}
+
+/* =========================================================
+   ✅ 반응형: Mobile (<=480px)
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .home {
+    max-width: 100%;
+    padding: 12px 10px 72px;
+  }
+
+  .home-section {
+    margin-bottom: 20px;
+  }
+
+  .section-card {
+    padding: 11px;
+    border-radius: 13px;
+  }
+
+  .section-title {
+    font-size: 13.5px;
+  }
+
+  .section-subtitle {
+    font-size: 11px;
+  }
+
+  .reco-item {
+    padding: 7px 0;
+  }
+
+  .reco-title {
+    font-size: 12.8px;
+  }
+
+  .reco-reason {
+    font-size: 11px;
+  }
+
+  .report-content {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .donut-wrap {
+    width: 180px;
+    min-height: 180px; /* 모바일에서도 안전 */
+  }
+
+  .donut-center {
+    width: 75%;
+  }
+
+  .donut-number {
+    font-size: 22px;
+  }
+
+  .donut-caption {
+    font-size: 11px;
+  }
+
+  .donut-legend {
+    margin-top: 10px;
+  }
+
+  .legend-item {
+    font-size: 11px;
+  }
+
+  .legend-dot {
+    width: 7px;
+    height: 7px;
+  }
+
+  .food-card {
+    padding: 11px;
+  }
+
+  .food-row {
+    grid-template-columns: 50px 54px 1fr;
+    gap: 8px;
+  }
+
+  .food-slot {
+    font-size: 12px;
+  }
+
+  .food-kcal {
+    font-size: 10.5px;
+  }
+
+  .food-bar {
+    height: 18px;
+  }
+
+  .food-seg {
+    font-size: 10px;
+  }
+
+  .food-legend {
+    font-size: 11px;
+    gap: 8px;
+  }
+
+  .legend-dot {
+    width: 7px;
+    height: 7px;
+  }
+}

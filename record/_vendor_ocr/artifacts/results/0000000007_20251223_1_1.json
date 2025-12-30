@@ -1,0 +1,165 @@
+{
+  "cust_id": "0000000007",
+  "rgs_dt": "20251223",
+  "seq": 1,
+  "ocr_seq": 1,
+  "image_identifier": "local://C:/Users/Admin/Documents/GitHub/LG_U8/ml_pipeline/assets/image_data/test1.jpg",
+  "result": {
+    "filename": "test1.jpg",
+    "success": true,
+    "final_source": "ROI",
+    "final_text": "86 내용량 9 총 영양정보 kcal 495 당류20 g 20 % 나트륨 1 % 15 mg 탄수화물 35 g 11 % 포화지방 229 147 % 지방 35g65 % 트랜스지방 0.79 g 콜레스테롤2 mg 1 % 단백질10.g 18 % 1일 영성분 기준치에 대한 비율(%)은 2000 kcal 기준이므로 개인의 필요 열량에 따라 다를 수있습니다. 코데웨프드",
+    "parsed_nutrition": {
+      "열량": {
+        "found": true,
+        "value": 2000.0,
+        "unit": "kcal",
+        "pct": null,
+        "text": "2000kcal"
+      },
+      "나트륨": {
+        "found": true,
+        "value": 1.0,
+        "unit": "mg",
+        "pct": null,
+        "text": "1mg"
+      },
+      "탄수화물": {
+        "found": true,
+        "value": 35.0,
+        "unit": "g",
+        "pct": 11.0,
+        "text": "35g 11%"
+      },
+      "당류": {
+        "found": true,
+        "value": 20.0,
+        "unit": "g",
+        "pct": 20.0,
+        "text": "20g 20%"
+      },
+      "지방": {
+        "found": true,
+        "value": 35.0,
+        "unit": "g",
+        "pct": 65.0,
+        "text": "35g 65%"
+      },
+      "단백질": {
+        "found": true,
+        "value": 10.0,
+        "unit": "g",
+        "pct": null,
+        "text": "10g"
+      },
+      "트랜스지방": {
+        "found": true,
+        "value": 0.79,
+        "unit": "g",
+        "pct": null,
+        "text": "0.79g"
+      },
+      "포화지방": {
+        "found": true,
+        "value": 229.0,
+        "unit": "g",
+        "pct": 147.0,
+        "text": "229g 147%"
+      },
+      "콜레스테롤": {
+        "found": true,
+        "value": 2.0,
+        "unit": "mg",
+        "pct": 1.0,
+        "text": "2mg 1%"
+      }
+    },
+    "schema_v1": [
+      {
+        "분류": "일반성분",
+        "영양성분": "에너지",
+        "1회 제공량 기준": "2000kcal",
+        "1일 기준치(%)": ""
+      },
+      {
+        "분류": "일반성분",
+        "영양성분": "탄수화물",
+        "1회 제공량 기준": "35g",
+        "1일 기준치(%)": "11%"
+      },
+      {
+        "분류": "일반성분",
+        "영양성분": "당류",
+        "1회 제공량 기준": "20g",
+        "1일 기준치(%)": "20%"
+      },
+      {
+        "분류": "일반성분",
+        "영양성분": "지방",
+        "1회 제공량 기준": "35g",
+        "1일 기준치(%)": "65%"
+      },
+      {
+        "분류": "일반성분",
+        "영양성분": "단백질",
+        "1회 제공량 기준": "10g",
+        "1일 기준치(%)": ""
+      },
+      {
+        "분류": "무기질",
+        "영양성분": "나트륨",
+        "1회 제공량 기준": "1mg",
+        "1일 기준치(%)": ""
+      },
+      {
+        "분류": "지방산",
+        "영양성분": "트랜스지방산",
+        "1회 제공량 기준": "0.79g",
+        "1일 기준치(%)": ""
+      },
+      {
+        "분류": "지방산",
+        "영양성분": "포화지방산",
+        "1회 제공량 기준": "229g",
+        "1일 기준치(%)": "147%"
+      },
+      {
+        "분류": "지방산",
+        "영양성분": "콜레스테롤",
+        "1회 제공량 기준": "2mg",
+        "1일 기준치(%)": "1%"
+      }
+    ],
+    "bbox_roi": {
+      "x": 7,
+      "y": 273,
+      "w": 1127,
+      "h": 805
+    },
+    "debug": {
+      "roi_score": 10.0,
+      "full_score": 0.0,
+      "roi_detail": {
+        "orientation": "0",
+        "raw_text": "86 내용량 9 총 영양정보\nkcal 495\n당류20g 20% 나트륨 1% 15mg 탄수화물 35 g11%\n포화지방 229 147% 지방 35g65% 트랜스지방0.79\n콜레스테롤2mg 1% 단백질10.g18%\n1일 영성분 기준치에 대한 비율(%)은 2,000kcal 기준이므로 개인의 필요 열량에 따라 다를 수있습니다.\n코데웨프드",
+        "quality": {
+          "n_lines": 7,
+          "kw_hits": 10
+        },
+        "elapsed_sec": 8.795108600053936
+      },
+      "full_detail": {
+        "skipped": true
+      },
+      "elapsed_sec_total": 19.16256419988349,
+      "params": {
+        "score_thresh": 0.6,
+        "max_side": 1600,
+        "try_rotate_if_low": true,
+        "rotate_kw_threshold": 4,
+        "do_full_fallback": true,
+        "full_kw_threshold": 4
+      }
+    }
+  }
+}

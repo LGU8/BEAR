@@ -1,0 +1,173 @@
+/* =========================
+   settings_s4.css (S4 전용 - FINAL v3)
+   목표:
+   - 비선택 opacity 50%
+   - 선택 only 강조
+   - 저장 버튼 1개(하단) + footer 떠보임 최소화
+   - S2 공용(edit-header/save-btn) 유지
+   ========================= */
+
+/* 0) Back icon */
+.settings-page .edit-card .back-ico {
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
+}
+
+/* 1) ✅ 버튼 reset은 "선택 카드"에만 적용 (save-btn 건드리지 않음) */
+.settings-page .edit-card .select-item {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+/* 2) 섹션 타이틀 */
+.settings-page .edit-card .edit-section-title {
+  margin: 10px 0 10px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* 3) 선택 리스트 */
+.settings-page .edit-card .select-list {
+  display: grid;
+  gap: 12px;
+}
+
+/* 4) 선택 카드(버튼) */
+.settings-page .edit-card .select-item {
+  position: relative;
+
+  width: 100%;
+  text-align: left;
+
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.00);
+  border-radius: var(--radius-md);
+
+  padding: 14px 14px;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+  align-items: center;
+
+  cursor: pointer;
+
+  /* ✅ 핵심: 비선택 50% */
+  opacity: 0.5;
+
+  transition:
+    opacity 0.15s ease,
+    filter 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+/* 시안 느낌: 왼쪽 라인 */
+.settings-page .edit-card .select-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 3px;
+  background: rgba(244, 121, 0, 0.35); /* 비선택 연하게 */
+}
+
+.settings-page .edit-card .select-item:hover {
+  filter: brightness(0.995); /* 비선택 hover는 과하지 않게 */
+}
+
+/* ✅ 선택 강조(시안 톤) */
+.settings-page .edit-card .select-item.is-active {
+  opacity: 1;
+
+  background: rgba(244, 121, 0, 0.10);
+  border-color: rgba(244, 121, 0, 0.45);
+}
+
+.settings-page .edit-card .select-item.is-active::before {
+  background: rgba(244, 121, 0, 0.90); /* 선택 진하게 */
+}
+
+.settings-page .edit-card .select-item.is-active:hover {
+  filter: brightness(0.99);
+}
+
+/* 5) 아이콘 */
+.settings-page .edit-card .select-icon {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  display: block;
+}
+
+/* 6) 텍스트 */
+.settings-page .edit-card .select-name {
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.settings-page .edit-card .select-desc {
+  font-weight: 300;
+  font-size: 11px;
+  color: var(--text-sub);
+  line-height: 1.35;
+}
+
+/* 7) 구분선 */
+.settings-page .edit-card .edit-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 18px 0;
+}
+
+/* 8) ✅ 하단 저장 영역(sticky)
+   - "배경 투명"으로 떠보임 제거(시안 느낌)
+   - 버튼은 S2 공용 save-btn 그대로 사용
+*/
+.settings-page .edit-card .edit-footer--sticky {
+  position: sticky;
+  bottom: 0;
+
+  display: flex;
+  justify-content: flex-end;
+
+  background: transparent; /* ✅ 핵심 */
+  padding: 18px 0 calc(10px + env(safe-area-inset-bottom));
+}
+
+/* 9) ✅ 겹침 방지: edit-card 하단 여백(S4에만) */
+.settings-page .edit-card {
+  padding-bottom: 66px; /* save-btn height + 여백 */
+}
+
+/* 10) ✅ save-btn 충돌 방지(보험) */
+.settings-page .edit-card .save-btn {
+  border: 0;
+}
+
+/* 11) 모바일 */
+@media (max-width: 420px) {
+  .settings-page .edit-card .select-item {
+    grid-template-columns: 50px 1fr;
+    padding: 12px;
+  }
+
+  .settings-page .edit-card .select-icon {
+    width: 46px;
+    height: 46px;
+  }
+
+  .settings-page .edit-card .edit-footer--sticky {
+    background: transparent;
+    padding: 14px 0 calc(10px + env(safe-area-inset-bottom));
+  }
+}

@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/timeline.css' %}">
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+{% endblock %}
+
+{% block content %}
+
+<!-- jQuery & Datepicker -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/locales/bootstrap-datepicker.ko.min.js"></script>
+
+<section class="timeline-section">
+  <div class="timeline-card">
+    <div class="timeline-card-inner">
+      <div class="timeline-card-head timeline-card-head--stack">
+        <h4 class="timeline-title">감정 변화 요약</h4>
+
+        <div class="timeline-datebar" id="week-picker-trigger">
+          <span class="timeline-datebar-icon">📅</span>
+          <span class="timeline-datebar-text" id="week-picker-label">
+            {{ week_start }} ~ {{ week_end }}
+          </span>
+          <span class="timeline-datebar-caret">▾</span>
+          <input type="text" id="week-picker"
+                class="timeline-week-hidden-input" readonly>
+        </div>
+      </div>
+
+      <div class="timeline-chart-panel">
+        <div class="timeline-canvas-wrap">
+          <canvas id="weeklyEmotionChart"></canvas>
+        </div>
+
+        <div class="timeline-xlabels" id="weeklyDateLabels" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- (2) ML 부정 감정 예측 결과 -->
+<section class="timeline-section">
+  <div class="timeline-card">
+    <div class="timeline-card-inner">
+      <div class="timeline-card-head">
+        <h4 class="timeline-title">부정 감정 예측</h4>
+      </div>
+
+    {% if not neg_pred.eligible %}
+      <div class="negpred-wrap">
+        <div class="negpred-panel negpred-panel--empty">
+
+          <div class="negpred-empty-text">
+            <p class="negpred-empty-title">⚠️데이터가 부족합니다</p>
+            <p class="negpred-empty-desc">
+              {% if neg_pred.detail.type == "no_recent_record" %}
+                아래 날짜에 감정 기록이 없어 예측할 수 없어
+              {% else %}
+                키워드 입력이 없는 날짜가 존재합니다.
+              {% endif %}
+            </p>
+
+
+            {% if neg_pred.detail.type == "gate_keyword_3days" or neg_pred.detail.type == "no_recent_record" %}
+              <p class="negpred-empty-dates">
+                {{ neg_pred.detail.missing_days|join:", " }}
+              </p>
+            {% endif %}
+
+          </div>
+
+        </div>
+      </div>
+
+
+    {% else %}
+      <div class="negpred-wrap">
+        <div class="negpred-panel">
+
+          <div class="negpred-icons" aria-label="부정 감정 예측 아이콘">
+
+            <!-- 긍정 -->
+            <div class="negpred-item {% if neg_pred.ui_active_idx == 0 %}is-active{% endif %}">
+              <img
+                src="{% static 'icons_img/긍정.png' %}"
+                alt="Positive(긍정)"
+                class="negpred-img"
+              />
+              {% if neg_pred.ui_active_idx == 0 %}
+                <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
+              {% endif %}
+            </div>
+
+            <!-- 중립 -->
+            <div class="negpred-item {% if neg_pred.ui_active_idx == 1 %}is-active{% endif %}">
+              <img
+                src="{% static 'icons_img/중립.png' %}"
+                alt="Neutral(중립)"
+                class="negpred-img"
+              />
+              {% if neg_pred.ui_active_idx == 1 %}
+                <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
+              {% endif %}
+            </div>
+
+            <!-- 부정 -->
+            <div class="negpred-item {% if neg_pred.ui_active_idx == 2 %}is-active{% endif %}">
+              <img
+                src="{% static 'icons_img/부정.png' %}"
+                alt="Negative(부정)"
+                class="negpred-img"
+              />
+              {% if neg_pred.ui_active_idx == 2 %}
+                <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
+              {% endif %}
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    {% endif %}
+
+    </div>
+  </div>
+</section>
+
+<!-- (3) LLM 멘트 -->
+<section class="timeline-section">
+  <div class="timeline-card">
+    <div class="timeline-card-inner">
+
+      <div class="timeline-card-head">
+        <h4 class="timeline-title">행동 추천</h4>
+      </div>
+
+      <div class="llm-box {% if neg_pred.ui_active_idx == 2 %}is-risk{% endif %}">
+
+        <p class="llm-text">{{ llm_ment }}</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ✅ Chart data -->
+<script id="weeklyEmotionData" type="application/json">
+{{ chart_json|safe }}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/timeline.js' %}"></script>
+
+<!-- ✅ Week Datepicker Script -->
+<script>
+$(function () {
+    const weekStartStr = "{{ week_start }}"; // YYYY.MM.DD
+    const weekEndStr   = "{{ week_end }}";
+
+    // 라벨 초기 표시
+    $('#week-picker-label').text(`${weekStartStr} ~ ${weekEndStr}`);
+
+    const today = new Date();
+    const maxStart = new Date();
+    maxStart.setDate(today.getDate() - 6); // (A-1) 오늘-6까지만 시작 가능
+
+    $('#week-picker').datepicker({
+        format: 'yyyy-mm-dd',
+        language: 'ko',
+        autoclose: true,
+        endDate: maxStart,
+        todayHighlight: false
+    }).on('changeDate', function (e) {
+        const startDate = e.date;
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+
+        const fmt = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}${m}${day}`;
+        };
+
+        // 라벨(화면표시)은 YYYY.MM.DD ~ YYYY.MM.DD 형태 유지
+        const fmtLabel = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}.${m}.${day}`;
+        };
+        $('#week-picker-label').text(`${fmtLabel(startDate)} ~ ${fmtLabel(endDate)}`);
+
+        const startParam = fmt(startDate);
+        const endParam = fmt(endDate);
+
+        // 화면 갱신(같은 페이지에서 데이터만 바뀌는 느낌)
+        window.location.search = `?start=${startParam}&end=${endParam}`;
+    });
+
+    // ✅ 바 전체 클릭 시 달력 열기
+    $('#week-picker-trigger').on('click', function () {
+        $('#week-picker').datepicker('show');
+    });
+});
+</script>
+
+
+{% endblock %}

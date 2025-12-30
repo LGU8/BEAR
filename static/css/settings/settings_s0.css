@@ -1,0 +1,235 @@
+/* static/css/settings/settings_s0.css */
+
+/* =========================
+   S0 (Settings Index) - FINAL
+   - Email pill color 강조
+   - Profile card click -> modal
+   - Logout row typography/size 통일
+   ========================= */
+
+/* ---------- Profile Card Click Reset ---------- */
+.settings-page.s0 .s0-profile-click {
+  width: 100%;
+  display: block;
+  text-align: left;
+
+  /* button reset */
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.settings-page.s0 .s0-profile-card:has(.s0-profile-click:focus-visible) {
+  outline: 2px solid rgba(244, 121, 0, 0.25);
+  outline-offset: 2px;
+}
+
+/* 우측 chevron (프로필 카드) */
+.settings-page.s0 .s0-card-chevron {
+  margin-left: auto;
+  font-size: 22px;
+  line-height: 1;
+  color: rgba(0,0,0,0.25);
+  padding-top: 2px;
+}
+
+/* 이메일 pill: 색상 강조 */
+.settings-page.s0 .s0-email-pill {
+  color: var(--orange-3);
+  font-weight: 700;
+  border: 1px solid rgba(244, 121, 0, 0.18);
+  background: var(--card);
+}
+
+.settings-page.s0 .s0-email-pill.is-empty {
+  color: rgba(0,0,0,0.45);
+  border-color: rgba(0,0,0,0.08);
+}
+
+/* stats 단위 */
+.settings-page.s0 .stat-unit {
+  font-weight: 600;
+  font-size: 11px;
+  color: rgba(0,0,0,0.55);
+  margin-left: 2px;
+}
+
+/* ---------- Menu Card (Logout row 동일화) ---------- */
+.settings-page.s0 .s0-menu-card {
+  padding: 10px 0;
+}
+
+/* 링크와 버튼을 동일한 “row component”처럼 */
+.settings-page.s0 .menu-item,
+.settings-page.s0 .menu-item-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 16px 18px;
+  text-decoration: none;
+
+  /* reset */
+  background: transparent;
+  border: 0;
+  margin: 0;
+
+  /* typography 통일 */
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--text);
+
+  cursor: pointer;
+}
+
+.settings-page.s0 .menu-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-page.s0 .menu-ico {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+  opacity: 0.95;
+}
+
+.settings-page.s0 .menu-text {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.2px;
+}
+
+.settings-page.s0 .menu-right {
+  font-size: 20px;
+  line-height: 1;
+  color: rgba(0,0,0,0.35);
+}
+
+.settings-page.s0 .menu-divider {
+  height: 1px;
+  background: rgba(0,0,0,0.06);
+  margin: 0 18px;
+}
+
+.settings-page.s0 .menu-divider--strong {
+  background: rgba(0,0,0,0.10);
+}
+
+/* form reset */
+.settings-page.s0 .menu-item-form {
+  margin: 0;
+}
+
+/* hover */
+@media (hover: hover) {
+  .settings-page.s0 .menu-item:hover,
+  .settings-page.s0 .menu-item-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+}
+
+/* ---------- Modal ---------- */
+.settings-page.s0 .s0-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.25);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 9999;
+}
+
+.settings-page.s0 .s0-modal-backdrop.is-open {
+  display: flex;
+}
+
+.settings-page.s0 .s0-modal {
+  width: min(420px, 100%);
+  background: #FFF;
+  border-radius: 16px;
+  box-shadow: 0 18px 38px rgba(0,0,0,0.18);
+  padding: 16px 16px 14px;
+  position: relative;
+}
+
+.settings-page.s0 .s0-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+
+  border: 0;
+  background: rgba(0,0,0,0.04);
+  cursor: pointer;
+
+  font-size: 20px;
+  line-height: 1;
+}
+
+.settings-page.s0 .s0-modal-title {
+  font-weight: 800;
+  font-size: 14px;
+  margin-top: 2px;
+  letter-spacing: -0.2px;
+}
+
+.settings-page.s0 .s0-modal-desc {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(0,0,0,0.70);
+}
+
+.settings-page.s0 .s0-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.settings-page.s0 .s0-modal-btn {
+  flex: 1;
+  height: 38px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-weight: 800;
+  font-size: 12px;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.settings-page.s0 .s0-modal-btn--ghost {
+  background: rgba(0,0,0,0.05);
+  color: rgba(0,0,0,0.70);
+}
+
+.settings-page.s0 .s0-modal-btn--primary {
+  background: var(--orange-1);
+  color: #fff;
+}
+
+@media (max-width: 420px) {
+  .settings-page.s0 .menu-item,
+  .settings-page.s0 .menu-item-btn {
+    padding: 14px 16px;
+  }
+  .settings-page.s0 .menu-text {
+    font-size: 13px;
+  }
+}

@@ -1,0 +1,48 @@
+{% extends "record_base_clean.html" %}
+{% load static %}
+{% block main_area %}
+
+<section class="camera-page">
+
+  <!-- 토글(네모 박스 위) -->
+  <div class="camera-top-toggle">
+    <div class="scan-toggle" role="tablist" aria-label="스캔 모드">
+      <button type="button" class="scan-toggle-btn is-active"
+              data-scan-mode="barcode" aria-selected="true">바코드</button>
+      <button type="button" class="scan-toggle-btn"
+              data-scan-mode="nutrition" aria-selected="false">영양성분</button>
+    </div>
+  </div>
+
+  <!-- 프리뷰 -->
+  <div id="camera-stage" class="camera-stage">
+    <video id="cam-video" autoplay playsinline></video>
+    <div class="camera-guidebox" aria-hidden="true"></div>
+  </div>
+
+  <canvas id="cam-canvas" style="display:none;"></canvas>
+
+  <!-- 안내 문구 -->
+  <p id="camera-desc" class="camera-desc">
+    네모칸 안에 바코드를 스캔해주세요
+  </p>
+
+  <!-- ✅ 감정 기록 컨텍스트 (session → JS 전달용) -->
+  <input type="hidden" id="ctx-rgs-dt" value="{{ request.session.rgs_dt }}">
+  <input type="hidden" id="ctx-time-slot" value="{{ request.session.time_slot }}">
+  
+  <!-- 하단 버튼: 중앙 고정 -->
+  <div class="camera-bottom">
+    <div class="camera-bottom-left"></div>
+
+    <div class="camera-bottom-center">
+      <button id="btn-shoot" type="button" class="camera-shutter" aria-label="촬영"></button>
+    </div>
+
+    <div class="camera-bottom-right"></div>
+  </div>
+
+</section>
+
+<script defer src="{% static 'js/record_food/camera.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- ✅ 네비 공통 -->
+  <link rel="stylesheet" href="{% static 'css/nav_style.css' %}">
+  <!-- ✅ 기록 페이지 전용 -->
+  <link rel="stylesheet" href="{% static 'css/record_style.css' %}">
+</head>
+
+<body>
+    <!-- 1줄: 곰돌이 로고 + 설정 아이콘 -->
+    <nav class="bear-navbar">
+      <div class="bear-navbar-inner">
+        <div class="bear-navbar-left">
+            <a href="{% url 'home' %}">
+                <img src="{% static 'nav_img/logo.png' %}" alt="BEAR logo" class="bear-logo">
+            </a>
+        </div>
+        
+        <div class="settings-navbar-group">
+            <a href="/settings">
+                <img src="{% static 'nav_img/settings.png' %}" alt="settings logo" class="settings-logo">
+            </a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 2줄: 리포트 / 기록 / 타임라인 / 도감 -->
+    <nav class="bear-tabs-bar">
+      <div class="bear-tabs-inner">
+        <div class="bear-tab-box">
+          <a class="bear-tab-text" href="{% url 'report_app:report_daily' %}">리포트</a>
+        </div>
+        <div class="bear-tab-box active">
+          <a class="bear-tab-text" href="{% url 'record_app:record_mood' %}">기록</a>
+        </div>
+        <div class="bear-tab-box {% if active_tab == 'timeline' %}active{% endif %}">
+          <a class="bear-tab-text" href="/timeline">타임라인</a>
+        </div>
+        <div class="bear-tab-box">
+          <a class="bear-tab-text" href="/badges">도감</a>
+        </div>
+      </div>
+    </nav>
+
+  <!-- ✅ Bootstrap container 쓰지 말기 -->
+    <main class="bear-main">
+        <div class="bear-tabs-inner bear-content-inner">
+            {% block main_area %}{% endblock %}
+        </div>
+    </main>
+</body>
+</html>
