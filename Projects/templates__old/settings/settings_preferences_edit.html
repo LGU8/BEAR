@@ -1,0 +1,118 @@
+{% extends "settings/settings_base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/settings/settings_base.css' %}">
+<!--<link rel="stylesheet" href="{% static 'css/settings/settings_s2.css' %}">-->
+<link rel="stylesheet" href="{% static 'css/settings/settings_s3.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="{% static 'js/settings/settings_s3.js' %}"></script>
+{% endblock %}
+
+{% block main_area %}
+<section class="settings-page s3">
+  <article class="settings-card edit-card">
+
+    <!-- 헤더 -->
+    <div class="edit-header">
+      <a class="back-btn" href="{% url 'settings_app:settings_account' %}" aria-label="back">
+        <img src="{% static 'settings_img/icon_back.png' %}" alt="back">
+      </a>
+      <div class="edit-title">선호도 수정</div>
+      <div class="edit-header-spacer"></div>
+    </div>
+
+    <!-- POST -->
+    <form id="prefForm" method="post" action="{% url 'settings_app:preferences_edit' %}">
+      {% csrf_token %}
+
+      <!-- hidden (최종 저장값) -->
+      <input type="hidden" name="ratio_carb" id="ratioCarb" value="{{ ratio_carb|default:0 }}">
+      <input type="hidden" name="ratio_protein" id="ratioProtein" value="{{ ratio_protein|default:0 }}">
+      <input type="hidden" name="ratio_fat" id="ratioFat" value="{{ ratio_fat|default:0 }}">
+
+      <!-- 안내 문구(선택): 필요 없으면 제거해도 됨 -->
+      {# <div class="pref-edit-guide">각 항목을 눌러 조절해요. 합계는 10이어야 저장돼요.</div> #}
+
+      <!-- Q1: 탄수화물 -->
+      <div class="pref-edit-block">
+        <div class="pref-edit-top">
+          <img class="pref-edit-icon" src="{% static 'settings_img/icon_rice.png' %}" alt="carb">
+          <div class="pref-edit-q">
+            밥·빵·면 같은 탄수화물 음식을 어느 정도로 즐기나요?
+          </div>
+        </div>
+
+        <div class="seg-slider"
+             data-key="carb"
+             data-value="{{ ratio_carb|default:0 }}"
+             aria-label="carb segmented slider">
+          {% for i in seg_range %}
+            <button type="button"
+                    class="seg {% if i <= ratio_carb %}is-on{% endif %}"
+                    data-idx="{{ i }}"
+                    aria-label="carb segment {{ i }}"></button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Q2: 단백질 -->
+      <div class="pref-edit-block">
+        <div class="pref-edit-top">
+          <img class="pref-edit-icon" src="{% static 'settings_img/icon_shrimp.png' %}" alt="protein">
+          <div class="pref-edit-q">
+            고기·생선·달걀 같은 단백질 음식을 식사에서 얼마나 중요하게 생각하나요?
+          </div>
+        </div>
+
+        <div class="seg-slider"
+             data-key="protein"
+             data-value="{{ ratio_protein|default:0 }}"
+             aria-label="protein segmented slider">
+          {% for i in seg_range %}
+            <button type="button"
+                    class="seg {% if i <= ratio_protein %}is-on{% endif %}"
+                    data-idx="{{ i }}"
+                    aria-label="protein segment {{ i }}"></button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Q3: 지방 -->
+      <div class="pref-edit-block">
+        <div class="pref-edit-top">
+          <img class="pref-edit-icon" src="{% static 'settings_img/icon_beef.png' %}" alt="fat">
+          <div class="pref-edit-q">
+            버터·치즈와 같은 지방 음식을 얼마나 좋아하나요?
+          </div>
+        </div>
+
+        <div class="seg-slider"
+             data-key="fat"
+             data-value="{{ ratio_fat|default:0 }}"
+             aria-label="fat segmented slider">
+          {% for i in seg_range %}
+            <button type="button"
+                    class="seg {% if i <= ratio_fat %}is-on{% endif %}"
+                    data-idx="{{ i }}"
+                    aria-label="fat segment {{ i }}"></button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 합계 안내 -->
+      <div class="sum-hint" aria-live="polite">
+        합계 <span id="sumNow">{{ ratio_sum|default:0 }}</span>/10
+      </div>
+
+      <!-- 저장 -->
+      <div class="edit-footer">
+        <button id="saveBtn" class="save-btn" type="submit" disabled>저장</button>
+      </div>
+    </form>
+
+  </article>
+</section>
+{% endblock %}

@@ -1,0 +1,280 @@
+/* static/css/settings/settings_s3.css */
+
+/* =========================
+   Settings S3 (선호도 수정) - FINAL (Keep S3 DOM)
+   - IMPORTANT: JS 동작 유지 위해 S3 기존 클래스/구조 유지
+     ▸ .pref-edit-block / .pref-edit-top / .seg-slider / .seg
+   - 목표:
+     1) S1 느낌의 card-inner mini-card 3개
+     2) 카드 간 간격 확보
+     3) 버튼은 S2처럼 우측 하단
+     4) font-weight 600 통일 (S3 scope)
+   ========================= */
+
+.settings-page.s3 {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+/* ✅ S3 전체 font-weight 600 통일 */
+.settings-page.s3,
+.settings-page.s3 * {
+  font-weight: 600 !important;
+}
+
+/* 카드 */
+.settings-page.s3 .edit-card {
+  padding: 18px;
+}
+
+/* ---------------------------
+   Header: 상단 가운데 (S2 느낌)
+--------------------------- */
+.settings-page.s3 .edit-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.settings-page.s3 .back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.settings-page.s3 .back-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.settings-page.s3 .back-btn img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  display: block;
+}
+
+.settings-page.s3 .edit-title {
+  text-align: center;
+  font-size: 16px;
+}
+
+.settings-page.s3 .edit-header-spacer {
+  width: 40px;
+  height: 40px;
+}
+
+/* ---------------------------
+   ✅ 카드끼리 붙어보이는 문제 해결
+   - form 흐름 gap 확보
+--------------------------- */
+.settings-page.s3 form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------------------------
+   ✅ S3 기존 블록(.pref-edit-block)을
+   S1 mini-card처럼 보이게
+--------------------------- */
+.settings-page.s3 .pref-edit-block {
+  /* 기존의 width: fit-content / 중앙배치 로직 제거 */
+  width: min(920px, 100%);
+  margin: 0 auto;
+
+  /* mini-card look (S1 통일) */
+  background: var(--card-inner);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+
+  position: relative;
+  padding: 14px 12px 14px 18px;
+}
+
+/* 좌측 accent bar */
+.settings-page.s3 .pref-edit-block::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: var(--orange-1);
+  border-radius: 2px;
+  opacity: 0.9;
+}
+
+/* ---------------------------
+   ✅ 아이콘 + 질문 정렬 (S1 느낌)
+   - 기존 S3의 76px/520px 고정폭 제거
+--------------------------- */
+.settings-page.s3 .pref-edit-top {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
+  align-items: center;
+
+  width: 100%;
+  margin: 0 0 10px;
+}
+
+.settings-page.s3 .pref-edit-icon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.settings-page.s3 .pref-edit-q {
+  width: auto;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left; /* ✅ S1처럼 자연스럽게 */
+  margin: 0;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+/* ---------------------------
+   ✅ slider: 질문 시작선 맞춤
+   - 기존 S3의 margin-left(calc(76px+12px)) 제거
+--------------------------- */
+.settings-page.s3 .seg-slider {
+  width: 100%;
+  margin: 0;
+
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+}
+
+/* seg 버튼 */
+.settings-page.s3 .seg-slider .seg {
+  appearance: none;
+  -webkit-appearance: none;
+
+  height: 22px;
+  padding: 0;
+
+  border-radius: 7px;
+  border: 2px solid rgba(244, 121, 0, 0.45);
+  background: #FFFFFF;
+
+  cursor: pointer;
+  outline: none;
+}
+
+.settings-page.s3 .seg-slider .seg.is-on {
+  background: var(--orange-1);
+  border-color: var(--orange-1);
+}
+
+.settings-page.s3 .seg-slider .seg:focus-visible {
+  box-shadow: 0 0 0 3px rgba(244, 121, 0, 0.18);
+}
+
+.settings-page.s3 .seg-slider .seg:active {
+  transform: translateY(1px);
+}
+
+/* 합계 */
+.settings-page.s3 .sum-hint {
+  width: fit-content;
+  margin: 4px auto 0;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.settings-page.s3 .sum-hint #sumNow {
+  color: var(--orange-1);
+}
+
+/* ---------------------------
+   ✅ 저장 버튼: S2처럼 우측 하단
+   - 지금 “이상해 보이는” 문제는 footer 정렬/폭 기준 때문
+--------------------------- */
+.settings-page.s3 .edit-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+
+  /* ✅ 카드 폭(컨테이너) 기준으로 우측 끝 맞추기 */
+  width: min(920px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.settings-page.s3 .save-btn {
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 10px 14px;
+
+  font-size: 12px;
+  background: var(--orange-1);
+  color: #fff;
+  cursor: pointer;
+}
+
+.settings-page.s3 .save-btn:hover { filter: brightness(0.98); }
+
+.settings-page.s3 .save-btn:disabled {
+  background: rgba(244, 121, 0, 0.35);
+  color: rgba(255,255,255,0.92);
+  cursor: not-allowed;
+}
+
+/* 모바일 */
+@media (max-width: 420px) {
+  .settings-page.s3 .edit-card { padding: 16px; }
+
+  .settings-page.s3 .edit-header {
+    grid-template-columns: 36px 1fr 36px;
+  }
+
+  .settings-page.s3 .back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .settings-page.s3 .edit-header-spacer {
+    width: 36px;
+    height: 36px;
+  }
+
+  .settings-page.s3 form { gap: 10px; }
+
+  .settings-page.s3 .pref-edit-block {
+    width: 100%;
+    padding: 14px 10px 14px 18px;
+  }
+
+  .settings-page.s3 .pref-edit-top {
+    grid-template-columns: 56px 1fr;
+    gap: 10px;
+  }
+
+  .settings-page.s3 .seg-slider { gap: 5px; }
+
+  .settings-page.s3 .seg-slider .seg {
+    height: 20px;
+    border-radius: 6px;
+  }
+
+  .settings-page.s3 .edit-footer {
+    width: 100%;
+  }
+}

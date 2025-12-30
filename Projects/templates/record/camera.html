@@ -27,6 +27,10 @@
     네모칸 안에 바코드를 스캔해주세요
   </p>
 
+  <!-- ✅ 감정 기록 컨텍스트 (session → JS 전달용) -->
+  <input type="hidden" id="ctx-rgs-dt" value="{{ request.session.rgs_dt }}">
+  <input type="hidden" id="ctx-time-slot" value="{{ request.session.time_slot }}">
+  
   <!-- 하단 버튼: 중앙 고정 -->
   <div class="camera-bottom">
     <div class="camera-bottom-left"></div>

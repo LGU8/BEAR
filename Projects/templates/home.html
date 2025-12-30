@@ -10,11 +10,11 @@
 
     <!-- 1) 메뉴 추천 -->
   <section class="home-section" id="section-menu-reco">
+    <div class="section-head">
+      <h4 class="section-title">메뉴 추천</h4>
+    </div>
 
     <div class="section-card">
-      <div class="section-head">
-        <h4 class="section-title">메뉴 추천</h4>
-      </div>
       {% comment %}
         menu_reco = {
           "is_done": True/False,
@@ -60,6 +60,7 @@
           data-has-report="{% if daily_report and daily_report.content %}1{% else %}0{% endif %}">
     <div class="section-head">
       <h4 class="section-title">일일 리포트</h4>
+      
     </div>
 
     <div class="section-card daily-report-card">

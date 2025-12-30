@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="home">
+
+    <!-- 1) 메뉴 추천 -->
+  <section class="home-section" id="section-menu-reco">
+
+    <div class="section-card">
+      <div class="section-head">
+        <h4 class="section-title">메뉴 추천</h4>
+      </div>
+      {% comment %}
+        menu_reco = {
+          "is_done": True/False,
+          "status_text": "추천 준비 중" or "오늘 식사 기록이 모두 완료됐어요. 내일의 메뉴 추천 준비 중",
+          "title": "아침/점심/저녁 메뉴 추천",
+          "line": "취향 기반: A / 균형(5:3:2): B / 새로운 메뉴: C"
+        }
+      {% endcomment %}
+
+      {% if menu_reco and menu_reco.is_done %}
+        <div class="empty-state">
+          <p class="empty-text">{{ menu_reco.status_text }}</p>
+        </div>
+      {% else %}
+        {% if menu_reco and menu_reco.line %}
+          <div style="padding: 10px 14px;">
+            <div style="font-weight: 700; margin-bottom: 6px;">
+              {{ menu_reco.title }}
+            </div>
+            <div style="line-height: 1.5;">
+              {{ menu_reco.line }}
+            </div>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <p class="empty-text">
+              {% if menu_reco and menu_reco.status_text %}
+                {{ menu_reco.status_text }}
+              {% else %}
+                추천 준비 중
+              {% endif %}
+            </p>
+          </div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </section>
+
+
+  <!-- 2) 일일 리포트 -->
+  <section class="home-section" id="section-daily-report"
+          data-today-ymd="{{ today_ymd }}"
+          data-has-report="{% if daily_report and daily_report.content %}1{% else %}0{% endif %}">
+    <div class="section-head">
+      <h4 class="section-title">일일 리포트</h4>
+    </div>
+
+    <div class="section-card daily-report-card">
+      <div class="daily-report-inner">
+        <!-- Left: Date -->
+        <div class="daily-report-date" aria-label="Daily report date">
+          <div class="daily-report-date-top" id="dailyReportDateTop">April, 08</div>
+          <div class="daily-report-date-bottom">Daily Report</div>
+        </div>
+
+        <!-- Right: Content (divider is border-left here) -->
+        <div class="daily-report-body">
+          <!-- ✅ id 하나로 통일 -->
+          <p class="report-content" id="dailyReportContent">
+            {% if daily_report and daily_report.content %}
+              {{ daily_report.content }}
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+
+    <!-- 3) 긍정 도넛 차트 (2조각: pos vs neu+neg) -->
+    <section class="home-section" id="section-positive-donut">
+      <div class="section-head">
+        <h4 class="section-title">긍정 도넛 차트</h4>
+        
+      </div>
+
+      <div class="section-card donut-card">
+        {% comment %}
+          ✅ 변경된 context 권장 형태:
+          donut = {
+            "rgs_dt": "20250408",
+
+            "pos_count": 1,
+            "neu_count": 1,   # 있어도 되고
+            "neg_count": 0,   # 있어도 됨
+
+            "rest_count": 1,  # neu+neg 합 (권장)
+            "total": 2,       # pos+neu+neg 합 (권장)
+
+            "pos_pct": 50     # 정수 0~100 (반올림)
+          }
+        {% endcomment %}
+
+        {% if donut and donut.total %}
+          <!-- 기록 있음: 차트 + legend 표시 -->
+          <div class="donut-wrap">
+            <canvas id="positiveDonutChart" width="200" height="200"></canvas>
+
+            <div class="donut-center">
+              <div class="donut-caption">오늘의 긍정 비율</div>
+              <div class="donut-number">
+                긍정 {% if donut.pos_pct is not None %}{{ donut.pos_pct }}{% else %}0{% endif %}%
+              </div>
+            </div>
+          </div>
+
+          <div class="donut-legend">
+            <div class="legend-item">
+              <span class="legend-dot legend-pos"></span>
+              <span class="legend-text">긍정</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="legend-dot legend-rest"></span>
+              <span class="legend-text">긍정 외</span>
+            </div>
+          </div>
+
+        {% else %}
+          <!-- 기록 없음: 문구 + 링크만 표시 -->
+          <div class="empty-state">
+            <p class="empty-text">오늘 감정 기록이 아직 없어요.</p>
+            <a class="empty-link" href="/record">오늘 감정 기록하러 가기</a>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+
+    <!-- 4) 오늘 먹은 것들 -->
+  <section class="home-section">
+    <div class="section-head">
+      <h4 class="section-title">오늘 먹은 것들</h4>
+    </div>
+
+    <div class="section-card food-card">
+      <div class="food-legend">
+        <span class="legend-item"><i class="legend-dot carb"></i>탄</span>
+        <span class="legend-item"><i class="legend-dot protein"></i>단</span>
+        <span class="legend-item"><i class="legend-dot fat"></i>지</span>
+      </div>
+
+      <div class="food-rows" id="foodRows"></div>
+    </div>
+  </section>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+  {# 1) donut 데이터를 안전한 JSON으로 HTML에 심기 #}
+  {{ donut|default:None|json_script:"donut-data" }}
+
+  {# 2) Chart.js 먼저 로딩 #}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script id="foodPayload" type="application/json">
+    {{ food_payload_json|safe }}
+  </script>
+
+  {# 3) 그 다음 home.js #}
+  <script src="{% static 'js/home.js' %}"></script>
+{% endblock %}

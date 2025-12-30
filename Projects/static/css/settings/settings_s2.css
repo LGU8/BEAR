@@ -1,81 +1,58 @@
 /* static/css/settings/settings_s2.css */
 
 /* =========================
-   Settings S2 (개인정보 수정) - FINAL
-   - base tokens respect
-   - SAFE SCOPE: .settings-page.s2 only
+   S2 (개인정보 수정) 전용 - SAFE SCOPE
    ========================= */
 
-.settings-page.s2 {
-  max-width: 980px;
+/* 카드 폭 */
+.settings-page .edit-card {
+  padding: 18px;
   margin: 0 auto;
 }
 
-/* ---------------------------------
-   Card (settings-card 위에 얹히는 edit-card)
-   - settings-card가 이미 padding/round/shadow 담당
-   - edit-card는 S2 전용 레이아웃만 담당
----------------------------------- */
-.settings-page.s2 .edit-card {
-  padding: 18px;         /* base .settings-card와 동일 톤 유지 */
-  margin: 0 auto;
-}
-
-/* ---------------------------------
-   Header
----------------------------------- */
-.settings-page.s2 .edit-card .edit-header {
+/* 헤더 */
+.settings-page .edit-card .edit-header {
   display: grid;
   grid-template-columns: 40px 1fr 40px;
   align-items: center;
   margin-bottom: 14px;
 }
 
-.settings-page.s2 .edit-card .back-btn {
+.settings-page .edit-card .back-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   width: 40px;
   height: 40px;
   border-radius: 12px;
-
   text-decoration: none;
   color: var(--text);
   font-weight: 800;
   font-size: 18px;
-
   background: transparent;
-  border: 0;
 }
 
-.settings-page.s2 .edit-card .back-btn:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 3px;
-}
-
-.settings-page.s2 .edit-card .edit-title {
+.settings-page .edit-card .edit-title {
   text-align: center;
   font-weight: 800;
   font-size: 16px;
 }
 
-.settings-page.s2 .edit-card .edit-header-spacer {
+.settings-page .edit-card .edit-header-spacer {
   width: 40px;
   height: 40px;
 }
 
-/* ---------------------------------
-   Avatar / Badge
----------------------------------- */
-.settings-page.s2 .edit-card .profile-edit-avatar {
+/* 배지 영역 */
+.settings-page .edit-card .profile-edit-avatar {
   display: grid;
   justify-items: center;
   margin: 8px 0 16px;
   gap: 6px;
 }
 
-.settings-page.s2 .edit-card .avatar-btn {
+/* ✅ 배지 클릭 버튼 */
+.settings-page .edit-card .avatar-btn {
   border: 0;
   padding: 0;
   background: transparent;
@@ -83,24 +60,25 @@
   border-radius: 14px;
 }
 
-.settings-page.s2 .edit-card .avatar-btn:focus-visible {
-  outline: 2px solid var(--focus-ring);
+.settings-page .edit-card .avatar-btn:focus-visible {
+  outline: 2px solid rgba(244,121,0,0.55);
   outline-offset: 3px;
 }
 
-.settings-page.s2 .edit-card .profile-avatar-wrap.lg {
+/* wrap */
+.settings-page .edit-card .profile-avatar-wrap.lg {
   width: 92px;
   height: 92px;
   position: relative;
 }
 
-.settings-page.s2 .edit-card .profile-avatar.lg {
+.settings-page .edit-card .profile-avatar.lg {
   width: 70px;
   height: 70px;
 }
 
-/* 편집 아이콘(카메라) */
-.settings-page.s2 .edit-card .avatar-edit {
+/* ✅ 편집 아이콘(카메라) */
+.settings-page .edit-card .avatar-edit {
   position: absolute;
   right: 8px;
   bottom: 8px;
@@ -109,7 +87,7 @@
   height: 26px;
   border-radius: 50%;
 
-  background: var(--beige-2);
+  background: rgba(255, 226, 182, 0.95);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -117,42 +95,41 @@
   box-shadow: 0 4px 10px rgba(0,0,0,0.10);
 }
 
-.settings-page.s2 .edit-card .edit-ico {
+.settings-page .edit-card .edit-ico {
   width: 16px;
   height: 16px;
   object-fit: contain;
   display: block;
 }
 
-.settings-page.s2 .edit-card .profile-edit-hint {
+.settings-page .edit-card .profile-edit-hint {
   font-weight: 300;
   font-size: 10px;
   color: var(--text-sub);
 }
 
-/* ---------------------------------
-   Form blocks
----------------------------------- */
-.settings-page.s2 .edit-card .form-block {
+/* 폼 블록 */
+.settings-page .edit-card .form-block {
   display: grid;
   gap: 8px;
   margin-top: 12px;
 }
 
-.settings-page.s2 .edit-card .form-label {
+.settings-page .edit-card .form-label {
   font-weight: 400;
   font-size: 10px;
   color: var(--text-sub);
 }
 
-.settings-page.s2 .edit-card .form-help {
+.settings-page .edit-card .form-help {
   margin-top: -2px;
   font-weight: 300;
   font-size: 10px;
-  color: var(--stat-unit); /* base: rgba(0,0,0,0.55) */
+  color: rgba(0,0,0,0.55);
 }
 
-.settings-page.s2 .edit-card .form-row {
+/* input row */
+.settings-page .edit-card .form-row {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -160,68 +137,54 @@
 }
 
 /* underline input */
-.settings-page.s2 .edit-card .form-input {
+.settings-page .edit-card .form-input {
   width: 100%;
   border: 0;
-  border-bottom: 2px solid var(--border-orange-soft);
+  border-bottom: 2px solid rgba(244,121,0,0.35);
   background: transparent;
-
   padding: 10px 8px;
   font-size: 12px;
   font-weight: 600;
   outline: none;
 }
 
-.settings-page.s2 .edit-card .form-input:focus {
-  border-bottom-color: var(--orange-1);
+.settings-page .edit-card .form-input:focus {
+  border-bottom-color: rgba(244,121,0,0.80);
 }
 
-/* suffix (cm / kg / ▼) */
-.settings-page.s2 .edit-card .form-suffix {
+/* suffix */
+.settings-page .edit-card .form-suffix {
   font-size: 12px;
   font-weight: 800;
-  color: var(--stat-unit);
+  color: rgba(0,0,0,0.50);
   padding-right: 6px;
   line-height: 1;
 }
 
-/* ---------------------------------
-   Gender toggle
----------------------------------- */
-.settings-page.s2 .edit-card .seg-toggle {
+/* 성별 토글 */
+.settings-page .edit-card .seg-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
-.settings-page.s2 .edit-card .seg-toggle-btn {
+.settings-page .edit-card .seg-toggle-btn {
   border-radius: var(--radius-pill);
-  border: 1px solid var(--border-orange-soft);
-
+  border: 1px solid rgba(244,121,0,0.45);
   padding: 10px 0;
-  background: var(--surface-soft);
-
+  background: rgba(255,255,255,0.35);
   font-weight: 800;
   font-size: 12px;
-
-  cursor: pointer;
   transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
-.settings-page.s2 .edit-card .seg-toggle-btn:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 3px;
-}
-
-.settings-page.s2 .edit-card .seg-toggle-btn.is-active {
+.settings-page .edit-card .seg-toggle-btn.is-active {
   background: rgba(244,121,0,0.14);
   border-color: var(--orange-1);
 }
 
-/* ---------------------------------
-   Error
----------------------------------- */
-.settings-page.s2 .edit-card .form-error {
+/* 에러 */
+.settings-page .edit-card .form-error {
   min-height: 16px;
   margin-top: 10px;
   font-size: 11px;
@@ -229,55 +192,35 @@
   color: rgba(220, 38, 38, 0.95);
 }
 
-/* ---------------------------------
-   Save button
----------------------------------- */
-.settings-page.s2 .edit-card .edit-footer {
+/* 저장 버튼 */
+.settings-page .edit-card .edit-footer {
   display: flex;
   justify-content: flex-end;
   margin-top: 18px;
 }
 
-.settings-page.s2 .edit-card .save-btn {
+.settings-page .edit-card .save-btn {
   border: 0;
   border-radius: var(--radius-pill);
   padding: 10px 14px;
-
   font-weight: 800;
   font-size: 12px;
-
   background: var(--orange-1);
   color: #fff;
-
-  cursor: pointer;
 }
 
-.settings-page.s2 .edit-card .save-btn:hover { filter: brightness(0.98); }
+.settings-page .edit-card .save-btn:hover { filter: brightness(0.98); }
 
-.settings-page.s2 .edit-card .save-btn:disabled {
+.settings-page .edit-card .save-btn:disabled {
   background: rgba(244, 121, 0, 0.35);
   color: rgba(255,255,255,0.92);
   cursor: not-allowed;
 }
 
-/* ---------------------------------
-   Mobile
----------------------------------- */
+/* 모바일 */
 @media (max-width: 420px) {
-  .settings-page.s2 .edit-card { padding: 16px; }
-
-  .settings-page.s2 .edit-card .edit-header {
-    grid-template-columns: 36px 1fr 36px;
-  }
-
-  .settings-page.s2 .edit-card .back-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-  }
-
-  .settings-page.s2 .edit-card .edit-header-spacer {
-    width: 36px;
-    height: 36px;
-  }
+  .settings-page .edit-card { padding: 16px; }
+  .settings-page .edit-card .edit-header { grid-template-columns: 36px 1fr 36px; }
+  .settings-page .edit-card .back-btn { width: 36px; height: 36px; border-radius: 10px; }
+  .settings-page .edit-card .edit-header-spacer { width: 36px; height: 36px; }
 }

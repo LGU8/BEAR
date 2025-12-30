@@ -1,33 +1,22 @@
-/* static/css/settings/settings_s4.css */
-
 /* =========================
-   settings_s4.css (S4 전용 - FINAL)
+   settings_s4.css (S4 전용 - FINAL v3)
    목표:
    - 비선택 opacity 50%
-   - 선택만 강조
-   - 활동량/목표 섹션: card-inner wrapper + S1 느낌 왼쪽 오렌지 라인
-   - 운동량 수정 제목: 상단 가운데(S2 헤더 그대로) + 아래 간격 확대
-   - 저장 버튼: 우측 하단 "fixed" 고정
-   - S2 공용(edit-header/save-btn) 유지 + Global reset 대비 save-btn 강제 복구
-   - font-weight 600 통일 (S4 scope ONLY)
+   - 선택 only 강조
+   - 저장 버튼 1개(하단) + footer 떠보임 최소화
+   - S2 공용(edit-header/save-btn) 유지
    ========================= */
 
-/* ✅ S4 scope ONLY */
-.settings-page.s4,
-.settings-page.s4 * {
-  font-weight: 600 !important;
-}
-
-/* Back icon */
-.settings-page.s4 .edit-card .back-ico {
+/* 0) Back icon */
+.settings-page .edit-card .back-ico {
   width: 18px;
   height: 18px;
   display: block;
   object-fit: contain;
 }
 
-/* ✅ (선택 카드) button reset: save-btn에는 영향 없음 */
-.settings-page.s4 .edit-card .select-item {
+/* 1) ✅ 버튼 reset은 "선택 카드"에만 적용 (save-btn 건드리지 않음) */
+.settings-page .edit-card .select-item {
   -webkit-appearance: none;
   appearance: none;
   border: 0;
@@ -37,98 +26,39 @@
   color: inherit;
 }
 
-/* -------------------------
-   Header spacing (제목 아래 간격 확대)
-   - S2의 edit-header 구조를 그대로 쓰되,
-     title 아래 카드와 간격만 늘림
-------------------------- */
-.settings-page.s4 .edit-card .edit-header {
-  display: grid;
-  grid-template-columns: 40px 1fr 40px; /* S2/S3 동일 */
-  align-items: center;
-  margin-bottom: 18px;                 /* 기존 간격 유지/확대 */
-}
-
-/* -------------------------
-   섹션 wrapper: card-inner + 왼쪽 오렌지 라인(S1 느낌)
-------------------------- */
-.settings-page.s4 .edit-card .select-section {
-  position: relative;
-
-  background: var(--card-inner);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-md);
-
-  padding: 14px 12px 12px;
-}
-
-.settings-page.s4 .edit-card .edit-title {
-  text-align: center;                  /* ✅ 제목 가운데 */
-  font-size: 16px;                     /* S2 톤 유지 */
-  line-height: 1.2;
-}
-
-/* 좌/우가 동일 폭을 유지하도록 */
-.settings-page.s4 .edit-card .back-btn,
-.settings-page.s4 .edit-card .edit-header-spacer {
-  width: 40px;
-  height: 40px;
-}
-
-/* ✅ 섹션 wrapper 왼쪽 라인 */
-.settings-page.s4 .edit-card .select-section::before {
-  content: "";
-  position: absolute;
-  left: 10px;
-  top: 12px;
-  bottom: 12px;
-  width: 2px;
-  border-radius: 2px;
-  background: var(--orange-1);
-  opacity: 0.9;
-}
-
-/* 섹션 타이틀 */
-.settings-page.s4 .edit-card .edit-section-title {
-  margin: 0 0 10px;
-  padding-left: 12px; /* ✅ wrapper 라인과 시각 정렬 */
+/* 2) 섹션 타이틀 */
+.settings-page .edit-card .edit-section-title {
+  margin: 10px 0 10px;
+  font-weight: 700;
   font-size: 12px;
-  color: rgba(0,0,0,0.85);
 }
 
-/* 섹션 사이 구분선 */
-.settings-page.s4 .edit-card .edit-divider {
-  height: 1px;
-  background: var(--divider-strong);
-  margin: 18px 0;
-}
-
-/* 선택 리스트 */
-.settings-page.s4 .edit-card .select-list {
+/* 3) 선택 리스트 */
+.settings-page .edit-card .select-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
-/* -------------------------
-   선택 카드(버튼): S1처럼 "흰 카드" + 왼쪽 라인(아이템)
-------------------------- */
-.settings-page.s4 .edit-card .select-item {
+/* 4) 선택 카드(버튼) */
+.settings-page .edit-card .select-item {
   position: relative;
+
   width: 100%;
   text-align: left;
 
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.00);
   border-radius: var(--radius-md);
 
-  padding: 14px 14px 14px 14px;
-
+  padding: 14px 14px;
   display: grid;
   grid-template-columns: 56px 1fr;
   gap: 12px;
   align-items: center;
 
   cursor: pointer;
+
+  /* ✅ 핵심: 비선택 50% */
   opacity: 0.5;
 
   transition:
@@ -138,124 +68,106 @@
     border-color 0.15s ease;
 }
 
-/* 아이템 왼쪽 라인 (비선택 연하게) */
-.settings-page.s4 .edit-card .select-item::before {
+/* 시안 느낌: 왼쪽 라인 */
+.settings-page .edit-card .select-item::before {
   content: "";
   position: absolute;
-  left: 10px;
+  left: 0;
   top: 12px;
   bottom: 12px;
-  width: 2px;
-  border-radius: 2px;
-  background: rgba(244, 121, 0, 0.35);
+  width: 3px;
+  border-radius: 3px;
+  background: rgba(244, 121, 0, 0.35); /* 비선택 연하게 */
 }
 
-/* hover */
-@media (hover: hover) {
-  .settings-page.s4 .edit-card .select-item:hover {
-    filter: brightness(0.995);
-  }
+.settings-page .edit-card .select-item:hover {
+  filter: brightness(0.995); /* 비선택 hover는 과하지 않게 */
 }
 
-/* 선택 강조 */
-.settings-page.s4 .edit-card .select-item.is-active {
+/* ✅ 선택 강조(시안 톤) */
+.settings-page .edit-card .select-item.is-active {
   opacity: 1;
+
   background: rgba(244, 121, 0, 0.10);
   border-color: rgba(244, 121, 0, 0.45);
 }
 
-.settings-page.s4 .edit-card .select-item.is-active::before {
-  background: rgba(244, 121, 0, 0.90);
+.settings-page .edit-card .select-item.is-active::before {
+  background: rgba(244, 121, 0, 0.90); /* 선택 진하게 */
 }
 
-/* 아이콘 */
-.settings-page.s4 .edit-card .select-icon {
+.settings-page .edit-card .select-item.is-active:hover {
+  filter: brightness(0.99);
+}
+
+/* 5) 아이콘 */
+.settings-page .edit-card .select-icon {
   width: 52px;
   height: 52px;
   object-fit: contain;
   display: block;
 }
 
-/* 텍스트 */
-.settings-page.s4 .edit-card .select-name {
+/* 6) 텍스트 */
+.settings-page .edit-card .select-name {
+  font-weight: 800;
   font-size: 14px;
   margin-bottom: 4px;
-  color: rgba(0,0,0,0.90);
 }
 
-.settings-page.s4 .edit-card .select-desc {
+.settings-page .edit-card .select-desc {
+  font-weight: 300;
   font-size: 11px;
   color: var(--text-sub);
   line-height: 1.35;
 }
 
-/* -------------------------
-   ✅ 저장 버튼: 우측 하단 fixed 고정
-   - footer는 레이아웃 용도로만(버튼을 감싸도 OK)
-------------------------- */
-.settings-page.s4 .edit-card .edit-footer--sticky {
-  /* sticky 사용 안 함: 버튼이 fixed라 footer는 공간만 확보 */
-  position: static;
-  background: transparent;
-  padding: 0;
+/* 7) 구분선 */
+.settings-page .edit-card .edit-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 18px 0;
 }
 
-/* ✅ save-btn 강제 복구 + fixed 위치 */
-.settings-page.s4 .edit-card .save-btn {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+/* 8) ✅ 하단 저장 영역(sticky)
+   - "배경 투명"으로 떠보임 제거(시안 느낌)
+   - 버튼은 S2 공용 save-btn 그대로 사용
+*/
+.settings-page .edit-card .edit-footer--sticky {
+  position: sticky;
+  bottom: 0;
 
-  min-width: 72px !important;
-  height: 38px !important;
+  display: flex;
+  justify-content: flex-end;
 
-  padding: 10px 14px !important;
-  border: 0 !important;
-
-  border-radius: var(--radius-pill) !important;
-  background: var(--orange-1) !important;
-  color: #fff !important;
-
-  font-size: 12px !important;
-  text-decoration: none !important;
-  cursor: pointer !important;
-
-  /* ✅ fixed */
-  position: fixed !important;
-  right: 26px;
-  bottom: calc(22px + env(safe-area-inset-bottom));
-  z-index: 9999;
+  background: transparent; /* ✅ 핵심 */
+  padding: 18px 0 calc(10px + env(safe-area-inset-bottom));
 }
 
-.settings-page.s4 .edit-card .save-btn:hover {
-  filter: brightness(0.98);
+/* 9) ✅ 겹침 방지: edit-card 하단 여백(S4에만) */
+.settings-page .edit-card {
+  padding-bottom: 66px; /* save-btn height + 여백 */
 }
 
-.settings-page.s4 .edit-card .save-btn:disabled {
-  background: rgba(244, 121, 0, 0.35) !important;
-  color: rgba(255, 255, 255, 0.92) !important;
-  cursor: not-allowed !important;
+/* 10) ✅ save-btn 충돌 방지(보험) */
+.settings-page .edit-card .save-btn {
+  border: 0;
 }
 
-/* ✅ fixed 버튼과 내용 겹침 방지 (카드 하단 여백) */
-.settings-page.s4 .edit-card {
-  padding-bottom: 86px;
-}
-
-/* 모바일 */
+/* 11) 모바일 */
 @media (max-width: 420px) {
-  .settings-page.s4 .edit-card .select-item {
+  .settings-page .edit-card .select-item {
     grid-template-columns: 50px 1fr;
     padding: 12px;
   }
 
-  .settings-page.s4 .edit-card .select-icon {
+  .settings-page .edit-card .select-icon {
     width: 46px;
     height: 46px;
   }
 
-  .settings-page.s4 .edit-card .save-btn {
-    right: 18px;
-    bottom: calc(18px + env(safe-area-inset-bottom));
+  .settings-page .edit-card .edit-footer--sticky {
+    background: transparent;
+    padding: 14px 0 calc(10px + env(safe-area-inset-bottom));
   }
 }

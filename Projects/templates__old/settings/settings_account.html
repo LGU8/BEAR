@@ -1,0 +1,166 @@
+{% extends "settings/settings_base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/settings/settings_base.css' %}">
+<link rel="stylesheet" href="{% static 'css/settings/settings_s1.css' %}">
+{% endblock %}
+
+{% block main_area %}
+<section class="settings-page s1">
+
+  <!-- (1) 프로필 요약 + 수정 -->
+  <article class="settings-card profile-card">
+    <div class="profile-top-row">
+      <div class="profile-row">
+        <div class="profile-avatar-wrap">
+          <img class="profile-avatar" src="{% static profile_badge_img %}" alt="profile badge">
+        </div>
+
+        <div class="profile-meta">
+          <div class="profile-title">
+            {% if nickname_is_empty %}
+              BEAR에게 이름을 알려주세요
+            {% else %}
+              {{ nickname }}
+            {% endif %}
+          </div>
+
+          {% if created_dt_label %}
+            <div class="profile-sub">(가입일: {{ created_dt_label }})</div>
+          {% else %}
+            <div class="profile-sub"></div>
+          {% endif %}
+
+          {% if email %}
+            <span class="profile-email-pill">{{ email }}</span>
+          {% else %}
+            <span class="profile-email-pill is-empty">이메일 정보 없음</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <a class="btn-edit" href="{% url 'settings_app:profile_edit' %}">수정</a>
+    </div>
+
+    <div class="profile-stats">
+      <div class="stat">
+        <div class="stat-label">키</div>
+        <div class="stat-value">
+          {% if height_cm %}{{ height_cm|floatformat:0 }}<span class="unit">cm</span>{% else %}-{% endif %}
+        </div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-label">몸무게</div>
+        <div class="stat-value">
+          {% if weight_kg %}{{ weight_kg|floatformat:0 }}<span class="unit">kg</span>{% else %}-{% endif %}
+        </div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-label">나이</div>
+        <div class="stat-value">{% if age %}{{ age }}{% else %}-{% endif %}</div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-label">성별</div>
+        <div class="stat-value">{{ gender_label|default:"-" }}</div>
+      </div>
+    </div>
+  </article>
+
+  <!-- (2) 먹을거 + 수정 -->
+  <article class="settings-card section-card">
+    <div class="section-head">
+      <div class="section-title">
+        <img class="section-ico" src="{% static 'settings_img/icon_rice.png' %}" alt="preferences">
+        <span>{{ nickname|default:"BEAR" }}의 좋아하는 영양소</span>
+      </div>
+      <a class="btn-edit" href="{% url 'settings_app:preferences_edit' %}">수정</a>
+    </div>
+
+    <!-- 탄수화물 -->
+    <div class="pref-row">
+      <img class="pref-ico" src="{% static 'settings_img/icon_rice.png' %}" alt="carb">
+      <div class="pref-text">밥·빵·면 같은 탄수화물 음식을 어느 정도로 즐기나요?</div>
+
+      <div class="seg-bar">
+        {% for on in carb_segments %}
+          <span class="seg {% if on %}is-on{% endif %}"></span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 단백질 -->
+    <div class="pref-row">
+      <img class="pref-ico" src="{% static 'settings_img/icon_shrimp.png' %}" alt="protein">
+      <div class="pref-text">고기·생선·달걀 같은 단백질 음식을 얼마나 중요하게 생각하나요?</div>
+
+      <div class="seg-bar">
+        {% for on in protein_segments %}
+          <span class="seg {% if on %}is-on{% endif %}"></span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 지방 -->
+    <div class="pref-row">
+      <img class="pref-ico" src="{% static 'settings_img/icon_beef.png' %}" alt="fat">
+      <div class="pref-text">버터·치즈와 같은 지방 음식을 얼마나 좋아하나요?</div>
+
+      <div class="seg-bar">
+        {% for on in fat_segments %}
+          <span class="seg {% if on %}is-on{% endif %}"></span>
+        {% endfor %}
+      </div>
+    </div>
+  </article>
+
+  <!-- (3) 움직임 + 수정 -->
+  <article class="settings-card section-card">
+    <div class="section-head">
+      <div class="section-title">
+        <img class="section-ico" src="{% static 'settings_img/bear_maintain.png' %}" alt="activity">
+        <span>{{ nickname|default:"BEAR" }} 얼마나 움직여요?</span>
+      </div>
+      <a class="btn-edit" href="{% url 'settings_app:activity_goal_edit' %}">수정</a>
+    </div>
+
+    <div class="s1-card-grid-2">
+      <div class="move-box">
+        <div class="move-left">
+          <div class="move-label">활동량</div>
+          <div class="move-value">
+            {{ activity_level_label|default:"-" }}
+            <br>
+            <span class="move-sub">{{ activity_level_desc|default:"" }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="goal-box">
+        <div class="move-label">목표</div>
+
+        <div class="goal-row">
+          <div class="goal-item {% if purpose == '1' %}is-active{% endif %}">
+            <img src="{% static 'settings_img/bear_diet.png' %}" alt="diet">
+            <div>다이어트</div>
+          </div>
+
+          <div class="goal-item {% if purpose == '2' %}is-active{% endif %}">
+            <img src="{% static 'settings_img/bear_maintain.png' %}" alt="maintain">
+            <div>유지</div>
+          </div>
+
+          <div class="goal-item {% if purpose == '3' %}is-active{% endif %}">
+            <img src="{% static 'settings_img/bear_bulkup.png' %}" alt="bulkup">
+            <div>벌크업</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+</section>
+{% endblock %}

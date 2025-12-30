@@ -1,0 +1,299 @@
+/* ─────────────────────────────
+   3번째 줄과 달력 간격
+   ───────────────────────────── */
+.record-datepicker {
+    margin-top: 16px;
+}
+
+/* ─────────────────────────────
+   Datepicker Input
+   ───────────────────────────── */
+.record-datepicker {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  gap: 8px;
+
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 8px 25px 8px 20px;
+
+  cursor: pointer;
+  user-select: none;
+}
+
+.record-datepicker-icon{
+  font-size: 14px;
+}
+
+.record-datepicker-text{
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.record-datepicker-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+/* ─────────────────────────────
+   Datepicker Calendar
+   ───────────────────────────── */
+.datepicker{
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  padding: 8px;
+}
+
+/* 말풍선 삼각형 제거 */
+.datepicker-dropdown::before,
+.datepicker-dropdown::after {
+  display: none !important;
+}
+
+.datepicker-dropdown .datepicker-days td:hover,
+.datepicker-dropdown .datepicker-months span:hover,
+.datepicker-dropdown .datepicker-years span:hover,
+.datepicker-dropdown th:hover {
+  background-color: #FFE2B6 !important;
+}
+
+/* month/year - 현재 포커스 */
+.datepicker-dropdown .datepicker-months span.month.focused,
+.datepicker-dropdown .datepicker-years span.year.focused {
+  background-color: #FFD17C !important;
+}
+
+
+.record-mood-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  padding: 24px;
+
+  display: flex;
+  flex-direction: column;
+
+  margin-top: 40px;
+  margin-bottom: 20px;   /* 카드 간 간격 */
+}
+
+/* 카드 제목 */
+.record-mood-title {
+  padding: 10px 12px;
+}
+
+.record-mood-title span {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 시간대 설정 */
+.time-row {
+  display: flex;
+  justify-content: center;
+  gap: 100px;
+}
+
+.time-item {
+  background: transparent;
+  border: transparent;
+  border-radius: 14px;
+  padding: 20px 20px;
+}
+
+.time-item img {
+  width: 60px;
+  height: 60px;
+  margin-right: 10px;
+}
+
+.time-item.active img{
+  border: 3px solid #F47900;   /* 주황 테두리 */
+  border-radius: 50%;          /* 캐릭터가 원형 느낌이면 */
+  padding: 6px;                /* 이미지와 테두리 사이 여백 */
+  box-sizing: border-box;
+}
+
+.time-label {
+  font-size: 16px;
+  font-weight: 600;
+  margin-right: 10px;
+}
+
+/* 기분 이미지 */
+.mood-row {
+  display: flex;
+  justify-content: center;
+  gap: 150px;
+  padding: 22px 30px;
+}
+
+.mood-option {
+  background: transparent;
+  border: none;
+  padding: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+
+  cursor: pointer;
+}
+
+.mood-option img {
+  width: 84px;
+  height: 84px;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.mood-option.active img{
+  border: 3px solid #F47900;   /* 주황 테두리 */
+  border-radius: 50%;          /* 캐릭터가 원형 느낌이면 */
+  padding: 6px;                /* 이미지와 테두리 사이 여백 */
+  box-sizing: border-box;
+}
+
+.mood-label {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ─────────────────────────────
+   Mood-arousal 카드
+   ───────────────────────────── */
+.arousal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 30px 60px;
+}
+
+.selected-mood {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.selected-mood-placeholder {
+  font-size: 16px;
+  color: #6f6f6f;   /* 연한 회색 */
+}
+
+.selected-mood img {
+  width: 84px;
+  height: 84px;
+  object-fit: contain;
+  display: none;
+}
+
+.selected-mood-label {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.arousal-options {
+  display: flex;
+  gap: 120px;
+}
+
+.arousal-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 22px;
+
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.arousal-btn.low {
+  background-color: #FFD17C;
+}
+
+.arousal-btn.med {
+  background-color: #FFB845;
+}
+
+.arousal-btn.high {
+  background-color: #FFA636;
+}
+
+.arousal-btn.active {
+  box-shadow: 0 0 0 3px rgba(244, 121, 0, 0.35);
+  transform: scale(1.05);
+}
+
+/* ─────────────────────────────
+   Mood-keyword 카드
+   ───────────────────────────── */
+.keyword-container {
+  display: flex;
+  flex-wrap: wrap;        /* 줄바꿈 */
+  gap: 20px;
+  padding: 20px 30px;
+}
+
+.keyword-pill {
+  border: none;
+  border-radius: 999px;
+  padding: 14px 20px;
+
+  font-size: 14px;
+
+  background-color: #FFD17C;   /* 기본 */
+
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.keyword-pill.active {
+  background-color: #F47900;
+  color: #FFFFFF;
+  box-shadow: 0 0 0 2px rgba(244, 121, 0, 0.35);
+  transform: scale(1.05);
+}
+
+.keyword-placeholder{
+  font-size: 16px;
+  color: #6f6f6f;   /* 연한 회색 */
+  padding-left: 25px;
+}
+
+/* =========================
+   Bottom actions
+   ========================= */
+.bottom-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 32px 0 40px;
+}
+
+.bottom-btn {
+  display: inline-flex;
+  align-items: center;           /* 세로 중앙 */
+  justify-content: center;       /* 가로 중앙 */
+
+  width: 92px;
+  height: 42px;
+  border-radius: 12px;
+  background: #F47900;
+  color: #fff;
+  font-weight: 900;
+
+  text-decoration: none;         /* a 태그 밑줄 제거 */
+}
+
+
+.bottom-btn.primary {
+  background: #F47900;
+}

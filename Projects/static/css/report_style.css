@@ -1,80 +1,20 @@
 /* ─────────────────────────────
    3줄: 리포트 페이지 전용 (일일 / 주간)
    ───────────────────────────── */
-/* 기본 상태 */
-.report-tabs-bar .report-tab-text {
-    color: #3C3C43;            /* 기본 글자색 */
-}
-
-/* 방문한 링크 */
-.report-tabs-bar .report-tab-text:visited {
-    color: #3C3C43;
-}
-
-/* hover / focus */
-.report-tabs-bar .report-tab-text:hover,
-.report-tabs-bar .report-tab-text:focus {
-    color: #FFB845;            /* ✅ 원하는 hover 색 */
-    filter: none;              /* 기존 brightness 효과 제거 */
-}
-
-/* 전체 바 (배경만 담당) */
-.report-tabs-bar {
-    width: 100%;
-    background-color: #FFF9F0;
-    padding: 0px 0 4px;
-    box-sizing: border-box;
-}
-
-/* 1줄과 같은 폭/좌우 여백을 갖는 내부 컨테이너 */
-.report-tabs-inner {
-    max-width: 960px;      /* 1줄과 동일 */
-    margin: 0 auto;
+.report-period-tabs .bear-tabs-inner {
     display: flex;
-    box-sizing: border-box;
 }
 
-/* 각 칸: 화면폭 기준 4등분 (동일한 너비) */
-.report-tab-box {
-    flex: 1 1 0;                      /* 🔸수정: 모든 칸을 균등 분배 */
-    display: flex;
-    justify-content: center;          /* 내부 버튼 중앙 정렬 */
-    align-items: center;
-    box-sizing: border-box;
+.report-period-tabs .bear-tab-box {
+    flex: 1 1 0;             /* 🔥 2등분 균등 분배 */
 }
 
-.report-tab-box + .report-tab-box {
-    margin-left: 5.85%;
+/* ─────────────────────────────
+   3번째 줄과 달력 간격
+   ───────────────────────────── */
+.report-period-tabs + .report-datepicker {
+    margin-top: 16px;
 }
-
-/* 둥근 사각형 버튼 (pill) */
-.report-tab-text {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;                      /* 각 칸 안에서 가로를 꽉 채움 */
-    padding: 8px 0;                  /* 위아래 여백만 */
-    border-radius: 100px;             /* 모서리 반경 100 */
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.95rem;
-    background-color: #FFF9F0;        /* 기본 버튼 색 */
-    border-style:solid;
-    border-width:4px;
-    border-color: #FFE2B6;
-    color: #3C3C43;                   /* 기본 글자색 */
-}
-
-/* 활성 탭(리포트) 전용 스타일 */
-.report-tab-box.active .report-tab-text {
-    background-color: #FFE2B6;        /* 주황색 */
-}
-
-/* 호버 효과 (선택) */
-.report-tab-text:hover {
-    filter: brightness(0.97);
-}
-
 
 /* ─────────────────────────────
    Datepicker Input
@@ -85,11 +25,9 @@
   position: relative;
   gap: 8px;
 
-  background-color: #FFFFFF;
+  background-color: #FFF2DD;
   border-radius: 12px;
   padding: 8px 25px 8px 20px;
-  margin-top: 20px;
-  margin-bottom: 20px;
 
   cursor: pointer;
   user-select: none;
@@ -115,21 +53,11 @@
   border: none;
 }
 
-.report-datepicker input.form-control {
-  width: 190px;
-  background-color: #FFFFFF;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 0.95rem;
-  color: #3C3C43;
-}
-
 /* ─────────────────────────────
    Datepicker Calendar
    ───────────────────────────── */
 .datepicker{
-  background-color: #FFFFFF;
+  background-color: #FFF7EC;
   border-radius: 16px;
   padding: 8px;
 }
@@ -153,11 +81,44 @@
   background-color: #FFD17C !important;
 }
 
+
+/* ─────────────────────────────
+   리포트 상단 탭
+   ───────────────────────────── */
+.report-period-tabs .bear-tabs-inner {
+  display: flex;
+}
+
+.report-period-tabs .bear-tab-box {
+  flex: 1 1 0;
+}
+
+.report-period-tabs + .report-datepicker {
+  margin-top: 16px;
+}
+
+/* ─────────────────────────────
+   Datepicker
+   ───────────────────────────── */
+.report-datepicker {
+  margin-bottom: 20px;
+}
+
+.report-datepicker input.form-control {
+  width: 190px;
+  background-color: #FFF2DD;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  color: #3C3C43;
+}
+
 /* ─────────────────────────────
    공통 카드 스타일
    ───────────────────────────── */
 .summary-card {
-  background: #FFFFFF;
+  background: #FFECCF;
   border-radius: 18px;
   padding: 18px 24px;
 
@@ -178,8 +139,8 @@
 }
 
 .summary-title span {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .card-empty {
@@ -192,7 +153,7 @@
 
 .card-empty span {
   color: #6f6f6f;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.5;
 }
 
@@ -200,7 +161,7 @@
    Feedback 카드
    ───────────────────────────── */
 .feedback-card {
-  background-color: #fff9f0;
+  background-color: rgba(255, 255, 255, 0.9);
   margin: 10px;
   padding: 20px;
   border-radius: 18px;
@@ -212,13 +173,13 @@
 }
 
 .feedback-ico {
-  width: 130px;
+  width: 150px;
   object-fit: contain;
 }
 
 .feedback-text {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 450;
   line-height: 1.8;
   padding-right: 30px;
 }
@@ -236,8 +197,8 @@
 
 /* 영양소 제목 */
 .nutrition-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .nut-sum-type-toggle {
@@ -299,7 +260,7 @@
   height: 14px;
   background: #FFFFFF;
   border-radius: 999px;
-  border: 2px solid rgba(244, 121, 0, 0.35);
+  border: 1px solid rgba(244, 121, 0, 0.35);
   overflow: hidden;
 }
 
@@ -359,8 +320,8 @@
 
 /* "메뉴" 타이틀 */
 .meal-menu-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   margin-bottom: 12px;
 }
 
@@ -381,8 +342,8 @@
 
 /* 도넛 차트 영역 */
 .meal-donut-wrap {
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
 }
 
 .meal-donut-wrap canvas {
@@ -410,14 +371,14 @@
 }
 
 .mood_img {
-  width: 150px;
-  height: 150px;
+  width: 180px;
+  height: 180px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  margin: -8px auto 4px;
+  margin: -16px auto 2px;
 }
 
 .mood_img img {
@@ -429,7 +390,7 @@
 .mood_text {
   text-align: center;
 
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
 }
 
@@ -444,8 +405,8 @@
 
 /* 도넛 차트 영역 */
 .mood-donut-wrap {
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
 }
 
 .mood-donut-wrap canvas {
@@ -486,8 +447,8 @@
 
 /* 주간 감정 제목 */
 .mood-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .mood-legend {
