@@ -1,42 +1,38 @@
-import cv2
-from pathlib import Path
 
+from pathlib import Path
 
 def read_barcode_from_image(image_path: str) -> list[str]:
     """
     한 장의 이미지에서 바코드 숫자(EAN-13 등)를 읽어서 리스트로 반환
     """
-    img = cv2.imread(image_path)
+    try:
+        import cv2
+    except ModuleNotFoundError:
+        print("[WARN] OpenCV(cv2)가 설치되지 않아 바코드 기능을 비활성화합니다.")
+        return []
 
+    img = cv2.imread(image_path)
     if img is None:
         print(f"[ERROR] 이미지를 읽을 수 없습니다: {image_path}")
         return []
 
     detector = cv2.barcode_BarcodeDetector()
 
-    # ─────────────────────────────────────────
-    # 1) OpenCV 버전에 따라 반환값 형태가 제각각이라
-    #    어떤 형태든 안전하게 풀어내는 로직
-    # ─────────────────────────────────────────
     result = detector.detectAndDecode(img)
     print(f"[DEBUG] raw result for {image_path}:", result, "len =", len(result))
 
-    # 기본 초기값
     decoded_info = []
     decoded_type = []
     points = None
 
-    # 튜플/리스트가 아닌 이상하다 싶으면 바로 종료
     if not isinstance(result, (tuple, list)):
         print(f"[ERROR] 예상치 못한 반환 타입: {type(result)}")
         return []
 
-    # 길이별로 최대한 맞춰보기
     if len(result) == 4:
         retval, decoded_info, decoded_type, points = result
     elif len(result) == 3:
         a, b, c = result
-
         if isinstance(a, (list, tuple, str, bytes)):
             decoded_info = a
             decoded_type = b
@@ -52,10 +48,6 @@ def read_barcode_from_image(image_path: str) -> list[str]:
         print(f"[ERROR] 예상치 못한 반환 길이: {len(result)}")
         return []
 
-    # ─────────────────────────────────────────
-    # 2) decoded_info / decoded_type 을
-    #    '항상 리스트' 형태로 정규화
-    # ─────────────────────────────────────────
     if isinstance(decoded_info, (str, bytes)):
         decoded_info = [decoded_info]
     elif decoded_info is None:
@@ -73,9 +65,6 @@ def read_barcode_from_image(image_path: str) -> list[str]:
         print(f"[INFO] 바코드를 찾지 못했습니다: {image_path}")
         return []
 
-    # ─────────────────────────────────────────
-    # 3) 실제 바코드 문자열 필터링
-    # ─────────────────────────────────────────
     results = []
     for data, t in zip(decoded_info, decoded_type):
         if not data:
@@ -90,6 +79,8 @@ def read_barcode_from_image(image_path: str) -> list[str]:
             print(f"[SKIP] {image_path} -> {data_str} (len={len(data_str)}, type={t})")
 
     return results
+
+
 
 
 def main():
