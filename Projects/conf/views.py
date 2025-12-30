@@ -29,17 +29,14 @@ def _safe_get_cust_id(request) -> str:
     if cust_id:
         return str(cust_id)
 
-    # 2) username
+    if request.user.is_authenticated and getattr(request.user, "cust_id", None):
+        return str(request.user.cust_id)
+
     if request.user.is_authenticated and getattr(request.user, "username", None):
         return str(request.user.username)
 
-    # 3) email
     if request.user.is_authenticated and getattr(request.user, "email", None):
         return str(request.user.email)
-
-    # 4) 혹시 user에 cust_id 필드가 있는 커스텀 User 모델인 경우
-    if request.user.is_authenticated and getattr(request.user, "cust_id", None):
-        return str(request.user.cust_id)
 
     return ""
 
@@ -291,7 +288,7 @@ def _build_today_donut(cust_id: str, yyyymmdd: str):
 def index(request):
     # ✅ 기존 구조 유지: home.html 렌더는 그대로, 단 context만 추가
 
-    today_str = datetime.now().strftime("%Y%m%d")
+    # today_str = datetime.now().strftime("%Y%m%d")
     cust_id = _safe_get_cust_id(request)
     today_ymd = timezone.localdate().strftime("%Y%m%d")
 
