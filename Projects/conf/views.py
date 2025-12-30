@@ -286,13 +286,12 @@ def _build_today_donut(cust_id: str, yyyymmdd: str):
 # index 뷰: 로그인 후 첫 화면
 @login_required(login_url="/")
 def index(request):
-    # ✅ 기존 구조 유지: home.html 렌더는 그대로, 단 context만 추가
-
-    # today_str = datetime.now().strftime("%Y%m%d")
     cust_id = _safe_get_cust_id(request)
     today_ymd = timezone.localdate().strftime("%Y%m%d")
 
-    donut = _build_today_donut(cust_id=cust_id, yyyymmdd=today_str)
+    # ✅ 여기만 바꾸면 NameError 즉시 해결
+    donut = _build_today_donut(cust_id=cust_id, yyyymmdd=today_ymd)
+
     daily_report = _build_daily_report_chart(cust_id, today_ymd)
     food_payload = build_today_food_payload(cust_id=cust_id, today_ymd=today_ymd)
     menu_reco = _build_menu_reco_context(cust_id=cust_id)
