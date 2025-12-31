@@ -35,7 +35,7 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
 
 # EB 도메인(환경변수로 오버라이드 가능)
 EB_DOMAIN = os.environ.get(
-    "EB_DOMAIN", "bear-app-env.eba-temmzk66.ap-northeast-2.elasticbeanstalk.com"
+    "EB_DOMAIN", "bear-app-.env.eba-temmzk66.ap-northeast-2.elasticbeanstalk.com"
 )
 
 # ALLOWED_HOSTS="*.elasticbeanstalk.com,localhost,127.0.0.1" 처럼 넣는다고 가정
@@ -121,7 +121,7 @@ required_env = ["DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD", "SECRET_KEY"]
 missing = [k for k in required_env if not os.environ.get(k)]
 if missing:
     # 환경변수 누락이면 배포 시 즉시 터지므로, EB 콘솔에서 반드시 설정해줘야 함
-    raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
+    raise RuntimeError(f"Missing required .env vars: {', '.join(missing)}")
 
 
 # =========================
