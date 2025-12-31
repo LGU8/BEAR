@@ -417,17 +417,8 @@ def index(request):
         "today_meals": today_meals_json,
         "donut": donut,
     }
-    try:
-        return render(request, "home.html", context)
-    except Exception as e:
-        return HttpResponse(
-            "[HOME] render(home.html) failed: "
-            + repr(e)
-            + f"\nkeys={list(context.keys())}"
-            + f"\nmenu_reco_type={type(menu_reco)} donut_type={type(donut)}",
-            status=500,
-            content_type="text/plain; charset=utf-8",
-        )
+    return render(request, "home.html", context)
+    
     
 @login_required
 def badges_redirect(request):
