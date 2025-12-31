@@ -13,7 +13,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import connection, transaction
 from django.db.models import Value
 from django.db.models.functions import Coalesce
-from src.ocr.pipeline import run_ocr_pipeline
 from record.services.storage.s3_client import upload_fileobj
 from record.services.storage.s3_paths import build_ocr_input_key, get_env_name
 
