@@ -13,9 +13,10 @@ urlpatterns = [
     # 루트 주소 접속 시 home으로 우회
     path("", root_to_home, name="root"),
 
-    # 로그인 후 이동할 홈
+    # 홈
     path("home/", conf_views.index, name="home"),
 
+    # 앱 include
     path("accounts/", include(("accounts.urls", "accounts_app"), namespace="accounts_app")),
     path("record/", include("record.urls")),
     path("settings/", include("settings.urls")),
@@ -25,10 +26,7 @@ urlpatterns = [
     path("badges/", conf_views.badges_redirect, name="badges"),
 ]
 
-# menu_reco api root
 try:
-    urlpatterns += [
-        path("api/", include("api.urls")),
-    ]
+    urlpatterns += [path("api/", include("api.urls"))]
 except Exception:
     pass
