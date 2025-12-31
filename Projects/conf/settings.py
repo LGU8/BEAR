@@ -20,10 +20,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # 로컬에서만 .env를 읽고 싶다면 (권장)
 try:
     from dotenv import load_dotenv
+
     load_dotenv(BASE_DIR / ".env")
 except Exception:
     pass
-
 
 
 # =========================
@@ -39,7 +39,8 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
 
 # EB 도메인(환경변수로 오버라이드 가능)
 EB_DOMAIN = os.environ.get(
-    "EB_DOMAIN", "bear-app-.env.eba-temmzk66.ap-northeast-2.elasticbeanstalk.com"
+    "EB_DOMAIN",
+    "bear-app-env.eba-temmzk66.ap-northeast-2.elasticbeanstalk.com",
 )
 
 # ALLOWED_HOSTS="*.elasticbeanstalk.com,localhost,127.0.0.1" 처럼 넣는다고 가정
@@ -127,6 +128,8 @@ if missing:
 # =========================
 # Auth
 # =========================
+CSRF_FAILURE_VIEW = "conf.views.csrf_failure"
+
 
 AUTHENTICATION_BACKENDS = [
     "accounts.backends.CustBackend",  # 커스텀 backend
@@ -198,6 +201,8 @@ SESSION_SAVE_EVERY_REQUEST = True
 CSRF_TRUSTED_ORIGINS = [
     f"http://{EB_DOMAIN}",
     f"https://{EB_DOMAIN}",
+    "http://15.165.14.29",
+    "https://15.165.14.29",
 ]
 
 # Reverse proxy 뒤에서 https 인식 보정

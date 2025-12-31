@@ -11,6 +11,22 @@ from django.db.models import Count
 from record.models import CusFeelTh
 from record.models import ReportTh
 from django.urls import reverse
+from django.http import HttpResponseForbidden
+import logging
+
+logger = logging.getLogger("django.security.csrf")
+
+def csrf_failure(request, reason=""):
+    logger.error(
+        "[CSRF_FAIL] path=%s method=%s reason=%s referer=%s origin=%s host=%s",
+        request.path,
+        request.method,
+        reason,
+        request.META.get("HTTP_REFERER"),
+        request.META.get("HTTP_ORIGIN"),
+        request.get_host(),
+    )
+    return HttpResponseForbidden("CSRF Failed")
 
 
 def public_home(request):
