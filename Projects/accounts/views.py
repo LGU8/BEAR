@@ -95,7 +95,7 @@ def user_login(request):
         login(request, user)
 
         # 2) 세션 cust_id 저장 (settings 등 다른 앱에서 fallback으로 사용)
-        request.session["cust_id"] = str(user.cust_id)
+        request.session["cust_id"] = str(request.user.cust_id)
 
         # 3) 시각 파트
         today_8, now_14, time_6 = _now_parts()
