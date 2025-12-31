@@ -74,7 +74,7 @@
         </div>
 
         <div class="bear-tab-box {% if active_tab == 'timeline' %}active{% endif %}">
-          <a class="bear-tab-text" href="/timeline">타임라인</a>
+          <a class="bear-tab-text" href="{% url 'record_app:timeline' %}">타임라인</a>
         </div>
 
         <div class="bear-tab-box {% if active_tab == 'collection' %}active{% endif %}">
