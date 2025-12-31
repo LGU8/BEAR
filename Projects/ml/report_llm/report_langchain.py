@@ -2,12 +2,22 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
 import json
+from pathlib import Path
+import os
 from dotenv import load_dotenv
 
-def make_daily_feedback(daily_data):
-    # API_KEY Load
-    load_dotenv()  # ← 이것이 .env 파일을 실제로 불러옴!
+# 현재 파일 위치
+BASE_DIR = Path(__file__).resolve()
 
+# projects/.env 경로 계산
+ENV_PATH = BASE_DIR.parents[2] / ".env"
+# report_llm(0) → ml(1) → projects(2)
+
+load_dotenv(dotenv_path=ENV_PATH)
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+def make_daily_feedback(daily_data):
     # 1) 모델 준비
     llm = ChatOpenAI(model="gpt-4o-mini")
     parser = JsonOutputParser()
@@ -82,9 +92,6 @@ def make_daily_feedback(daily_data):
         raise RuntimeError("LLM_JSON_PARSE_FAILED") from e
 
 def make_weekly_feedback(weekly_data):
-    # API_KEY Load
-    load_dotenv()  # ← 이것이 .env 파일을 실제로 불러옴!
-
     # 1) 모델 준비
     llm = ChatOpenAI(model="gpt-4o-mini")
     parser = JsonOutputParser()
