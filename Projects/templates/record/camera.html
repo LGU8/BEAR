@@ -4,6 +4,11 @@
 
 <section class="camera-page">
 
+  <input type="hidden" id="ctx-rgs-dt" value="{{ request.session.rgs_dt }}">
+  <input type="hidden" id="ctx-seq" value="{{ request.session.seq }}">
+  <input type="hidden" id="ctx-time-slot" value="{{ request.session.time_slot }}">
+
+
   <!-- 토글(네모 박스 위) -->
   <div class="camera-top-toggle">
     <div class="scan-toggle" role="tablist" aria-label="스캔 모드">

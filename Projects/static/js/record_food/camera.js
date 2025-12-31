@@ -108,6 +108,15 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
     fd.append("meal", meal);
     fd.append("mode", scanMode);
 
+    const rgsDt = (document.getElementById("ctx-rgs-dt")?.value || "").trim();
+    const seq = (document.getElementById("ctx-seq")?.value || "").trim();
+    const timeSlot = (document.getElementById("ctx-time-slot")?.value || "").trim();
+
+    if (!rgsDt || !seq || !timeSlot) {
+      alert("감정 기록(session)이 없어서 스캔할 수 없어요. 감정 기록부터 진행해 주세요.");
+      return;
+    }
+    
     const res = await fetch("/record/api/scan/barcode/", {
       method: "POST",
       body: fd,

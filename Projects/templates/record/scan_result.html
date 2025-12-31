@@ -4,9 +4,13 @@
 
 <section class="result-page">
 
+  <input type="hidden" id="ctx-rgs-dt" value="{{ request.session.rgs_dt }}">
+  <input type="hidden" id="ctx-seq" value="{{ request.session.seq }}">
+  <input type="hidden" id="ctx-time-slot" value="{{ request.session.time_slot }}">
+
+
   <!-- 바코드 인식 후보 -->
-  <div id="candidate-list"></div>
-  
+  <div id="candidate-list"></div>  
 
   <!-- ✅ mode에 따라 분기 -->
   <div id="result-barcode" class="result-panel" style="display:none;"></div>

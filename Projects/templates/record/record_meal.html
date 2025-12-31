@@ -10,6 +10,10 @@
 
 <section class="record-wrap">
 
+  <input type="hidden" id="ctx-rgs-dt" value="{{ request.session.rgs_dt }}">
+  <input type="hidden" id="ctx-seq" value="{{ request.session.seq }}">
+  <input type="hidden" id="ctx-time-slot" value="{{ request.session.time_slot }}">
+
   <!-- 식단 기록 카드 -->
   <section class="panel">
     <div class="panel-head">

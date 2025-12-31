@@ -23,6 +23,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const tbody = document.getElementById("record-items-tbody");
   const selectedBar = document.getElementById("selected-bar");
   const saveBtn = document.getElementById("btn-save-meal");
+  const rgsDt = (document.getElementById("ctx-rgs-dt")?.value || "").trim();
+  const seq = (document.getElementById("ctx-seq")?.value || "").trim();
+  const timeSlot = (document.getElementById("ctx-time-slot")?.value || "").trim();
+
   
   console.log("[food_search] DOMContentLoaded href=", location.href);
   console.log("[food_search] elems", { inputEl, btnEl, tbody, selectedBar });
@@ -169,54 +173,52 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
-  if (saveBtn) {
-    saveBtn.addEventListener("click", async () => {
-      const foodIds = Array.from(selectedMap.keys());
-      console.log("[meal_save] selected foodIds =", foodIds);
-
-
-      if (foodIds.length === 0) {
-        alert("음식을 선택해주세요.");
-        return;
-      }
-
-      const csrfToken = getCookie("csrftoken");
-      if (!csrfToken) {
-        alert("CSRF 토큰이 없습니다. 페이지를 새로고침(F5) 후 다시 시도해주세요.");
-        console.warn("[meal_save] csrftoken cookie missing. document.cookie=", document.cookie);
+  saveBtn.addEventListener("click", async () => {
+    if (!rgsDt || !seq || !timeSlot) {
+      alert("감정 기록(session)이 없어서 저장할 수 없어요. 감정 기록부터 진행해 주세요.");
       return;
     }
-      
-    console.log("[meal_save] csrfToken(cookie) =", csrfToken);
 
-      const res = await fetch("/record/api/meal/save/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify({ food_ids: foodIds }),
-      });
+    const foodIds = Array.from(selectedMap.keys()); // 네 코드 구조에 맞춰 유지
+    if (foodIds.length === 0) {
+      alert("저장할 항목을 선택해 주세요.");
+      return;
+    }
 
-      const data = await res.json().catch(() => null);
-      console.log("[meal_save] status=", res.status, "data=", data);
+    const csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]")?.value;
 
-      if (!res.ok || !data?.ok) {
-        alert("저장 실패");
-        return;
-      }
-      resetAfterSave();
-      alert("저장 완료!");
-
-      // ✅ 저장 성공 후 선택 초기화
-      selectedMap.clear();
-      renderSelectedBar();
-
-      // 테이블에 남아있는 체크/강조도 초기화
-      tbody.querySelectorAll(".row-check").forEach(cb => (cb.checked = false));
-      tbody.querySelectorAll("tr.food-row.is-selected").forEach(tr => tr.classList.remove("is-selected"));
+    console.log("[meal_save] payload", {
+      rgs_dt: rgsDt, seq, time_slot: timeSlot, food_ids: foodIds
     });
-  }
+
+    const res = await fetch("/record/api/meal/save/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken,
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        food_ids: foodIds,
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok) {
+      alert(data?.message || "저장 실패");
+      return;
+    }
+
+    alert("저장 완료!");
+
+    // ✅ 저장 성공 후 선택 초기화
+    selectedMap.clear();
+    renderSelectedBar();
+
+    // 테이블에 남아있는 체크/강조도 초기화
+    tbody.querySelectorAll(".row-check").forEach(cb => (cb.checked = false));
+    tbody.querySelectorAll("tr.food-row.is-selected").forEach(tr => tr.classList.remove("is-selected"));
+  });
 
   renderEmptyState();
 
