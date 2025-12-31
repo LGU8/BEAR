@@ -284,7 +284,7 @@ def _build_today_donut(cust_id: str, yyyymmdd: str):
 
 
 # index 뷰: 로그인 후 첫 화면
-# @login_required(login_url="/")
+@login_required(login_url="/")
 def index(request):
     cust_id = _safe_get_cust_id(request)
     today_ymd = timezone.localdate().strftime("%Y%m%d")

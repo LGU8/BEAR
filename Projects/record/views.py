@@ -1,21 +1,25 @@
 from django.http import HttpResponseBadRequest
 from django.shortcuts import render, redirect
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from django.db import connection, transaction
-import json
-from report.views import get_selected_date
-from conf.views import _safe_get_cust_id
 from django.utils import timezone
-from django.db import connection
-from ml.behavior_llm.behavior_service import generate_and_save_behavior_recom
+import json
 import traceback
 
-# ✅ (삭제) from ml.lstm.predictor import predict_negative_risk
+from conf.views import _safe_get_cust_id
 
 
-# Create your views here.
+# =========================
+# record_mood
+# =========================
 def record_mood(request):
-    selected_date = get_selected_date(request)
+    # ✅ report.views가 LLM import를 당길 수 있으니 lazy import + fallback
+    try:
+        from report.views import get_selected_date
+        selected_date = get_selected_date(request)
+    except Exception:
+        selected_date = timezone.localdate()
+
     context = {
         "selected_date": selected_date.strftime("%Y-%m-%d"),
         "active_tab": "record",
@@ -167,7 +171,6 @@ def record_mood(request):
                         ts_rows,
                     )
 
-        # 트랜잭션 정상 종료 → commit
     except Exception as e:
         return HttpResponseBadRequest(f"저장 중 오류 발생: {e}")
 
@@ -179,10 +182,7 @@ def record_mood(request):
 
 
 def record_meal(request):
-    cust_id = request.user.cust_id
-    rgs_dt = request.session.get("rgs_dt")
-    seq = request.session.get("seq")
-    time_slot = request.session.get("time_slot")
+    # (현재 템플릿 렌더만 하므로 기존 그대로)
     return render(request, "record/record_meal.html")
 
 
@@ -202,6 +202,9 @@ def scan_result(request):
     return render(request, "record/scan_result.html")
 
 
+# =========================
+# timeline helpers
+# =========================
 def _exists_feel_on_date(cust_id: str, rgs_dt: str) -> bool:
     sql = """
         SELECT 1
@@ -262,18 +265,20 @@ def _target_from_source(source_date_ymd: str, source_slot: str) -> tuple[str, st
     - L -> 같은날 D
     - D -> 다음날 M
     """
-    s = source_slot.upper()
+    s = (source_slot or "").upper()
     if s == "M":
         return (source_date_ymd, "L")
     if s == "L":
         return (source_date_ymd, "D")
 
-    # D(또는 기타) -> 다음날 M
     d = datetime.strptime(source_date_ymd, "%Y%m%d").date()
     next_ymd = (d + timedelta(days=1)).strftime("%Y%m%d")
     return (next_ymd, "M")
 
 
+# =========================
+# timeline
+# =========================
 def timeline(request):
     """
     감정 변화 요약 (주간)
@@ -284,7 +289,6 @@ def timeline(request):
         mood(pos/neu/neg)에 따라 각 score로 누적
     """
 
-    # ✅ home(index)와 동일한 방식으로 cust_id 결정
     cust_id = _safe_get_cust_id(request)
 
     # 1) 기간 파라미터
@@ -308,7 +312,7 @@ def timeline(request):
     week_start = start_date.strftime("%Y.%m.%d")
     week_end = end_date.strftime("%Y.%m.%d")
 
-    # 2) SQL: CUS_FEEL_TH에서 mood+energy로 score 산정 후, 하루 1행 집계
+    # 2) 주간 누적막대 SQL
     sql = """
     SELECT
       rgs_dt,
@@ -356,7 +360,6 @@ def timeline(request):
         cursor.execute(sql, [cust_id, start, end])
         rows = cursor.fetchall()
 
-    # 3) 날짜 → score 매핑
     day_to_score = {}
     for rgs_dt, pos_s, neu_s, neg_s in rows:
         day_to_score[str(rgs_dt)] = (
@@ -365,9 +368,7 @@ def timeline(request):
             int(neg_s or 0),
         )
 
-    # 4) 7일 고정 생성
     labels, pos, neu, neg = [], [], [], []
-
     cur = start_date
     while cur <= end_date:
         key = cur.strftime("%Y%m%d")
@@ -386,7 +387,7 @@ def timeline(request):
             "pos": pos,
             "neu": neu,
             "neg": neg,
-            "y_max": 9,  # 기존 고정 스케일 유지
+            "y_max": 9,
         },
         ensure_ascii=False,
     )
@@ -394,11 +395,12 @@ def timeline(request):
     # =========================
     # (2) 부정 감정 예측: source(today/어제) -> target(다음 슬롯)
     # =========================
-
     source_date = _pick_source_date_today_or_yesterday(cust_id)
 
     today_ymd = timezone.localdate().strftime("%Y%m%d")
     yest_ymd = (timezone.localdate() - timedelta(days=1)).strftime("%Y%m%d")
+
+    target_date, target_slot = None, None
 
     if source_date is None:
         neg_pred = {
@@ -410,8 +412,8 @@ def timeline(request):
                 "asof": today_ymd,
                 "missing_days": [yest_ymd, today_ymd],
             },
+            "missing_days": [yest_ymd, today_ymd],
         }
-        target_date, target_slot = None, None
 
     else:
         source_slot = _pick_source_slot_DLM(cust_id, source_date)
@@ -426,58 +428,54 @@ def timeline(request):
                     "asof": source_date,
                     "missing_days": [],
                 },
+                "missing_days": [],
             }
-            target_date, target_slot = None, None
 
         else:
-            # target 계산(다음 슬롯)
             target_date, target_slot = _target_from_source(source_date, source_slot)
 
-            # ✅✅✅ 핵심: predictor/torch는 "필요할 때만" import + 없으면 예측만 비활성
+            # ✅ 예측은 source_date 기준으로 수행
             try:
-                from ml.lstm.predictor import predict_negative_risk  # lazy import
+                from ml.lstm.predictor import predict_negative_risk
                 neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=source_date)
 
             except ModuleNotFoundError as e:
-                # torch 미설치 등 운영 환경에서 ML 의존성 누락
+                # ✅ torch/numpy 등 ML deps 없을 때: 페이지는 살리고 예측만 비활성
                 neg_pred = {
                     "eligible": False,
-                    "reason": "예측 모듈이 준비되지 않았습니다",
+                    "reason": "예측 모듈이 아직 설치되지 않았습니다",
                     "detail": {
                         "type": "ml_dependency_missing",
-                        "asof": source_date,
                         "missing_module": str(e),
-                        "rule": "운영 환경에 ML 패키지가 설치되어야 예측 가능합니다",
+                        "asof": source_date,
                         "missing_days": [],
                     },
                     "missing_days": [],
                 }
 
             except Exception as e:
-                # predictor 내부 에러도 전체 페이지를 죽이지 않게 처리
                 neg_pred = {
                     "eligible": False,
                     "reason": "예측 중 오류가 발생했습니다",
                     "detail": {
-                        "type": "ml_runtime_error",
-                        "asof": source_date,
+                        "type": "lstm_runtime_error",
                         "error": str(e),
+                        "asof": source_date,
                         "missing_days": [],
                     },
                     "missing_days": [],
                 }
 
-            # predictor 호출 직후(neg_pred 만든 다음) 템플릿 안정화
-            if not neg_pred.get("eligible", False):
-                detail = neg_pred.get("detail") or {}
-                md = detail.get("missing_days")
-                if md is None:
-                    md = neg_pred.get("missing_days", [])
-                if not isinstance(md, list):
-                    md = []
-                detail["missing_days"] = md
-                neg_pred["missing_days"] = md
-                neg_pred["detail"] = detail
+            # ✅ 템플릿 안정화: missing_days 정규화(항상 list)
+            detail = neg_pred.get("detail") or {}
+            md = detail.get("missing_days")
+            if md is None:
+                md = neg_pred.get("missing_days", [])
+            if not isinstance(md, list):
+                md = []
+            detail["missing_days"] = md
+            neg_pred["missing_days"] = md
+            neg_pred["detail"] = detail
 
             # ✅ 예측 결과 DB 저장(저장은 target 키로) - eligible일 때만
             if neg_pred.get("eligible"):
@@ -514,33 +512,38 @@ def timeline(request):
                         ],
                     )
 
+                # ✅ 행동추천도 lazy import + 실패해도 페이지는 살림
                 try:
+                    from ml.behavior_llm.behavior_service import generate_and_save_behavior_recom
                     generate_and_save_behavior_recom(
                         cust_id=cust_id,
                         target_date=target_date,
                         target_slot=target_slot,
                     )
+                except ModuleNotFoundError as e:
+                    print("### 행동추천 모듈 미설치 ###", e)
                 except Exception as e:
                     print("### 행동추천 생성 실패 ###")
                     print(e)
                     traceback.print_exc()
 
     # =========================
-    # (추가) UI용 상태 계산(기존 유지 + 데이터 없음 케이스 보강)
+    # (추가) UI용 상태 계산
     # =========================
+    # neg_pred는 항상 dict임이 보장됨
     neg_pred["ui_active_idx"] = 1
     neg_pred["ui_status_text"] = "예측 준비 중"
 
     if not neg_pred.get("eligible", False):
-        if neg_pred.get("detail", {}).get("type") == "no_recent_record":
+        if (neg_pred.get("detail") or {}).get("type") == "no_recent_record":
             neg_pred["ui_active_idx"] = 1
             neg_pred["ui_status_text"] = "데이터 없음"
-        elif neg_pred.get("detail", {}).get("type") == "ml_dependency_missing":
+        elif (neg_pred.get("detail") or {}).get("type") == "ml_dependency_missing":
             neg_pred["ui_active_idx"] = 1
-            neg_pred["ui_status_text"] = "예측 모듈 미설치"
-        elif neg_pred.get("detail", {}).get("type") == "ml_runtime_error":
+            neg_pred["ui_status_text"] = "예측 비활성"
+        else:
             neg_pred["ui_active_idx"] = 1
-            neg_pred["ui_status_text"] = "예측 오류"
+            neg_pred["ui_status_text"] = "예측 준비 중"
     else:
         p = neg_pred.get("p_highrisk", 0.0)
         try:
@@ -562,7 +565,6 @@ def timeline(request):
     # (추가) 행동추천 멘트 조회: CUS_BEH_RECOM_TH.content → llm_ment
     # =========================
     llm_ment = ""
-
     if target_date and target_slot:
         sql_recom = """
             SELECT content

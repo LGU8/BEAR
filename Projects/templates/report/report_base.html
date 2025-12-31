@@ -12,13 +12,13 @@
 <script src="{% static 'js/report_weekly.js' %}"></script>
 
 <!-- 일일 / 주간 탭 -->
-<div class="bear-tabs-bar report-period-tabs">
-  <div class="bear-tabs-inner">
-    <div class="bear-tab-box period-tab {% if request.resolver_match.url_name == 'report_daily'%} active {% endif %}">
-      <a href="{% url 'report_app:report_daily' %}" class="bear-tab-text">일일</a>
+<div class="report-tabs-bar">
+  <div class="report-tabs-inner">
+    <div class="report-tab-box {% if request.resolver_match.url_name == 'report_daily'%} active {% endif %}">
+      <a href="{% url 'report_app:report_daily' %}" class="report-tab-text">일일</a>
     </div>
-    <div class="bear-tab-box period-tab {% if request.resolver_match.url_name == 'report_weekly'%} active {% endif %}">
-      <a href="{% url 'report_app:report_weekly' %}" class="bear-tab-text">주간</a>
+    <div class="report-tab-box {% if request.resolver_match.url_name == 'report_weekly'%} active {% endif %}">
+      <a href="{% url 'report_app:report_weekly' %}" class="report-tab-text">주간</a>
     </div>
   </div>
 </div>

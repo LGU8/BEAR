@@ -55,7 +55,6 @@ INSTALLED_APPS = [
     "api",
     "ml",
     "record",
-    # "accounts",
     "settings",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -68,6 +67,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -98,17 +98,18 @@ TEMPLATES = [
 WSGI_APPLICATION = "conf.wsgi.application"
 
 
+# =========================
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+# =========================
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "bear",  # RDS DB 이름
-        "USER": "admin",  # RDS 계정
-        "PASSWORD": "tada1212!",
-        "HOST": "bear.cbq46w2gwwum.ap-northeast-2.rds.amazonaws.com",
-        "PORT": "3306",
+        "NAME": os.environ.get("DB_NAME", ""),
+        "USER": os.environ.get("DB_USER", ""),
+        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+        "HOST": os.environ.get("DB_HOST", ""),
+        "PORT": os.environ.get("DB_PORT", "3306"),
         "OPTIONS": {
             "charset": "utf8mb4",
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -135,14 +136,13 @@ AUTHENTICATION_BACKENDS = [
 AUTH_USER_MODEL = "accounts.Cust"
 
 # 로그인/로그아웃 URL 정책 (named url로 통일)
-LOGIN_URL = "accounts_app:login"
 LOGIN_REDIRECT_URL = "accounts_app:home"
 LOGOUT_REDIRECT_URL = "accounts_app:home"
 
 
 # =========================
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
+# =========================
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -154,56 +154,63 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# =========================
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
+# =========================
 
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "Asia/Seoul"
-
 USE_I18N = True
-
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
+# =========================
+# Static files (WhiteNoise)
+# =========================
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+
+# =========================
 # Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+# =========================
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-AUTHENTICATION_BACKENDS = [
-    "accounts.backends.CustBackend",  # 우리가 만든 백엔드
-    "django.contrib.auth.backends.ModelBackend",  # Django 기본 백엔드 (관리자 페이지용)
+# =========================
+# Session
+# =========================
+
+SESSION_COOKIE_HTTPONLY = True
+SESSION_SAVE_EVERY_REQUEST = True
+
+
+# =========================
+# Security / Proxy (Elastic Beanstalk)
+# =========================
+
+# CSRF: 반드시 scheme 포함
+CSRF_TRUSTED_ORIGINS = [
+    f"http://{EB_DOMAIN}",
+    f"https://{EB_DOMAIN}",
 ]
 
+# Reverse proxy 뒤에서 https 인식 보정
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
-# 로그인 성공 후 기본적으로 이동할 URL
-LOGIN_REDIRECT_URL = "home/"
 
-# 로그아웃 후 이동할 URL (선택 사항)
-LOGOUT_REDIRECT_URL = "accounts_app:home"
-
-# settings.py
-
-# 1. 커스텀 모델을 사용하는 경우 반드시 지정 (이미 하셨겠지만 다시 확인)
-AUTH_USER_MODEL = "accounts.Cust"
-
-# 2. 세션 쿠키 설정 (로컬 테스트 시 기본값이어야 합니다)
-SESSION_COOKIE_HTTPONLY = True
-SESSION_SAVE_EVERY_REQUEST = True  # 매 요청마다 세션 저장 강제
-
-# settings.py
+# =========================
+# Email (optional / commented)
+# =========================
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 # EMAIL_HOST = "smtp.gmail.com"
 # EMAIL_PORT = 587
 # EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = "your-email@gmail.com"  # 본인 Gmail 계정
-# EMAIL_HOST_PASSWORD = "your-app-password"  # 구글 '앱 비밀번호' (일반 비밀번호 X)
+# EMAIL_HOST_USER = "your-email@gmail.com"
+# EMAIL_HOST_PASSWORD = "your-app-password"
 # DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

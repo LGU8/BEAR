@@ -1,15 +1,6 @@
 // static/js/result.js
 
 (function () {
-
-  // ✅ CSRF cookie 읽기 (result.js에서 필요)
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(";").shift();
-    return "";
-  }
-
   const params = new URLSearchParams(location.search);
   const draftId = params.get("draft_id");
 
@@ -119,32 +110,53 @@
   btnSave.addEventListener("click", async () => {
     if (!selectedId) return;
 
-    const csrfToken = getCookie("csrftoken");
-    if (!csrfToken) {
-      alert("CSRF 토큰이 없습니다. 새로고침(F5) 후 다시 시도해주세요.");
-      return;
-    }
+    const fd = new FormData();
+    fd.append("draft_id", draftId);
+
+    // ✅ 저장은 1개만: 기존 단건 API 유지
+    fd.append("candidate_id", selectedId);
 
     const res = await fetch("/record/api/scan/commit/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": csrfToken,
-      },
-      body: JSON.stringify({
-        draft_id: draftId,
-        candidate_id: selectedId,
-      }),
+      body: fd,
     });
+    const data = await res.json();
 
-    const data = await res.json().catch(() => null);
-
-    if (!res.ok || !data?.ok) {
-      alert(data?.error || "DB_SAVE_FAILED");
+    if (!data.ok) {
+      alert(data.error || "저장 실패");
       return;
     }
 
-    location.href = data.redirect_url || "/record/meal/";
+    // ✅ 서버는 현재 picked가 "리스트"로 내려올 수도 있고(다건 호환 코드),
+    // ✅ 단건이라면 picked[0]을 사용
+    const picked0 = Array.isArray(data.picked) ? data.picked[0] : data.picked;
+
+    // ✅ record 페이지 카드가 읽을 키에 "최종 기록" 저장
+    const recordKey = `mealRecords:${data.date}:${data.meal}`;
+    const record = {
+      date: data.date,
+      meal: data.meal,
+      items: [
+        {
+          type: "barcode",
+          name: picked0?.name || "",
+          brand: picked0?.brand || "",
+          flavor: picked0?.flavor || "",
+          barcode: data.barcode || "",
+          kcal: picked0?.kcal ?? null,
+          carb_g: picked0?.carb_g ?? null,
+          protein_g: picked0?.protein_g ?? null,
+          fat_g: picked0?.fat_g ?? null,
+        },
+      ],
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(recordKey, JSON.stringify(record));
+
+    // ✅ 저장 완료 후 record 페이지로 복귀
+    location.href = `/record/?date=${encodeURIComponent(
+      data.date
+    )}&meal=${encodeURIComponent(data.meal)}`;
   });
 
   loadCandidates();

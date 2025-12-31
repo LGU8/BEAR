@@ -262,26 +262,15 @@ document.addEventListener("DOMContentLoaded", () => {
   camBtn.addEventListener("click", (e) => {
     e.preventDefault();
 
-    
-    // ✅ 1) hidden input에서 매번 안전하게 읽기
-    const rgsDtEl = document.getElementById("ctx-rgs-dt");
-    const timeSlotEl = document.getElementById("ctx-time-slot");
+    // ✅ 현재 선택된 식사 시간 DOM에서 직접 읽기
+    const date = getActiveDate();
+    const activeMealEl = document.querySelector(".meal-btn.is-active");
+    const meal = activeMealEl
+      ? activeMealEl.dataset.meal
+      : getActiveMeal();
 
-    const rgsDt = (rgsDtEl?.value || "").trim();
-    const timeSlot = (timeSlotEl?.value || "").trim();
-
-    // ✅ 2) 값 없으면 막고 사용자에게 안내
-    if (!rgsDt || !timeSlot) {
-      alert("날짜/식사시간(session)이 없어 카메라 페이지로 이동할 수 없어요. 감정 기록부터 다시 진행해 주세요.");
-      console.error("[record_state] missing ctx:", { rgsDt, timeSlot });
-      return;
-    }
-
-    // ✅ 3) 정상 이동
-    location.href =
-      `/record/camera/?rgs_dt=${encodeURIComponent(rgsDt)}` +
-      `&time_slot=${encodeURIComponent(timeSlot)}`;
-});
+    location.href = `/record/camera/?date=${encodeURIComponent(date)}&meal=${encodeURIComponent(meal)}`;
+  });
 })();
 
 // ===== 최근 3개 끼니 카드 렌더링 =====

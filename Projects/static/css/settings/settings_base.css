@@ -4,12 +4,14 @@
    Settings Base (S0~S5 공용)
    ========================= */
 
-/* 0) Theme tokens */
+/* 0) Theme tokens (ROOT ONLY) */
 :root {
+  /* Surfaces */
   --bg: #FFF9F0;
-  --card: #FFF2DD;
-  --card-inner: #FFFFFF;
+  --card: #FFFFFF;
+  --card-inner: #FFF9F0;
 
+  /* Brand */
   --orange-1: #F47900;
   --orange-2: #FC9027;
   --orange-3: #FFA636;
@@ -18,14 +20,50 @@
   --beige-1: #FFD17C;
   --beige-2: #FFE2B6;
 
+  /* Text */
   --text: #000000;
   --text-sub: #8F8F8F;
+  --text-dim: rgba(0, 0, 0, 0.75);
 
+  /* Radius */
   --radius-lg: 18px;
   --radius-md: 14px;
   --radius-pill: 999px;
 
+  /* Shadow */
   --shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+
+  /* UI Tokens (root-only target) */
+  --surface-soft: rgba(255, 255, 255, 0.55);     /* pill/box 배경 */
+  --input-bg: #FFFFFF;                            /* bar/input 배경 */
+  --border-orange-soft: rgba(244, 121, 0, 0.35);  /* soft border */
+
+  --focus-ring: rgba(244, 121, 0, 0.25);
+
+  --icon-dim-1: rgba(0, 0, 0, 0.25);
+  --icon-dim-2: rgba(0, 0, 0, 0.35);
+
+  --border-soft: rgba(0, 0, 0, 0.08);
+  --divider: rgba(0, 0, 0, 0.06);
+  --divider-strong: rgba(0, 0, 0, 0.10);
+
+  --stat-unit: rgba(0, 0, 0, 0.55);
+
+  --hover-surface: rgba(255, 255, 255, 0.22);
+
+  --modal-backdrop: rgba(0, 0, 0, 0.25);
+  --modal-bg: #FFFFFF;
+  --modal-shadow: 0 18px 38px rgba(0, 0, 0, 0.18);
+  --modal-close-bg: rgba(0, 0, 0, 0.04);
+
+  --text-strong-dim: rgba(0, 0, 0, 0.70);
+  --text-empty: rgba(0, 0, 0, 0.45);
+
+  --pill-bg: var(--card-inner);
+  --pill-border: var(--border-soft);
+  --pill-text: var(--text);
+  --pill-text-muted: var(--text-sub);
+
 }
 
 /* 1) Page wrapper */
@@ -71,7 +109,6 @@
   box-shadow: var(--shadow);
   padding: 18px;
   width: 100%;
-  /* settings-page 밖에서 단독 사용 대비 */
   margin-bottom: 14px;
 }
 .settings-page .settings-card { margin-bottom: 0; }
@@ -122,16 +159,16 @@
   margin-top: 2px;
 }
 
-/* 이메일 pill(공용으로 둬도 무방) */
+/* 이메일 pill */
 .profile-email-pill {
   display: inline-block;
   margin-top: 6px;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--surface-soft);
   font-weight: 500;
   font-size: 12px;
-  color: rgba(0,0,0,0.75);
+  color: var(--text-dim);
 }
 
 /* 수정 버튼 (pill) */
@@ -241,8 +278,8 @@
   width: 100%;
   height: 14px;
   border-radius: var(--radius-pill);
-  background: #FFFFFF;
-  border: 1px solid rgba(244, 121, 0, 0.35);
+  background: var(--input-bg);
+  border: 1px solid var(--border-orange-soft);
   overflow: hidden;
 }
 
@@ -255,7 +292,7 @@
 
 /* 8) Move / Goal (S1 공통) */
 .move-box {
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--surface-soft);
   border-radius: var(--radius-md);
   padding: 14px;
   margin-top: 12px;
