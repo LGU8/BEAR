@@ -12,6 +12,8 @@ from django.db import connection, transaction
 from django.db.models import Value
 from django.db.models.functions import Coalesce
 
+from ml.menu_reco.service import recommend_and_commit
+
 from .services.barcode.total import run_barcode_pipeline
 from .services.barcode.mapping_code import EnvNotSetError, UpstreamAPIError
 
@@ -625,6 +627,11 @@ def api_meal_save_by_search(request):
 
         food_ids = list(dict.fromkeys([int(x) for x in food_ids]))  # 중복 제거
 
+        # --- 추천에 쓸 변수(트랜잭션 내부에서 확보 → 트랜잭션 밖에서 실행)
+        feel_mood = None
+        feel_energy = None
+        recent_food_names = []
+
         with transaction.atomic():
             with connection.cursor() as cursor:
 
@@ -753,6 +760,28 @@ def api_meal_save_by_search(request):
                     """,
                     ts_rows,
                 )
+
+            # ============================
+            # 추천 실행 + MENU_RECOM_TH 저장
+            # ============================
+            recom_ok = False
+            recom_error = None
+            try:
+                # feel_mood/feel_energy가 이미 DB에 pos/neu/neg, low/med/hig로 저장돼 있다고 가정
+                # time_slot은 세션에서 "M/L/D"로 이미 들어오므로 rec_time_slot으로 그대로 사용
+                recommend_and_commit(
+                    cust_id=str(cust_id),
+                    mood=str(feel_mood).strip().lower(),
+                    energy=str(feel_energy).strip().lower(),
+                    rgs_dt=str(rgs_dt),
+                    rec_time_slot=str(time_slot).strip().upper(),
+                    current_food=None,  # 여러 개 선택이므로 단일 exclude는 비워두는 게 안전
+                    recent_foods=recent_food_names[:10] if recent_food_names else None,
+                )
+                recom_ok = True
+            except Exception as e:
+                # 저장은 성공 유지, 추천만 실패
+                recom_error = f"{type(e).__name__}: {e}"
 
         return JsonResponse(
             {

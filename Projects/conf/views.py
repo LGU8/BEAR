@@ -13,6 +13,13 @@ from record.models import ReportTh
 from django.urls import reverse
 
 
+def public_home(request):
+    # ✅ DB/세션/로그인 의존 없이 렌더만 되는 템플릿
+    # home.html을 그대로 쓰면 내부에서 context 기대할 수 있으니
+    # public 전용 템플릿을 하나 두는 게 안전
+    return render(request, "public_home.html")
+
+
 def _safe_get_cust_id(request) -> str:
     """
     ✅ 로그인 구현을 건드리지 않고,
@@ -144,6 +151,42 @@ def _get_food_name_column() -> str:
     return ""
 
 
+# 완료 슬롯 찾아서 slot 사용하기
+def _last_done_slot_by_food_and_feel(cust_id: str, ymd: str) -> str | None:
+    slots = ["M", "L", "D"]
+    done = []
+    with connection.cursor() as cursor:
+        for s in slots:
+            cursor.execute(
+                """
+                SELECT 1
+                FROM CUS_FOOD_TH f
+                JOIN CUS_FEEL_TH e
+                  ON e.cust_id=f.cust_id
+                 AND e.rgs_dt=f.rgs_dt
+                 AND e.seq=f.seq
+                 AND e.time_slot=f.time_slot
+                WHERE f.cust_id=%s AND f.rgs_dt=%s AND f.time_slot=%s
+                LIMIT 1
+                """,
+                [cust_id, ymd, s],
+            )
+            if cursor.fetchone() is not None:
+                done.append(s)
+    return done[-1] if done else None
+
+
+def _recommend_target_slot_from_trigger_slot(trigger_slot: str) -> str:
+    """
+    ✅ MENU_RECOM_TH.rec_time_slot(트리거 슬롯) -> 화면에 보여줄 추천 대상 슬롯
+    - M(아침 기록 완료) -> L(점심 추천)
+    - L(점심 기록 완료) -> D(저녁 추천)
+    - D(저녁 기록 완료) -> DONE (오늘 완료 상태)
+    """
+    s = (trigger_slot or "").strip().upper()
+    return {"M": "L", "L": "D", "D": "DONE"}.get(s, "M")
+
+
 def _build_menu_reco_context(cust_id: str) -> dict:
     """
     ✅ 최종 정책(네가 방금 확정한 것 반영)
@@ -194,11 +237,31 @@ def _build_menu_reco_context(cust_id: str) -> dict:
         base["status_text"] = "오늘 식사 기록이 모두 완료됐어요. 추천 준비 중"
         return base
 
-    target_slot = slot_or_done
-    slot_label = {"M": "아침", "L": "점심", "D": "저녁"}[target_slot]
+    # 정님 코드
+    # target_slot = slot_or_done
+    # slot_label = {"M": "아침", "L": "점심", "D": "저녁"}[target_slot]
+    # base["title"] = f"{slot_label} 메뉴 추천"
+
+    # -------------------------------------------------------
+    # ✅ 핵심 변경:
+    # - reco_key_slot: MENU_RECOM_TH.rec_time_slot 조회용 (마지막 완료 슬롯)
+    # - display_slot: 화면에 표기할 추천 대상 슬롯 (다음 슬롯)
+    # -------------------------------------------------------
+    reco_key_slot = _last_done_slot_by_food_and_feel(cust_id, today_ymd)
+    if not reco_key_slot:
+        base["status_text"] = "추천 준비 중"
+        return base
+
+    display_slot = _recommend_target_slot_from_trigger_slot(reco_key_slot)
+    if display_slot == "DONE":
+        base["is_done"] = True
+        base["status_text"] = "오늘 식사 기록이 모두 완료됐어요. 추천 준비 중"
+        return base
+
+    slot_label = {"M": "아침", "L": "점심", "D": "저녁"}[display_slot]
     base["title"] = f"{slot_label} 메뉴 추천"
 
-    # 3) 추천 로딩 (오늘 + target_slot)
+    # 3) 추천 로딩 (오늘 + reco_key_slot)
     name_col = _get_food_name_column()
     if not name_col:
         base["status_text"] = "추천 준비 중"
@@ -219,7 +282,7 @@ def _build_menu_reco_context(cust_id: str) -> dict:
         ORDER BY FIELD(r.rec_type, 'P','H','E');
     """
     with connection.cursor() as cursor:
-        cursor.execute(sql_reco, [cust_id, today_ymd, target_slot])
+        cursor.execute(sql_reco, [cust_id, today_ymd, reco_key_slot])
         rows = cursor.fetchall()
 
     if not rows:
@@ -239,6 +302,14 @@ def _build_menu_reco_context(cust_id: str) -> dict:
     if not parts:
         base["status_text"] = "추천 준비 중"
         return base
+
+    print(
+        "[menu_reco] cust_id=", cust_id,
+        "today_ymd=", today_ymd,
+        "reco_key_slot=", reco_key_slot,
+        "display_slot=", display_slot,
+        "rows=", rows,
+    )
 
     base["status_text"] = ""
     base["line"] = " / ".join(parts)
@@ -283,18 +354,29 @@ def _build_today_donut(cust_id: str, yyyymmdd: str):
     }
 
 
-# index 뷰: 로그인 후 첫 화면
 @login_required(login_url="/")
 def index(request):
     cust_id = _safe_get_cust_id(request)
     today_ymd = timezone.localdate().strftime("%Y%m%d")
 
-    # ✅ 여기만 바꾸면 NameError 즉시 해결
-    donut = _build_today_donut(cust_id=cust_id, yyyymmdd=today_ymd)
-
-    daily_report = _build_daily_report_chart(cust_id, today_ymd)
-    food_payload = build_today_food_payload(cust_id=cust_id, today_ymd=today_ymd)
-    menu_reco = _build_menu_reco_context(cust_id=cust_id)
+    try:
+        donut = _build_today_donut(cust_id=cust_id, yyyymmdd=today_ymd)
+        daily_report = _build_daily_report_chart(cust_id, today_ymd)
+        food_payload = build_today_food_payload(cust_id=cust_id, today_ymd=today_ymd)
+        menu_reco = _build_menu_reco_context(cust_id=cust_id)
+    except Exception as e:
+        # ✅ EC2 초기 스키마/권한/테이블 미세팅 상태에서 500 방지
+        print("[HOME] DB build error:", e)
+        donut = None
+        daily_report = {"rgs_dt": today_ymd, "content": ""}
+        food_payload = {"rgs_dt": today_ymd, "slots": []}
+        menu_reco = {
+            "status_text": "추천 준비 중",
+            "title": "",
+            "line": "",
+            "ymd": today_ymd,
+            "is_done": False,
+        }
 
     context = {
         "menu_reco": menu_reco,
@@ -305,6 +387,7 @@ def index(request):
         "donut": donut,
     }
     return render(request, "home.html", context)
+
 
 @login_required
 def badges_redirect(request):

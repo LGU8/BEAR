@@ -136,9 +136,10 @@ AUTHENTICATION_BACKENDS = [
 AUTH_USER_MODEL = "accounts.Cust"
 
 # 로그인/로그아웃 URL 정책 (named url로 통일)
-LOGIN_REDIRECT_URL = "accounts_app:home"
-LOGOUT_REDIRECT_URL = "accounts_app:home"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "home"
 
+LOGIN_URL = "root"
 
 # =========================
 # Password validation
