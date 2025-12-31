@@ -369,11 +369,20 @@ def _build_today_donut(cust_id: str, yyyymmdd: str):
         "pos_pct": pos_pct,
     }
 
+from django.http import HttpResponse
 
 @login_required(login_url="/")
 def index(request):
-    cust_id = _safe_get_cust_id(request)
-    today_ymd = timezone.localdate().strftime("%Y%m%d")
+    try:
+        cust_id = _safe_get_cust_id(request)
+    except Exception as e:
+        # ✅ 여기서 터지면: 로그인 성공 후 세션/쿠키/유저 매핑 문제
+        return HttpResponse(f"[HOME] _safe_get_cust_id failed: {repr(e)}", status=500)
+
+    try:
+        today_ymd = timezone.localdate().strftime("%Y%m%d")
+    except Exception as e:
+        return HttpResponse(f"[HOME] localdate failed: {repr(e)}", status=500)
 
     try:
         donut = _build_today_donut(cust_id=cust_id, yyyymmdd=today_ymd)
@@ -381,7 +390,6 @@ def index(request):
         food_payload = build_today_food_payload(cust_id=cust_id, today_ymd=today_ymd)
         menu_reco = _build_menu_reco_context(cust_id=cust_id)
     except Exception as e:
-        # ✅ EC2 초기 스키마/권한/테이블 미세팅 상태에서 500 방지
         print("[HOME] DB build error:", e)
         donut = None
         daily_report = {"rgs_dt": today_ymd, "content": ""}
@@ -394,16 +402,22 @@ def index(request):
             "is_done": False,
         }
 
+    # ✅ json.dumps에서 터지는 경우도 있어서 별도 방어(중요)
+    try:
+        food_payload_json = json.dumps(food_payload, ensure_ascii=False)
+        today_meals_json = json.dumps(food_payload, ensure_ascii=False)
+    except Exception as e:
+        return HttpResponse(f"[HOME] json.dumps failed: {repr(e)} | food_payload={type(food_payload)}", status=500)
+
     context = {
         "menu_reco": menu_reco,
         "today_ymd": today_ymd,
         "daily_report": daily_report,
-        "food_payload_json": json.dumps(food_payload, ensure_ascii=False),
-        "today_meals": json.dumps(food_payload, ensure_ascii=False),
+        "food_payload_json": food_payload_json,
+        "today_meals": today_meals_json,
         "donut": donut,
     }
     return render(request, "home.html", context)
-
 
 @login_required
 def badges_redirect(request):
