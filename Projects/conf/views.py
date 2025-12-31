@@ -371,7 +371,7 @@ def _build_today_donut(cust_id: str, yyyymmdd: str):
 
 from django.http import HttpResponse
 
-@login_required(login_url="/")
+@login_required(login_url="accounts_app:user_login")
 def index(request):
     try:
         cust_id = _safe_get_cust_id(request)
