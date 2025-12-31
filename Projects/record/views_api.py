@@ -42,7 +42,7 @@ def keyword_api(request):
     sql = """
         SELECT word
         FROM COM_FEEL_TM
-        WHERE cluster_val = (SELECT cluster_val
+        WHERE cluster_val IN (SELECT cluster_val
             FROM COM_FEEL_CLUSTER_TM
             WHERE mood = %s
                 AND energy = %s)
