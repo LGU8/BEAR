@@ -13,25 +13,29 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
 # 로컬에서만 .env를 읽고 싶다면 (권장)
 try:
     from dotenv import load_dotenv
-
-    load_dotenv()
+    load_dotenv(BASE_DIR / ".env")
 except Exception:
     pass
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # =========================
 # Environment / Core
 # =========================
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-secret-key")
+SECRET_KEY = os.environ.get("SECRET_KEY", "")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is missing (check EB env vars or .env quoting).")
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
+DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
+
 
 # EB 도메인(환경변수로 오버라이드 가능)
 EB_DOMAIN = os.environ.get(
@@ -39,13 +43,9 @@ EB_DOMAIN = os.environ.get(
 )
 
 # ALLOWED_HOSTS="*.elasticbeanstalk.com,localhost,127.0.0.1" 처럼 넣는다고 가정
-_allowed_hosts = os.environ.get("ALLOWED_HOSTS", "")
-hosts = [h.strip() for h in _allowed_hosts.split(",") if h.strip()]
-if not hosts:
-    # env가 비어있을 때 최소 안전 기본값
-    hosts = ["localhost", "127.0.0.1", EB_DOMAIN]
-ALLOWED_HOSTS = hosts
 
+ALLOWED_HOSTS_RAW = os.environ.get("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS_RAW.split(",") if h.strip()]
 
 # =========================
 # Application definition
