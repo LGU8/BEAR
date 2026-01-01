@@ -7,6 +7,7 @@ import json
 import hashlib
 import logging
 from typing import Any, Optional
+from urllib.parse import quote_plus
 
 import requests
 from dotenv import load_dotenv
@@ -198,42 +199,182 @@ def choose_best_candidate(
 # ─────────────────────────────────────────────
 # 5) 영양 조회 (report_no 기반) - “틀 유지 + TODO 채우기”
 # ─────────────────────────────────────────────
-def get_nutrition_by_report_no(report_no: str) -> dict[str, Any] | None:
-    """
-    MFDS 식품영양성분DB(FoodNtrCpntDbInfo02)에서 report_no(=ITEM_REPORT_NO)로
-    영양성분을 찾는다.
+def _as_str(v: Any) -> str:
+    return "" if v is None else str(v).strip()
 
-    - input() 금지
-    - 외부 API 실패는 UpstreamAPIError raise
-    - 결과 없으면 None
+
+def _to_float(v: Any) -> Optional[float]:
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip()
+    if s in ("", "-", "null", "None"):
+        return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def _ensure_list(x: Any) -> list:
+    # MFDS item이 list 또는 dict로 옴 → 항상 list로
+    if isinstance(x, list):
+        return x
+    if isinstance(x, dict):
+        return [x]
+    return []
+
+
+from typing import Any
+
+
+def _extract_items_from_mfds(data: Any) -> list[dict]:
+    # 0) None/빈 값 방어
+    if data is None:
+        return []
+
+    # 1) list 응답 방어
+    if isinstance(data, list):
+        if not data:
+            return []
+        # [ {...} ] 형태면 dict로 평탄화
+        if len(data) == 1 and isinstance(data[0], dict):
+            data = data[0]
+        # [ {row1}, {row2} ... ] 형태면 그 자체가 rows
+        elif all(isinstance(x, dict) for x in data):
+            return data
+        else:
+            return []
+
+    # 2) dict만 처리
+    if not isinstance(data, dict):
+        return []
+
+    def _dig(*keys):
+        cur = data
+        for k in keys:
+            if not isinstance(cur, dict):
+                return None
+            cur = cur.get(k)
+        return cur
+
+    # 3) 가능한 경로들에서 item 추출
+    candidates = [
+        _dig("response", "body", "items", "item"),
+        _dig("response", "body", "items"),
+        _dig("body", "items", "item"),
+        _dig("body", "items"),
+        data.get("item"),
+        data.get("items"),
+    ]
+
+    for item in candidates:
+        rows = _ensure_list(item)
+        if rows and all(isinstance(x, dict) for x in rows):
+            return rows
+
+    return []
+
+
+def _normalize_food_name_for_search(name: str) -> str:
     """
-    report_no = (report_no or "").strip()
+    (선택) 검색 성공률을 올리기 위한 제품명 정규화
+    - 너무 공격적으로 바꾸면 오히려 검색이 틀어질 수 있어, 최소한만 처리
+    """
+    s = _as_str(name)
+    # 자주 문제되는 특수문자만 완화 (원하면 더 확장 가능)
+    s = s.replace("&", " ")
+    s = " ".join(s.split())
+    return s
+
+
+def get_nutrition_by_report_no(
+    report_no: str,
+    *,
+    product_name: str,
+    max_pages: int = 6,
+    num_rows: int = 100,
+) -> dict[str, Any] | None:
+    """
+    MFDS 식품영양성분DB(FoodNtrCpntDbInfo02)에서
+    1) FOOD_NM_KR(제품명)로 목록 조회
+    2) 그중 ITEM_REPORT_NO == report_no 인 row를 찾아
+    3) NUTR_CONT1~4를 kcal/carb/protein/fat으로 반환
+
+    - 결과 없으면 None
+    - 외부 API 실패는 _http_get_json 내부에서 예외 처리(네 프로젝트 정책대로)
+    """
+
+    report_no = _as_str(report_no)
     if not report_no:
         return None
 
-    nutr_key = _require_env("FOOD_NUTR_KEY")
+    product_name = _normalize_food_name_for_search(product_name)
+    if not product_name:
+        return None
 
+    nutr_key = _require_env("FOOD_NUTR_KEY")
     base_url = (
         "https://apis.data.go.kr/1471000/FoodNtrCpntDbInfo02/getFoodNtrCpntDbInq02"
     )
 
-    # ✅ 네 텍스트 파일 로직은 '이름(FOOD_NM_KR)'로 먼저 후보를 가져오고,
-    # ✅ 후보들 중 ITEM_REPORT_NO == report_no 를 찾는 구조야.:contentReference[oaicite:7]{index=7}
-    #
-    # 여기 함수는 report_no만 받으므로,
-    # 1) report_no로 바로 조회가 가능한 파라미터가 "공식적으로" 있는지 확실치 않아서,
-    # 2) 텍스트 파일 흐름을 그대로 살려 "넓게 조회 → report_no로 필터"로 구성한다.
-    #
-    # 다만 이 방식은 FOOD_NM_KR 없이 후보 조회가 어렵다.
-    # 그래서 현실적으로는:
-    # - 이 함수 시그니처를 (report_no, product_name, manufacturer)로 바꾸거나,
-    # - report_no만으로 조회 가능한 다른 엔드포인트/파라미터를 확인해야 한다.
-    #
-    # ✅ 텍스트 파일 기준 '정확히 동작'하게 하려면 product_name이 필요하다.:contentReference[oaicite:8]{index=8}
-    raise NotImplementedError(
-        "텍스트 파일 기준 MFDS 영양 조회는 FOOD_NM_KR(제품명)이 필요합니다. "
-        "get_nutrient_from_mfds_with_choice(report_no, product_name, manufacturer)를 사용하세요."
-    )
+    for page in range(1, max_pages + 1):
+        url = (
+            f"{base_url}"
+            f"?serviceKey={nutr_key}"
+            f"&type=json"
+            f"&numOfRows={num_rows}"
+            f"&pageNo={page}"
+            f"&FOOD_NM_KR={quote_plus(product_name)}"
+        )
+
+        data = _http_get_json(url, timeout=6.0)
+        rows = _extract_items_from_mfds(data)
+
+        print("[DEBUG] rows len:", len(rows))
+        if rows:
+            print("[DEBUG] first ITEM_REPORT_NO:", rows[0].get("ITEM_REPORT_NO"))
+
+        # 페이지 1부터 비면 더 돌려도 확률 낮음 → 중단
+        if not rows:
+            if page == 1:
+                return None
+            break
+
+        hit = None
+
+        for r in rows:
+            if str(r.get("ITEM_REPORT_NO", "")).strip() == report_no:
+                print("[DEBUG] HIT FOUND!")
+                hit = r
+
+                break
+
+        # ✅ 못 찾았으면 None 반환
+        if hit is None:
+            return None
+
+        # -------------------------
+        # 영양값 추출
+        # -------------------------
+        nutr = {
+            "kcal": _to_float(hit.get("NUTR_CONT1")),
+            "carb_g": _to_float(hit.get("NUTR_CONT2")),
+            "protein_g": _to_float(hit.get("NUTR_CONT3")),
+            "fat_g": _to_float(hit.get("NUTR_CONT4")),
+        }
+
+        # 2) 전부 비면 → AMT_NUM 고정 매핑 적용
+        if all(v is None for v in nutr.values()):
+            nutr = {
+                "kcal": _to_float(hit.get("AMT_NUM1")),  # ✅ 에너지(kcal)
+                "carb_g": _to_float(hit.get("AMT_NUM6")),  # ✅ 탄수화물(g)
+                "protein_g": _to_float(hit.get("AMT_NUM3")),  # ✅ 단백질(g)
+                "fat_g": _to_float(hit.get("AMT_NUM4")),  # ✅ 지방(g)
+            }
+
+        return nutr
 
 
 # ─────────────────────────────────────────────

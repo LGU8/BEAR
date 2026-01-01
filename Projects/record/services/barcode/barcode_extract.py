@@ -18,6 +18,10 @@ def read_barcode_from_image(image_path: str) -> list[str]:
 
     detector = cv2.barcode_BarcodeDetector()
 
+    # ─────────────────────────────────────────
+    # 1) OpenCV 버전에 따라 반환값 형태가 제각각이라
+    #    어떤 형태든 안전하게 풀어내는 로직
+    # ─────────────────────────────────────────
     result = detector.detectAndDecode(img)
     print(f"[DEBUG] raw result for {image_path}:", result, "len =", len(result))
 
@@ -48,6 +52,10 @@ def read_barcode_from_image(image_path: str) -> list[str]:
         print(f"[ERROR] 예상치 못한 반환 길이: {len(result)}")
         return []
 
+    # ─────────────────────────────────────────
+    # 2) decoded_info / decoded_type 을
+    #    '항상 리스트' 형태로 정규화
+    # ─────────────────────────────────────────
     if isinstance(decoded_info, (str, bytes)):
         decoded_info = [decoded_info]
     elif decoded_info is None:
@@ -65,6 +73,9 @@ def read_barcode_from_image(image_path: str) -> list[str]:
         print(f"[INFO] 바코드를 찾지 못했습니다: {image_path}")
         return []
 
+    # ─────────────────────────────────────────
+    # 3) 실제 바코드 문자열 필터링
+    # ─────────────────────────────────────────
     results = []
     for data, t in zip(decoded_info, decoded_type):
         if not data:
