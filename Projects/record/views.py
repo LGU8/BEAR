@@ -16,6 +16,7 @@ def record_mood(request):
     # ✅ report.views가 LLM import를 당길 수 있으니 lazy import + fallback
     try:
         from report.views import get_selected_date
+
         selected_date = get_selected_date(request)
     except Exception:
         selected_date = timezone.localdate()
@@ -182,7 +183,10 @@ def record_mood(request):
 
 
 def record_meal(request):
-    # (현재 템플릿 렌더만 하므로 기존 그대로)
+    cust_id = request.user.cust_id
+    rgs_dt = request.session.get("rgs_dt")
+    seq = request.session.get("seq")
+    time_slot = request.session.get("time_slot")
     return render(request, "record/record_meal.html")
 
 
@@ -437,7 +441,10 @@ def timeline(request):
             # ✅ 예측은 source_date 기준으로 수행
             try:
                 from ml.lstm.predictor import predict_negative_risk
-                neg_pred = predict_negative_risk(cust_id=cust_id, D_yyyymmdd=source_date)
+
+                neg_pred = predict_negative_risk(
+                    cust_id=cust_id, D_yyyymmdd=source_date
+                )
 
             except ModuleNotFoundError as e:
                 # ✅ torch/numpy 등 ML deps 없을 때: 페이지는 살리고 예측만 비활성
@@ -514,7 +521,10 @@ def timeline(request):
 
                 # ✅ 행동추천도 lazy import + 실패해도 페이지는 살림
                 try:
-                    from ml.behavior_llm.behavior_service import generate_and_save_behavior_recom
+                    from ml.behavior_llm.behavior_service import (
+                        generate_and_save_behavior_recom,
+                    )
+
                     generate_and_save_behavior_recom(
                         cust_id=cust_id,
                         target_date=target_date,

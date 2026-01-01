@@ -23,8 +23,39 @@ let scanMode = "barcode"; // 기본값
 
 (async function () {
   const params = new URLSearchParams(location.search);
-  const date = params.get("date") || new Date().toISOString().slice(0,10);
-  const meal = params.get("meal") || "breakfast";
+  // ✅ 1) 진짜 기준값: rgs_dt(YYYYMMDD), time_slot(M/L/D)
+  const rgsDt = params.get("rgs_dt");
+  const timeSlot = params.get("time_slot");
+
+   // ✅ 2) 없으면 fallback 금지 → 기록 흐름이 끊긴 것
+  if (!rgsDt || !timeSlot) {
+    console.error("[camera] missing rgs_dt/time_slot. query=", location.search);
+    alert("식단 기록 정보(rgs_dt/time_slot)가 없습니다. 감정 기록부터 다시 진행해주세요.");
+    location.href = "/record/meal/";
+    return;
+  }
+
+  // ✅ 3) UI/기존 API 호환용: date/meal로 변환 (필요할 때만 사용)
+  function rgsDtToDate(yyyymmdd) {
+    // "20251224" -> "2025-12-24"
+    return `${yyyymmdd.slice(0,4)}-${yyyymmdd.slice(4,6)}-${yyyymmdd.slice(6,8)}`;
+  }
+  function slotToMeal(slot) {
+    if (slot === "M") return "breakfast";
+    if (slot === "L") return "lunch";
+    if (slot === "D") return "dinner";
+    return "";
+  }
+
+  const date = rgsDtToDate(rgsDt);
+  const meal = slotToMeal(timeSlot);
+
+  if (!meal) {
+    console.error("[camera] invalid time_slot:", timeSlot);
+    alert("시간 정보(time_slot)가 올바르지 않습니다.");
+    location.href = "/record/meal/";
+    return;
+  }
 
   const video = document.getElementById("cam-video");
   const canvas = document.getElementById("cam-canvas");
@@ -34,9 +65,9 @@ let scanMode = "barcode"; // 기본값
   btnShoot.style.pointerEvents = "none";
 
   video.addEventListener("loadedmetadata", () => {
-    btnShoot.disabled = false;            // ✅ 메타데이터 준비 후 활성화
-    btnShoot.style.opacity = "1";
-    btnShoot.style.pointerEvents = "auto";
+  btnShoot.disabled = false;
+  btnShoot.style.opacity = "1";
+  btnShoot.style.pointerEvents = "auto";
 });
 
   // 1) 카메라 켜기
@@ -93,7 +124,13 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
   btnShoot.style.opacity = "0.6";
   btnShoot.style.pointerEvents = "none";
 
-  if (!video.videoWidth) return;
+  if (!video.videoWidth) {
+    btnShoot.disabled = false;
+    btnShoot.style.opacity = "1";
+    btnShoot.style.pointerEvents = "auto";
+    alert("카메라 준비가 아직 안 됐어요. 잠시 후 다시 눌러주세요.");
+    return;
+  }
 
   // 1) 캔버스(#cam-canvas)에 현재 프레임 캡처 (재사용)
   canvas.width = video.videoWidth;
@@ -102,28 +139,47 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
 
   // 2) Blob으로 변환 → 서버로 업로드
   canvas.toBlob(async (blob) => {
+
+    if (!blob) {
+    alert("이미지 변환에 실패했어요. 다시 시도해 주세요.");
+    btnShoot.disabled = false;
+    btnShoot.style.opacity = "1";
+    btnShoot.style.pointerEvents = "auto";
+    return;
+  }
+    
     const fd = new FormData();
-    fd.append("image", blob, "barcode.jpg");
+    const filename = (scanMode === "nutrition") ? "nutrition.jpg" : "barcode.jpg";
+    fd.append("image", blob, filename);
+
+    // ✅ 기준값(저장/세션 매칭용)
+    fd.append("rgs_dt", rgsDt);
+    fd.append("time_slot", timeSlot);
+    
+    // ✅ 호환/표시용(기존 로직이 date/meal 쓰는 경우 대비)
     fd.append("date", date);
     fd.append("meal", meal);
+
     fd.append("mode", scanMode);
 
-    const rgsDt = (document.getElementById("ctx-rgs-dt")?.value || "").trim();
-    const seq = (document.getElementById("ctx-seq")?.value || "").trim();
-    const timeSlot = (document.getElementById("ctx-time-slot")?.value || "").trim();
+    // ✅ 1) mode에 따라 endpoint 분기
+    // - barcode: 기존 그대로(동기 처리)
+    // - nutrition: OCR job 생성(= S3 업로드 + CUS_OCR_TH 대기 레코드 생성)
+    const endpoint =
+    (scanMode === "nutrition")
+      ? "/record/api/ocr/job/create/"
+      : "/record/api/scan/barcode/";
 
-    if (!rgsDt || !seq || !timeSlot) {
-      alert("감정 기록(session)이 없어서 스캔할 수 없어요. 감정 기록부터 진행해 주세요.");
-      return;
-    }
-    
-    const res = await fetch("/record/api/scan/barcode/", {
+    // ✅ 2) 요청
+    const res = await fetch(endpoint, {
       method: "POST",
       body: fd,
       credentials: "same-origin",
     });
 
+    // ✅ 3) 응답 파싱(일단 text로 받고 JSON으로 변환)
     const raw = await res.text();
+    console.log("[scan] endpoint", endpoint);
     console.log("[scan] status", res.status);
     console.log("[scan] raw", raw.slice(0, 600));
 
@@ -132,17 +188,43 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
       data = JSON.parse(raw);
     } catch (e) {
       alert("서버 응답이 JSON이 아니에요(500/HTML일 수 있음). 콘솔 raw를 확인해줘.");
+      btnShoot.disabled = false;
+      btnShoot.style.opacity = "1";
+      btnShoot.style.pointerEvents = "auto";
       return;
     }
 
     console.log("[scan] json", data);
 
-  if (!data.ok) {
-    // ✅ 1) 인식 실패면: 카메라 페이지에서 재시도
-    if (data.reason === "SCAN_FAIL") {
-      showScanFailUI(data.message);
-      return; // ✅ record로 보내지 않음
-    }
+    // ✅ 4) nutrition 모드: job_id만 받고 result로 이동(Worker가 처리)
+    if (scanMode === "nutrition") {
+      if (!data.ok) {
+        alert(data.message || data.error || "OCR 작업 생성 중 오류가 발생했어요.");
+        btnShoot.disabled = false;
+        btnShoot.style.opacity = "1";
+        btnShoot.style.pointerEvents = "auto";
+        return;
+      }
+
+    // ✅ result 페이지로 job_id 전달 (result.js에서 polling)
+    location.href =
+      `/record/scan/result/?rgs_dt=${encodeURIComponent(rgsDt)}` +
+      `&time_slot=${encodeURIComponent(timeSlot)}` +
+      `&date=${encodeURIComponent(date)}` +
+      `&meal=${encodeURIComponent(meal)}` +
+      `&mode=nutrition` +
+      `&job_id=${encodeURIComponent(data.job_id)}`;
+    return;
+  }
+
+    // ✅ 5) barcode 모드: 기존 로직 그대로 유지(아래는 너 코드 그대로)
+
+    if (!data.ok) {
+      // ✅ 1) 인식 실패면: 카메라 페이지에서 재시도
+      if (data.reason === "SCAN_FAIL") {
+        showScanFailUI(data.message);
+        return; // ✅ record로 보내지 않음
+      }
 
     // ✅ 2) 후보 없음이면: record 페이지로 보내고 검색창 포커스
     const isNoMatch =
@@ -166,12 +248,13 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
     return;
   }
 
-    // 3) draft_id 받아서 result 페이지로 이동
+    // ✅ 6) barcode 성공: draft_id로 result 페이지 이동
     location.href =
-      `/record/scan/result/?date=${encodeURIComponent(date)}` +
-      `&meal=${encodeURIComponent(meal)}` +
-      `&draft_id=${encodeURIComponent(data.draft_id)}`;
-
-  }, "image/jpeg", 0.85);
+    `/record/scan/result/?rgs_dt=${encodeURIComponent(rgsDt)}` +
+    `&time_slot=${encodeURIComponent(timeSlot)}` +
+    `&date=${encodeURIComponent(date)}` +
+    `&meal=${encodeURIComponent(meal)}` +
+    `&draft_id=${encodeURIComponent(data.draft_id)}`;
+  }, "image/jpeg", 0.92);
 });
 })();
