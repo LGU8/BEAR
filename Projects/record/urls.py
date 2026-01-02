@@ -40,7 +40,6 @@ urlpatterns = [
     path(
         "api/meal/save/", _a("api_meal_save_by_search"), name="api_meal_save_by_search"
     ),
-    path("api/scan/commit/", _a("api_scan_commit"), name="api_scan_commit"),
     path("api/ocr/job/create/", _a("api_ocr_job_create"), name="api_ocr_job_create"),
     path("api/ocr/job/status/", _a("api_ocr_job_status"), name="api_ocr_job_status"),
     path("api/ocr/job/result/", _a("api_ocr_job_result"), name="api_ocr_job_result"),

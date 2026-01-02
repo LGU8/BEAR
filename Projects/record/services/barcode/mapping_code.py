@@ -329,7 +329,7 @@ def get_nutrition_by_report_no(
             f"&FOOD_NM_KR={quote_plus(product_name)}"
         )
 
-        data = _http_get_json(url, timeout=6.0)
+        data = _http_get_json(url, timeout=10.0)
         rows = _extract_items_from_mfds(data)
 
         print("[DEBUG] rows len:", len(rows))
