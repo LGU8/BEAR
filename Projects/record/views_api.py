@@ -1,4 +1,5 @@
 # record/views_api.py
+import os
 import uuid
 import json
 import tempfile
@@ -1092,3 +1093,291 @@ def api_scan_commit(request):
 
     except Exception as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+
+# OCR 관련
+@csrf_exempt
+@require_POST
+def api_ocr_job_create(request):
+
+    try:
+        image = request.FILES.get("image")
+        if not image:
+            return JsonResponse({"ok": False, "error": "IMAGE_REQUIRED"}, status=400)
+
+        # cust_id
+        cust_id = getattr(request.user, "cust_id", None) or request.session.get(
+            "cust_id"
+        )
+        if not cust_id:
+            return JsonResponse({"ok": False, "error": "CUST_ID_REQUIRED"}, status=400)
+
+        # context
+        rgs_dt = (
+            request.POST.get("rgs_dt") or request.session.get("rgs_dt") or ""
+        ).strip()
+        time_slot = (
+            request.POST.get("time_slot") or request.session.get("time_slot") or ""
+        ).strip()
+        seq_raw = request.POST.get("seq") or request.session.get("seq") or "1"
+
+        try:
+            seq = int(seq_raw)
+        except Exception:
+            return JsonResponse({"ok": False, "error": "SEQ_INVALID"}, status=400)
+
+        if not rgs_dt or not time_slot:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": "CTX_REQUIRED",
+                    "detail": {"rgs_dt": rgs_dt, "time_slot": time_slot},
+                },
+                status=400,
+            )
+
+        # bucket
+        bucket = (os.getenv("AWS_S3_BUCKET") or "").strip()
+        if not bucket:
+            return JsonResponse(
+                {"ok": False, "error": "AWS_S3_BUCKET_MISSING"}, status=400
+            )
+
+        env = get_env_name()
+        key = build_ocr_input_key(
+            env=env,
+            cust_id=str(cust_id),
+            rgs_dt=rgs_dt,
+            seq=seq,
+            filename=image.name,
+        )
+
+        # 1️⃣ S3 upload
+        try:
+            upload_fileobj(
+                fileobj=image.file,
+                bucket=bucket,
+                key=key,
+                content_type=image.content_type or "image/jpeg",
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"ok": False, "error": "S3_UPLOAD_FAILED", "detail": str(e)},
+                status=500,
+            )
+
+        # 2️⃣ DB insert
+        t = now14()
+
+        try:
+            with transaction.atomic(), connection.cursor() as cursor:
+                max_try = 3
+                last_error = None
+
+                for _ in range(max_try):
+                    cursor.execute(
+                        """
+                        SELECT COALESCE(MAX(ocr_seq), 0) + 1
+                        FROM CUS_OCR_TH
+                        WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
+                        """,
+                        [cust_id, rgs_dt, seq],
+                    )
+                    ocr_seq = int(cursor.fetchone()[0])
+
+                    try:
+                        cursor.execute(
+                            """
+                            INSERT INTO CUS_OCR_TH
+                            (cust_id, rgs_dt, seq, ocr_seq,
+                             image_s3_bucket, image_s3_key,
+                             success_yn, created_time, updated_time)
+                            VALUES (%s,%s,%s,%s,%s,%s,'N',%s,%s)
+                            """,
+                            [cust_id, rgs_dt, seq, ocr_seq, bucket, key, t, t],
+                        )
+                        last_error = None
+                        break
+                    except Exception as e:
+                        last_error = e
+                        msg = str(e)
+                        if "1062" in msg or "Duplicate entry" in msg:
+                            continue
+                        raise
+
+                if last_error is not None:
+                    raise last_error
+
+        except Exception as e:
+            return JsonResponse(
+                {"ok": False, "error": "DB_INSERT_FAILED", "detail": str(e)},
+                status=500,
+            )
+
+        # ✅ 정상 종료
+        job_id = f"{cust_id}:{rgs_dt}:{seq}:{ocr_seq}"
+        return JsonResponse(
+            {"ok": True, "job_id": job_id, "bucket": bucket, "key": key}
+        )
+
+    except Exception as e:
+        # ✅ 최상위 안전망
+        return JsonResponse(
+            {"ok": False, "error": "UNHANDLED_EXCEPTION", "detail": str(e)},
+            status=500,
+        )
+
+
+@require_GET
+def api_ocr_job_status(request):
+    job_id = (request.GET.get("job_id") or "").strip()
+    try:
+        cust_id, rgs_dt, seq, ocr_seq = job_id.split(":")
+        seq = int(seq)
+        ocr_seq = int(ocr_seq)
+    except Exception:
+        return JsonResponse({"ok": False, "error": "JOB_ID_INVALID"}, status=400)
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT success_yn, error_code, chosen_source, roi_score, full_score, updated_time
+            FROM CUS_OCR_TH
+            WHERE cust_id=%s AND rgs_dt=%s AND seq=%s AND ocr_seq=%s
+            """,
+            [cust_id, rgs_dt, seq, ocr_seq],
+        )
+        row = cursor.fetchone()
+
+    if not row:
+        return JsonResponse({"ok": False, "error": "JOB_NOT_FOUND"}, status=404)
+
+    success_yn, error_code, chosen_source, roi_score, full_score, updated_time = row
+    return JsonResponse(
+        {
+            "ok": True,
+            "success_yn": success_yn,
+            "error_code": error_code,
+            "chosen_source": chosen_source,
+            "roi_score": roi_score,
+            "full_score": full_score,
+            "updated_time": updated_time,
+        }
+    )
+
+
+@require_GET
+def api_ocr_job_result(request):
+    job_id = (request.GET.get("job_id") or "").strip()
+    try:
+        cust_id, rgs_dt, seq, ocr_seq = job_id.split(":")
+        seq = int(seq)
+        ocr_seq = int(ocr_seq)
+    except Exception:
+        return JsonResponse({"ok": False, "error": "JOB_ID_INVALID"}, status=400)
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT nutr_json
+            FROM CUS_OCR_NUTR_TS
+            WHERE cust_id=%s AND rgs_dt=%s AND seq=%s AND ocr_seq=%s
+            """,
+            [cust_id, rgs_dt, seq, ocr_seq],
+        )
+        row = cursor.fetchone()
+
+    if not row:
+        return JsonResponse({"ok": False, "error": "RESULT_NOT_READY"}, status=404)
+
+    return JsonResponse({"ok": True, "nutr_json": row[0]})
+
+
+@csrf_exempt
+@require_POST
+def api_ocr_commit_manual(request):
+    """
+    OCR 실패/timeout 시 사용자가 직접 입력한 영양성분을 저장.
+    - job_id로 cust_id/rgs_dt/seq/ocr_seq를 특정
+    - CUS_FOOD_TH에 값 저장(기존 upsert 패턴)
+    - (선택) CUS_OCR_TH에 error_code='MANUAL' 같은 표시도 가능
+    """
+    job_id = (request.POST.get("job_id") or "").strip()
+    if not job_id:
+        return JsonResponse({"ok": False, "error": "JOB_ID_REQUIRED"}, status=400)
+
+    try:
+        cust_id, rgs_dt, seq, ocr_seq = job_id.split(":")
+        seq = int(seq)
+        ocr_seq = int(ocr_seq)
+    except Exception:
+        return JsonResponse({"ok": False, "error": "JOB_ID_INVALID"}, status=400)
+
+    def _to_int(x):
+        try:
+            return int(float(x))
+        except Exception:
+            return 0
+
+    # 프론트에서 보내는 필드명 기준(필요하면 너 UI에 맞게 변경)
+    kcal = _to_int(request.POST.get("kcal"))
+    carb = _to_int(request.POST.get("carb_g"))
+    prot = _to_int(request.POST.get("protein_g"))
+    fat = _to_int(request.POST.get("fat_g"))
+    time_slot = (
+        request.POST.get("time_slot") or request.session.get("time_slot") or ""
+    ).strip()
+
+    if not time_slot:
+        return JsonResponse({"ok": False, "error": "TIME_SLOT_REQUIRED"}, status=400)
+
+    t = now14()
+
+    try:
+        with transaction.atomic(), connection.cursor() as cursor:
+            # 1) CUS_FOOD_TH upsert(너 프로젝트 패턴 유지)
+            cursor.execute(
+                """
+                SELECT 1 FROM CUS_FOOD_TH
+                WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
+                LIMIT 1
+                """,
+                [cust_id, rgs_dt, seq],
+            )
+            exists = cursor.fetchone() is not None
+
+            if not exists:
+                cursor.execute(
+                    """
+                    INSERT INTO CUS_FOOD_TH
+                    (created_time, updated_time, cust_id, rgs_dt, seq, time_slot, kcal, carb_g, protein_g, fat_g)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    """,
+                    [t, t, cust_id, rgs_dt, seq, time_slot, kcal, carb, prot, fat],
+                )
+            else:
+                cursor.execute(
+                    """
+                    UPDATE CUS_FOOD_TH
+                    SET updated_time=%s, time_slot=%s, kcal=%s, carb_g=%s, protein_g=%s, fat_g=%s
+                    WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
+                    """,
+                    [t, time_slot, kcal, carb, prot, fat, cust_id, rgs_dt, seq],
+                )
+
+            # 2) (선택) CUS_OCR_TH에 “수동처리됨” 표시
+            cursor.execute(
+                """
+                UPDATE CUS_OCR_TH
+                SET updated_time=%s, success_yn='N', error_code='MANUAL'
+                WHERE cust_id=%s AND rgs_dt=%s AND seq=%s AND ocr_seq=%s
+                """,
+                [t, cust_id, rgs_dt, seq, ocr_seq],
+            )
+
+        return JsonResponse({"ok": True, "redirect_url": "/record/meal/"})
+
+    except Exception as e:
+        return JsonResponse(
+            {"ok": False, "error": "SAVE_FAILED", "detail": str(e)}, status=500
+        )
