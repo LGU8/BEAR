@@ -17,6 +17,24 @@ function showScanFailUI(msg) {
   }
 }
 
+// ✅ CSRF 토큰을 cookie에서 읽는 공통 함수 (1단계 A안)
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.startsWith(name + "=")) {
+        cookieValue = decodeURIComponent(
+          cookie.substring(name.length + 1)
+        );
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
 
 let scanMode = "barcode"; // 기본값
 
@@ -170,11 +188,17 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
       ? "/record/api/ocr/job/create/"
       : "/record/api/scan/barcode/";
 
+    // ✅ CSRF token 읽기
+    const csrftoken = getCookie("csrftoken");
+    
     // ✅ 2) 요청
     const res = await fetch(endpoint, {
       method: "POST",
       body: fd,
       credentials: "same-origin",
+      headers: {
+        "X-CSRFToken": csrftoken,
+      },
     });
 
     // ✅ 3) 응답 파싱(일단 text로 받고 JSON으로 변환)

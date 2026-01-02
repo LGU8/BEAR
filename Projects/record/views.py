@@ -7,6 +7,7 @@ import json
 import traceback
 
 from conf.views import _safe_get_cust_id
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 # =========================
@@ -198,6 +199,7 @@ def recipe_new(request):
     return render(request, "record/recipe_new.html")
 
 
+@ensure_csrf_cookie
 def camera(request):
     return render(request, "record/camera.html")
 
