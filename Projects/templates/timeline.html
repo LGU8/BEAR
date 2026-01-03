@@ -14,36 +14,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/locales/bootstrap-datepicker.ko.min.js"></script>
 
-<section class="timeline-section">
-  <div class="timeline-card">
-    <div class="timeline-card-inner">
-      <div class="timeline-card-head timeline-card-head--stack">
-        <h4 class="timeline-title">감정 변화 요약</h4>
-
-        <div class="timeline-datebar" id="week-picker-trigger">
-          <span class="timeline-datebar-icon">📅</span>
-          <span class="timeline-datebar-text" id="week-picker-label">
-            {{ week_start }} ~ {{ week_end }}
-          </span>
-          <span class="timeline-datebar-caret">▾</span>
-          <input type="text" id="week-picker"
-                class="timeline-week-hidden-input" readonly>
-        </div>
-      </div>
-
-      <div class="timeline-chart-panel">
-        <div class="timeline-canvas-wrap">
-          <canvas id="weeklyEmotionChart"></canvas>
-        </div>
-
-        <div class="timeline-xlabels" id="weeklyDateLabels" aria-hidden="true"></div>
-      </div>
-    </div>
-  </div>
-</section>
 
 
-<!-- (2) ML 부정 감정 예측 결과 -->
+<!-- (1) ML 부정 감정 예측 결과 -->
 <section class="timeline-section">
   <div class="timeline-card">
     <div class="timeline-card-inner">
@@ -130,7 +103,7 @@
   </div>
 </section>
 
-<!-- (3) LLM 멘트 -->
+<!-- (2) LLM 멘트 -->
 <section class="timeline-section">
   <div class="timeline-card">
     <div class="timeline-card-inner">
@@ -148,6 +121,36 @@
   </div>
 </section>
 
+
+<!-- (3) 누적막대그래프 -->
+
+<section class="timeline-section">
+  <div class="timeline-card">
+    <div class="timeline-card-inner">
+      <div class="timeline-card-head timeline-card-head--stack">
+        <h4 class="timeline-title">감정 변화 요약</h4>
+
+        <div class="timeline-datebar" id="week-picker-trigger">
+          <span class="timeline-datebar-icon">📅</span>
+          <span class="timeline-datebar-text" id="week-picker-label">
+            {{ week_start }} ~ {{ week_end }}
+          </span>
+          <span class="timeline-datebar-caret">▾</span>
+          <input type="text" id="week-picker"
+                class="timeline-week-hidden-input" readonly>
+        </div>
+      </div>
+
+      <div class="timeline-chart-panel">
+        <div class="timeline-canvas-wrap">
+          <canvas id="weeklyEmotionChart"></canvas>
+        </div>
+
+        <div class="timeline-xlabels" id="weeklyDateLabels" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ✅ Chart data -->
 <script id="weeklyEmotionData" type="application/json">
