@@ -297,12 +297,29 @@ def timeline(request):
 
     cust_id = _safe_get_cust_id(request)
 
+    print(
+        "[TLDBG][ENTER]",
+        "path=", request.path,
+        "session_key=", getattr(request.session, "session_key", None),
+        "_auth_user_id=", request.session.get("_auth_user_id"),
+        "session_cust_id=", request.session.get("cust_id"),
+        "user_auth=", request.user.is_authenticated,
+        "user_cust_id=", getattr(request.user, "cust_id", None),
+        "cust_id_var=", cust_id,
+    )
     # 1) 기간 파라미터
     start = request.GET.get("start")
     end = request.GET.get("end")
 
     today = timezone.localdate()
-
+    print(
+        "[TLDBG][DATE]",
+        "today=", today,
+        "start=", start,
+        "end=", end,
+        "start_date=", start_date,
+        "end_date=", end_date,
+    )
     if not end:
         end_date = today
         end = end_date.strftime("%Y%m%d")
@@ -403,6 +420,11 @@ def timeline(request):
     # =========================
     source_date = _pick_source_date_today_or_yesterday(cust_id)
 
+    print(
+        "[TLDBG][SOURCE_DATE]",
+        "cust_id=", cust_id,
+        "source_date=", source_date,
+    )
     today_ymd = timezone.localdate().strftime("%Y%m%d")
     yest_ymd = (timezone.localdate() - timedelta(days=1)).strftime("%Y%m%d")
 
@@ -424,6 +446,12 @@ def timeline(request):
     else:
         source_slot = _pick_source_slot_DLM(cust_id, source_date)
 
+        print(
+            "[TLDBG][SOURCE_SLOT]",
+            "cust_id=", cust_id,
+            "source_date=", source_date,
+            "source_slot=", source_slot,
+        )
         if source_slot is None:
             neg_pred = {
                 "eligible": False,
@@ -446,6 +474,15 @@ def timeline(request):
 
                 neg_pred = predict_negative_risk(
                     cust_id=cust_id, D_yyyymmdd=source_date
+                )
+                print(
+                    "[TLDBG][NEG_PRED]",
+                    "cust_id=", cust_id,
+                    "source_date=", source_date,
+                    "eligible=", neg_pred.get("eligible"),
+                    "reason=", neg_pred.get("reason"),
+                    "detail=", neg_pred.get("detail"),
+                    "missing_days=", neg_pred.get("missing_days"),
                 )
 
             except ModuleNotFoundError as e:
