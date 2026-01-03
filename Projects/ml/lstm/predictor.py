@@ -318,9 +318,26 @@ def diagnose_negative_risk_readiness(
     ✅ LSTM inference 없이 "예측 가능 여부"만 진단
     - Window(최근 7개 기록) 확보 여부
     - Gate(그 7개가 포함하는 N일 모두 키워드 1회 이상) 여부
+
+    ⚠️ 기준일(asof)은 report/배치와 통일: date.today() 기반
     """
+    from datetime import date
+
     if asof_yyyymmdd is None:
-        asof_yyyymmdd = _yyyymmdd(timezone.localdate())
+        asof_yyyymmdd = date.today().strftime("%Y%m%d")
+    else:
+        asof_yyyymmdd = str(asof_yyyymmdd).strip()
+
+    if len(asof_yyyymmdd) != 8 or not asof_yyyymmdd.isdigit():
+        return {
+            "ready": False,
+            "reason": "기준일(asof) 형식이 올바르지 않습니다",
+            "detail": {
+                "type": "invalid_asof",
+                "rule": "asof는 YYYYMMDD(8자리 숫자)여야 합니다",
+                "asof": asof_yyyymmdd,
+            },
+        }
 
     records = fetch_last_window_records(cust_id, asof_yyyymmdd)
 
@@ -362,7 +379,6 @@ def diagnose_negative_risk_readiness(
         },
     }
 
-
 # =========================================================
 # Main predictor (가변 N일 Gate + 최근 7개 Window)
 # =========================================================
@@ -375,11 +391,30 @@ def predict_negative_risk(
     - Window: asof까지 최근 7개 기록 확보
     - Gate: 그 7개 기록이 포함하는 N일 모두 TS(키워드) 1회 이상
     - 성공 -> p_highrisk, probs 등 반환
+
+    ⚠️ 기준일(D_yyyymmdd)은 report/배치와 통일: date.today() 기반
     """
+    from datetime import date
+
     art = load_artifacts()
 
     if D_yyyymmdd is None:
-        D_yyyymmdd = _yyyymmdd(timezone.localdate())
+        D_yyyymmdd = date.today().strftime("%Y%m%d")
+    else:
+        D_yyyymmdd = str(D_yyyymmdd).strip()
+
+    if len(D_yyyymmdd) != 8 or not D_yyyymmdd.isdigit():
+        return {
+            "eligible": False,
+            "reason": "기준일(asof) 형식이 올바르지 않습니다",
+            "detail": {
+                "type": "invalid_asof",
+                "rule": "asof는 YYYYMMDD(8자리 숫자)여야 합니다",
+                "asof": D_yyyymmdd,
+                "missing_days": [],
+            },
+            "missing_days": [],
+        }
 
     # 1) Window: 최근 7개 기록 확보
     records = fetch_last_window_records(cust_id, D_yyyymmdd)
@@ -395,6 +430,7 @@ def predict_negative_risk(
                 "have": len(records),
                 "missing_days": [],  # template 안정성
             },
+            "missing_days": [],
         }
 
     # 2) Gate: Window가 포함하는 N일 모두 키워드 1회 이상
@@ -425,7 +461,7 @@ def predict_negative_risk(
                 "type": "feature_build_failed",
                 "asof": D_yyyymmdd,
                 "error": str(e),
-                "missing_days": [],  # template 안정성
+                "missing_days": [],
             },
             "missing_days": [],
         }
@@ -460,8 +496,8 @@ def predict_negative_risk(
     return {
         "eligible": True,
         "asof": D_yyyymmdd,
-        "days": days,  # ✅ 이번 Window가 걸친 N일
-        "missing_days": [],  # ✅ template 안정성
+        "days": days,
+        "missing_days": [],
         "high_risk_set": sorted(list(HIGH_RISK_SET)),
         "threshold": THRESHOLD,
         "p_highrisk": p_highrisk,
@@ -474,5 +510,5 @@ def predict_negative_risk(
         "is_risky": is_risky,
         "pred_class": pred_class,
         "probs": [float(x) for x in probs.tolist()],
-        "window_records": meta,  # 7개 기록 + source
+        "window_records": meta,
     }
