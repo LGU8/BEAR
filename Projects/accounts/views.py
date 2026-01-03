@@ -1,6 +1,7 @@
 # accounts/views.py
 from __future__ import annotations
 
+import logging
 from datetime import date
 from typing import Tuple
 
@@ -19,6 +20,8 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from .models import Cust, CusProfile, LoginHistory
+
+logger = logging.getLogger(__name__)
 
 
 # =========================
@@ -82,7 +85,21 @@ def user_login(request):
         email = (request.POST.get("email") or "").strip()
         password = (request.POST.get("password") or "").strip()
 
+        # --- [LOGINDBG] (1) 입력값/요청 쿠키 상태 ---
+        logger.warning("[LOGINDBG] POST email=%s", email)
+        logger.warning("[LOGINDBG] cookie sessionid(before)=%s", request.COOKIES.get("sessionid"))
+        logger.warning("[LOGINDBG] host=%s scheme=%s secure=%s",
+                       request.get_host(),
+                       request.scheme,
+                       request.is_secure())
+
+        # --- authenticate ---
         user = authenticate(request, username=email, password=password)
+
+        # --- [LOGINDBG] (2) authenticate 결과 ---
+        logger.warning("[LOGINDBG] authenticate result user_cust_id=%s user_email=%s",
+                       getattr(user, "cust_id", None),
+                       getattr(user, "email", None))
 
         if user is None:
             return render(
@@ -94,8 +111,19 @@ def user_login(request):
         # 1) Django session login
         login(request, user)
 
+        # --- [LOGINDBG] (3) login() 직후 request.user / session 상태 ---
+        logger.warning("[LOGINDBG] after login request.user.cust_id=%s request.user.email=%s",
+                       getattr(request.user, "cust_id", None),
+                       getattr(request.user, "email", None))
+        logger.warning("[LOGINDBG] session_key(after login)=%s", request.session.session_key)
+        logger.warning("[LOGINDBG] _auth_user_id in session=%s", request.session.get("_auth_user_id"))
+        logger.warning("[LOGINDBG] session keys=%s", list(request.session.keys()))
+
         # 2) 세션 cust_id 저장 (settings 등 다른 앱에서 fallback으로 사용)
         request.session["cust_id"] = str(request.user.cust_id)
+
+        # --- [LOGINDBG] (4) cust_id 세션 저장 직후 확인 ---
+        logger.warning("[LOGINDBG] session cust_id(after set)=%s", request.session.get("cust_id"))
 
         # 3) 시각 파트
         today_8, now_14, time_6 = _now_parts()
@@ -127,7 +155,7 @@ def user_login(request):
 
         except Exception as e:
             # 로그인 자체는 성공했지만, 이력 저장만 실패한 케이스
-            print(f"[LoginHistory] Save Error: {e}")
+            logger.warning("[LOGINDBG] LoginHistory save error: %r", e)
 
         # 6) redirect
         if next_url:
@@ -189,6 +217,7 @@ def password_reset(request):
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = account_activation_token.make_token(user)
 
+            # ⚠️ 운영에서는 도메인 기반으로 바꾸는 게 맞지만, 지금은 원인 파악용으로 유지
             reset_link = f"http://127.0.0.1:8000/accounts/password-reset-confirm/{uid}/{token}/"
 
             send_mail(
@@ -223,7 +252,11 @@ def password_reset_confirm(request, uidb64, token):
     if request.method == "POST":
         new_pw = (request.POST.get("new_password") or "").strip()
         if not new_pw:
-            return render(request, "accounts/password_reset_confirm.html", {"error": "비밀번호를 입력해주세요."})
+            return render(
+                request,
+                "accounts/password_reset_confirm.html",
+                {"error": "비밀번호를 입력해주세요."},
+            )
 
         today_8, now_14, _ = _now_parts()
 
@@ -246,10 +279,18 @@ def signup_step1(request):
         password = (request.POST.get("password") or "").strip()
 
         if not email or not password:
-            return render(request, "accounts/signup_step1.html", {"error": "이메일과 비밀번호를 입력해주세요."})
+            return render(
+                request,
+                "accounts/signup_step1.html",
+                {"error": "이메일과 비밀번호를 입력해주세요."},
+            )
 
         if Cust.objects.filter(email=email).exists():
-            return render(request, "accounts/signup_step1.html", {"error": "이미 가입된 이메일입니다."})
+            return render(
+                request,
+                "accounts/signup_step1.html",
+                {"error": "이미 가입된 이메일입니다."},
+            )
 
         secure_password = make_password(password)
         request.session["reg_email"] = email
@@ -285,21 +326,31 @@ def signup_step3(request):
         f = _safe_int(request.POST.get("ratio_fat"), 0)
 
         if not (0 <= c <= 10 and 0 <= p <= 10 and 0 <= f <= 10):
-            return render(request, "accounts/signup_step3.html", {"error": "선호도 값이 올바르지 않습니다."})
+            return render(
+                request,
+                "accounts/signup_step3.html",
+                {"error": "선호도 값이 올바르지 않습니다."},
+            )
 
         s = c + p + f
         if s != 10:
-            return render(request, "accounts/signup_step3.html", {"error": "탄/단/지 합계가 10이 되도록 선택해주세요."})
+            return render(
+                request,
+                "accounts/signup_step3.html",
+                {"error": "탄/단/지 합계가 10이 되도록 선택해주세요."},
+            )
 
         request.session["pref_carb"] = c
         request.session["pref_protein"] = p
         request.session["pref_fat"] = f
 
-        print("[SIGNUP_STEP3] posted:", c, p, f, "sum=", (c + p + f))
-        print("[SIGNUP_STEP3] session_saved:",
-              request.session.get("pref_carb"),
-              request.session.get("pref_protein"),
-              request.session.get("pref_fat"))
+        logger.warning("[SIGNUP_STEP3] posted: %s %s %s sum=%s", c, p, f, (c + p + f))
+        logger.warning(
+            "[SIGNUP_STEP3] session_saved: %s %s %s",
+            request.session.get("pref_carb"),
+            request.session.get("pref_protein"),
+            request.session.get("pref_fat"),
+        )
 
         return redirect("accounts_app:signup_step4")
 
@@ -309,7 +360,7 @@ def signup_step3(request):
         "pref_fat": request.session.get("pref_fat", 0),
     }
 
-    return render(request, "accounts/signup_step3.html")
+    return render(request, "accounts/signup_step3.html", context)
 
 
 # --- 계산 로직 ---
@@ -364,10 +415,12 @@ def calc_macro_ratio(carb: int, protein: int, fat: int) -> Tuple[int, int, int]:
     total = carb + protein + fat
     if total == 0:
         return (33, 34, 33)
-    return (round(carb / total * 100), round(protein / total * 100), round(fat / total * 100))
+    return (
+        round(carb / total * 100),
+        round(protein / total * 100),
+        round(fat / total * 100),
+    )
 
-from django.db import IntegrityError, transaction
-from django.shortcuts import redirect, render
 
 @transaction.atomic
 def signup_step4(request):
@@ -418,7 +471,7 @@ def signup_step4(request):
         pref_protein = int(request.session.get("pref_protein", 5))
         pref_fat = int(request.session.get("pref_fat", 5))
     except Exception as e:
-        print(f"[Signup] Session data error: {e}")
+        logger.warning("[Signup] Session data error: %r", e)
         return redirect("accounts_app:signup_step2")
 
     try:
@@ -469,14 +522,15 @@ def signup_step4(request):
         return redirect("accounts_app:user_login")
 
     except IntegrityError as e:
-        print(f"[Signup] IntegrityError: {e}")
+        logger.warning("[Signup] IntegrityError: %r", e)
         ctx["error"] = "가입 처리 중 중복/제약 오류가 발생했습니다."
         return render(request, "accounts/signup_step4.html", ctx)
 
     except Exception as e:
-        print(f"[Signup] Final Error: {e}")
+        logger.warning("[Signup] Final Error: %r", e)
         ctx["error"] = f"가입 처리 중 오류 발생: {e}"
         return render(request, "accounts/signup_step4.html", ctx)
+
 
 # =========================
 # 8) TEST LOGIN
