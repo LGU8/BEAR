@@ -54,12 +54,12 @@
   </section>
 
 
-  <!-- 2) 일일 리포트 -->
+  <!-- 2) 오늘의 리뷰 -->
   <section class="home-section" id="section-daily-report"
           data-today-ymd="{{ today_ymd }}"
           data-has-report="{% if daily_report and daily_report.content %}1{% else %}0{% endif %}">
     <div class="section-head">
-      <h4 class="section-title">일일 리포트</h4>
+      <h4 class="section-title">오늘의 리뷰</h4>
     </div>
 
     <div class="section-card daily-report-card">
@@ -85,10 +85,10 @@
 
 
 
-    <!-- 3) 긍정 도넛 차트 (2조각: pos vs neu+neg) -->
+    <!-- 3) 긍정 지수 (2조각: pos vs neu+neg) -->
     <section class="home-section" id="section-positive-donut">
       <div class="section-head">
-        <h4 class="section-title">긍정 도넛 차트</h4>
+        <h4 class="section-title">긍정 지수</h4>
         
       </div>
 
