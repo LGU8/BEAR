@@ -419,6 +419,23 @@ def index(request):
     except Exception as e:
         # ✅ 여기서 터지면: 로그인 성공 후 세션/쿠키/유저 매핑 문제
         return HttpResponse(f"[HOME] _safe_get_cust_id failed: {repr(e)}", status=500)
+    print(
+        "[HOMEDBG]",
+        "path=", getattr(request, "path", None),
+        "method=", getattr(request, "method", None),
+        "pid=", __import__("os").getpid(),
+        "remote_addr=", request.META.get("REMOTE_ADDR"),
+        "xff=", request.META.get("HTTP_X_FORWARDED_FOR"),
+        "ua=", request.META.get("HTTP_USER_AGENT"),
+        "host=", request.get_host() if hasattr(request, "get_host") else None,
+        "session_key=", getattr(getattr(request, "session", None), "session_key", None),
+        "_auth_user_id=", request.session.get("_auth_user_id") if hasattr(request, "session") else None,
+        "session_cust_id=", request.session.get("cust_id") if hasattr(request, "session") else None,
+        "user_auth=", getattr(getattr(request, "user", None), "is_authenticated", None),
+        "user_email=", getattr(getattr(request, "user", None), "email", None),
+        "user_cust_id=", getattr(getattr(request, "user", None), "cust_id", None),
+        "cust_id_var=", cust_id,
+    )
 
     try:
         today_ymd = timezone.localdate().strftime("%Y%m%d")
