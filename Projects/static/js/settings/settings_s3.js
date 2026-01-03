@@ -1,178 +1,213 @@
+/* static/js/settings/settings_s3.js */
+
 /* =========================
-   settings_s3.js (Preferences Edit)
-   - 10칸 segmented click
-   - 합=10 강제(자동 보정)
-   - ✅ 같은 칸을 다시 누르면 1칸 감소(= 0까지 가능)
-   - 변경 시 저장 버튼 활성화
+   Settings S3 (Preferences Edit) - 3단 선택
+   - UI: 별로(-1) / 보통(0) / 많이(1)
+   - 저장: ratio 3개 합=10 유지 (기존 서버 검증 그대로)
+   - ⚠️ 중요: "기존 DB ratio"가 3단 매핑으로 정확히 표현 불가할 수 있으므로
+     ▸ 로드시 ratio는 그대로 유지 (자동 변환으로 값 바뀌지 않게)
+     ▸ 사용자가 클릭하여 변경할 때만 ratio를 새로 계산/갱신
    ========================= */
 
 (function () {
   const form = document.getElementById("prefForm");
   if (!form) return;
 
-  const sliders = Array.from(document.querySelectorAll(".seg-slider"));
   const saveBtn = document.getElementById("saveBtn");
+  const helperText = document.getElementById("helperText");
   const sumNowEl = document.getElementById("sumNow");
 
-  // hidden inputs
-  const hid = {
+  // hidden ratio (서버로 보낼 최종 저장값)
+  const hidRatio = {
     carb: document.getElementById("ratioCarb"),
     protein: document.getElementById("ratioProtein"),
     fat: document.getElementById("ratioFat"),
   };
 
-  // 초기값(서버 렌더 값)
-  const initial = {
-    carb: parseInt(hid.carb.value || "0", 10),
-    protein: parseInt(hid.protein.value || "0", 10),
-    fat: parseInt(hid.fat.value || "0", 10),
+  // hidden choice (UI 상태 저장용)
+  const hidChoice = {
+    carb: document.getElementById("choiceCarb"),
+    protein: document.getElementById("choiceProtein"),
+    fat: document.getElementById("choiceFat"),
   };
 
-  // 현재값
-  const state = { ...initial };
+  function toInt(x, d = 0) {
+    const v = parseInt(String(x ?? ""), 10);
+    return Number.isNaN(v) ? d : v;
+  }
 
   function clamp(v, min, max) {
-    v = parseInt(v, 10);
-    if (Number.isNaN(v)) v = 0;
+    v = toInt(v, 0);
     return Math.max(min, Math.min(max, v));
   }
 
-  function sum() {
-    return state.carb + state.protein + state.fat;
+  // --------------------------------
+  // -1/0/1 -> ratio 합10 변환 (accounts Step3와 동일)
+  // --------------------------------
+  function choicesToRatios(c, p, f) {
+    // weight = 2 + choice => -1:1, 0:2, 1:3
+    const weights = [
+      { k: "carb",    w: 2 + c },
+      { k: "protein", w: 2 + p },
+      { k: "fat",     w: 2 + f },
+    ];
+    const sumW = weights.reduce((a, x) => a + x.w, 0);
+
+    const raws = weights.map((x) => {
+      const raw = (10 * x.w) / sumW;
+      const flo = Math.floor(raw);
+      return { ...x, raw, flo, rem: raw - flo };
+    });
+
+    let total = raws.reduce((a, x) => a + x.flo, 0);
+
+    // remainder distribute (tie-break: carb > protein > fat)
+    const order = { carb: 0, protein: 1, fat: 2 };
+    raws.sort((a, b) => (b.rem - a.rem) || (order[a.k] - order[b.k]));
+
+    let i = 0;
+    while (total < 10) {
+      raws[i].flo += 1;
+      total += 1;
+      i = (i + 1) % raws.length;
+    }
+
+    const out = { ratio_carb: 0, ratio_protein: 0, ratio_fat: 0 };
+    raws.forEach((x) => (out[`ratio_${x.k}`] = x.flo));
+    return out;
   }
 
-  function setHidden() {
-    hid.carb.value = String(state.carb);
-    hid.protein.value = String(state.protein);
-    hid.fat.value = String(state.fat);
+  // --------------------------------
+  // DB ratio(0~10) -> choice(-1/0/1) 매핑 (UI 초기상태용)
+  // - 값은 "표시"만; 로드시 ratio를 자동 변환하지 않음
+  // --------------------------------
+  function ratioToChoice(ratio) {
+    const r = clamp(ratio, 0, 10);
+    // 추천 경계: <=2 별로, 3~4 보통, >=5 많이
+    if (r <= 2) return -1;
+    if (r <= 4) return 0;
+    return 1;
   }
 
-  function setSumUI() {
-    if (sumNowEl) sumNowEl.textContent = String(sum());
-  }
+  // 초기 ratio(서버 렌더 값)
+  const initialRatio = {
+    carb: clamp(hidRatio.carb.value, 0, 10),
+    protein: clamp(hidRatio.protein.value, 0, 10),
+    fat: clamp(hidRatio.fat.value, 0, 10),
+  };
 
-  function renderSlider(key) {
-    const slider = sliders.find(s => s.dataset.key === key);
-    if (!slider) return;
+  // 현재 choice 상태
+  const stateChoice = {
+    carb: ratioToChoice(initialRatio.carb),
+    protein: ratioToChoice(initialRatio.protein),
+    fat: ratioToChoice(initialRatio.fat),
+  };
 
-    const v = state[key];
-    slider.dataset.value = String(v);
-
-    const segs = Array.from(slider.querySelectorAll(".seg"));
-    segs.forEach((btn) => {
-      const idx = parseInt(btn.dataset.idx || "0", 10);
-      btn.classList.toggle("is-on", idx <= v);
+  // UI 버튼 on/off
+  function setActiveUI(rowEl, v) {
+    const btns = Array.from(rowEl.querySelectorAll(".tri-btn"));
+    btns.forEach((b) => {
+      const on = String(b.dataset.v) === String(v);
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
     });
   }
 
-  function renderAll() {
-    renderSlider("carb");
-    renderSlider("protein");
-    renderSlider("fat");
-    setHidden();
-    setSumUI();
+  function sumRatio() {
+    return (
+      clamp(hidRatio.carb.value, 0, 10) +
+      clamp(hidRatio.protein.value, 0, 10) +
+      clamp(hidRatio.fat.value, 0, 10)
+    );
+  }
+
+  function updateSumUI() {
+    if (sumNowEl) sumNowEl.textContent = String(sumRatio());
+  }
+
+  function updateHelper() {
+    const c = clamp(hidRatio.carb.value, 0, 10);
+    const p = clamp(hidRatio.protein.value, 0, 10);
+    const f = clamp(hidRatio.fat.value, 0, 10);
+    if (helperText) {
+      helperText.textContent = `적용 비율(합10): 탄 ${c} · 단 ${p} · 지 ${f}`;
+    }
   }
 
   function isChanged() {
+    const c = clamp(hidRatio.carb.value, 0, 10);
+    const p = clamp(hidRatio.protein.value, 0, 10);
+    const f = clamp(hidRatio.fat.value, 0, 10);
     return (
-      state.carb !== initial.carb ||
-      state.protein !== initial.protein ||
-      state.fat !== initial.fat
+      c !== initialRatio.carb ||
+      p !== initialRatio.protein ||
+      f !== initialRatio.fat
     );
   }
 
   function isValid() {
-    return sum() === 10;
+    return sumRatio() === 10;
   }
 
   function updateSaveBtn() {
+    // “값 변경 + 합=10”일 때만 저장 활성화
     const ok = isChanged() && isValid();
-    saveBtn.disabled = !ok;
+    if (saveBtn) saveBtn.disabled = !ok;
   }
 
-  // 합=10 강제 보정(너의 기존 의도 유지)
-  function rebalance(key, newValue) {
-    newValue = clamp(newValue, 0, 10);
-    state[key] = newValue;
-
-    const keys = ["carb", "protein", "fat"].filter(k => k !== key);
-    const a = keys[0];
-    const b = keys[1];
-
-    let curSum = sum();
-    let diff = 10 - curSum; // +면 늘려야, -면 줄여야
-
-    function addOne(k) {
-      if (state[k] < 10) { state[k] += 1; return true; }
-      return false;
-    }
-    function subOne(k) {
-      if (state[k] > 0) { state[k] -= 1; return true; }
-      return false;
-    }
-
-    while (diff !== 0) {
-      if (diff > 0) {
-        const first = state[a] <= state[b] ? a : b;
-        const second = first === a ? b : a;
-        if (!addOne(first) && !addOne(second)) break;
-        diff -= 1;
-      } else {
-        const first = state[a] >= state[b] ? a : b;
-        const second = first === a ? b : a;
-        if (!subOne(first) && !subOne(second)) break;
-        diff += 1;
-      }
-    }
-
-    state.carb = clamp(state.carb, 0, 10);
-    state.protein = clamp(state.protein, 0, 10);
-    state.fat = clamp(state.fat, 0, 10);
+  // choice hidden 갱신(디버깅/상태용)
+  function syncChoiceHidden() {
+    hidChoice.carb.value = String(stateChoice.carb);
+    hidChoice.protein.value = String(stateChoice.protein);
+    hidChoice.fat.value = String(stateChoice.fat);
   }
 
-  // 초기 합이 10이 아닐 때 자동 보정(서버 값이 깨져도 UI는 정상)
-  function normalizeOnLoad() {
-    state.carb = clamp(state.carb, 0, 10);
-    state.protein = clamp(state.protein, 0, 10);
-    state.fat = clamp(state.fat, 0, 10);
+  // 사용자가 클릭해서 choice가 바뀌었을 때만 ratio를 새로 계산
+  function applyChoiceToRatio() {
+    const ratios = choicesToRatios(stateChoice.carb, stateChoice.protein, stateChoice.fat);
 
-    const s = sum();
-    if (s === 10) return;
+    hidRatio.carb.value = String(ratios.ratio_carb);
+    hidRatio.protein.value = String(ratios.ratio_protein);
+    hidRatio.fat.value = String(ratios.ratio_fat);
 
-    const targetFat = clamp(state.fat + (10 - s), 0, 10);
-    rebalance("fat", targetFat);
+    syncChoiceHidden();
+    updateHelper();
+    updateSumUI();
+    updateSaveBtn();
   }
 
-  // 이벤트
-  sliders.forEach((slider) => {
-    slider.addEventListener("click", (e) => {
-      const btn = e.target.closest(".seg");
-      if (!btn) return;
+  // 초기 렌더: UI는 choice로 표시하되, ratio는 서버값 유지
+  document.querySelectorAll(".q-row").forEach((row) => {
+    const key = row.dataset.key;
+    if (!key) return;
 
-      const key = slider.dataset.key;
-      if (!key) return;
+    const v = stateChoice[key];
+    setActiveUI(row, v);
 
-      const idx = parseInt(btn.dataset.idx || "0", 10);
+    row.querySelectorAll(".tri-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const nv = toInt(btn.dataset.v, 0);
+        stateChoice[key] = nv;
 
-      // ✅ 같은 칸을 다시 누르면 1칸 감소(=0 가능)
-      const next = (idx === state[key]) ? (idx - 1) : idx;
-
-      rebalance(key, next);
-      renderAll();
-      updateSaveBtn();
+        setActiveUI(row, nv);
+        applyChoiceToRatio(); // ✅ 클릭한 순간에만 ratio 재계산/저장값 갱신
+      });
     });
   });
 
-  // 초기 렌더
-  normalizeOnLoad();
-  renderAll();
+  // 초기 helper/sum은 “서버 ratio”로 표시
+  syncChoiceHidden();
+  updateHelper();
+  updateSumUI();
   updateSaveBtn();
 
-  // 제출 직전 검증
+  // 제출 직전 검증(방어)
   form.addEventListener("submit", (e) => {
     if (!isValid()) {
       e.preventDefault();
+      updateSumUI();
       updateSaveBtn();
+      if (helperText) helperText.textContent = "오류: 탄/단/지 합계가 10이 되어야 저장할 수 있어요.";
     }
   });
 })();
