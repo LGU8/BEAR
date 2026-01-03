@@ -286,42 +286,35 @@ def _target_from_source(source_date_ymd: str, source_slot: str) -> tuple[str, st
 # timeline
 # =========================
 def timeline(request):
-    print("[TLDBG][0] timeline entered")
-
     """
     감정 변화 요약 (주간)
-    - 막대 높이 = 하루 총 감정 강도 합
-    - 누적 색 = 긍/중/부정 강도 구성
-    - 점수 산정:
-        energy: hig=3, med=2, low=1
-        mood(pos/neu/neg)에 따라 각 score로 누적
+    + (중요) 서버에서는 무거운 ML/RAG를 절대 여기서 돌리지 않는다.
+    - timeline은 "조회 전용(read-only)"으로 유지한다.
     """
 
     cust_id = _safe_get_cust_id(request)
 
+    # ---- ENTER LOG ----
     print(
         "[TLDBG][ENTER]",
         "path=", request.path,
+        "method=", request.method,
         "session_key=", getattr(request.session, "session_key", None),
         "_auth_user_id=", request.session.get("_auth_user_id"),
         "session_cust_id=", request.session.get("cust_id"),
         "user_auth=", request.user.is_authenticated,
         "user_cust_id=", getattr(request.user, "cust_id", None),
         "cust_id_var=", cust_id,
+        flush=True,
     )
+
     # 1) 기간 파라미터
     start = request.GET.get("start")
     end = request.GET.get("end")
 
     today = timezone.localdate()
-    print(
-        "[TLDBG][DATE]",
-        "today=", today,
-        "start=", start,
-        "end=", end,
-        "start_date=", start_date,
-        "end_date=", end_date,
-    )
+
+    # ✅ 먼저 end_date/start_date를 "정의"한 뒤에만 로그 찍기
     if not end:
         end_date = today
         end = end_date.strftime("%Y%m%d")
@@ -334,11 +327,21 @@ def timeline(request):
     else:
         start_date = datetime.strptime(start, "%Y%m%d").date()
 
+    print(
+        "[TLDBG][DATE]",
+        "today=", today.strftime("%Y-%m-%d"),
+        "start=", start,
+        "end=", end,
+        "start_date=", start_date.strftime("%Y-%m-%d"),
+        "end_date=", end_date.strftime("%Y-%m-%d"),
+        flush=True,
+    )
+
     week_start = start_date.strftime("%Y.%m.%d")
     week_end = end_date.strftime("%Y.%m.%d")
 
     # 2) 주간 누적막대 SQL
-    sql = """
+    sql_week = """
     SELECT
       rgs_dt,
       SUM(
@@ -382,7 +385,7 @@ def timeline(request):
     """
 
     with connection.cursor() as cursor:
-        cursor.execute(sql, [cust_id, start, end])
+        cursor.execute(sql_week, [cust_id, start, end])
         rows = cursor.fetchall()
 
     day_to_score = {}
@@ -403,49 +406,36 @@ def timeline(request):
         pos.append(p)
         neu.append(n)
         neg.append(g)
-
         cur += timedelta(days=1)
 
     chart_json = json.dumps(
-        {
-            "labels": labels,
-            "pos": pos,
-            "neu": neu,
-            "neg": neg,
-            "y_max": 9,
-        },
+        {"labels": labels, "pos": pos, "neu": neu, "neg": neg, "y_max": 9},
         ensure_ascii=False,
     )
 
     # =========================
-    # (2) 부정 감정 예측: source(today/어제) -> target(다음 슬롯)
+    # (2) 부정 감정 예측 표시: "DB 조회만"
     # =========================
     source_date = _pick_source_date_today_or_yesterday(cust_id)
-
-    print(
-        "[TLDBG][SOURCE_DATE]",
-        "cust_id=", cust_id,
-        "source_date=", source_date,
-    )
     today_ymd = timezone.localdate().strftime("%Y%m%d")
     yest_ymd = (timezone.localdate() - timedelta(days=1)).strftime("%Y%m%d")
 
     target_date, target_slot = None, None
+    neg_pred = {
+        "eligible": False,
+        "reason": "데이터가 없습니다",
+        "detail": {"type": "no_recent_record", "asof": today_ymd, "missing_days": [yest_ymd, today_ymd]},
+        "missing_days": [yest_ymd, today_ymd],
+    }
 
-    if source_date is None:
-        neg_pred = {
-            "eligible": False,
-            "reason": "데이터가 없습니다",
-            "detail": {
-                "type": "no_recent_record",
-                "rule": "오늘/어제 중 감정 기록이 있어야 예측 가능합니다",
-                "asof": today_ymd,
-                "missing_days": [yest_ymd, today_ymd],
-            },
-            "missing_days": [yest_ymd, today_ymd],
-        }
+    print(
+        "[TLDBG][SOURCE]",
+        "cust_id=", cust_id,
+        "source_date=", source_date,
+        flush=True,
+    )
 
-    else:
+    if source_date is not None:
         source_slot = _pick_source_slot_DLM(cust_id, source_date)
 
         print(
@@ -453,145 +443,90 @@ def timeline(request):
             "cust_id=", cust_id,
             "source_date=", source_date,
             "source_slot=", source_slot,
+            flush=True,
         )
-        if source_slot is None:
-            neg_pred = {
-                "eligible": False,
-                "reason": "데이터가 없습니다",
-                "detail": {
-                    "type": "no_recent_record",
-                    "rule": "오늘/어제 중 감정 기록이 있어야 예측 가능합니다",
-                    "asof": source_date,
-                    "missing_days": [],
-                },
-                "missing_days": [],
-            }
 
-        else:
+        if source_slot is not None:
             target_date, target_slot = _target_from_source(source_date, source_slot)
 
-            # ✅ 예측은 source_date 기준으로 수행
-            try:
-                from ml.lstm.predictor import predict_negative_risk
+            # ✅ 여기서부터는 DB 조회만 한다 (절대 ML 호출 X)
+            sql_risk = """
+                SELECT risk_score, risk_level, updated_time
+                FROM CUS_FEEL_RISK_TH
+                WHERE cust_id = %s
+                  AND target_date = %s
+                  AND target_slot = %s
+                LIMIT 1
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(sql_risk, [cust_id, target_date, target_slot])
+                r = cursor.fetchone()
 
-                neg_pred = predict_negative_risk(
-                    cust_id=cust_id, D_yyyymmdd=source_date
-                )
-                print(
-                    "[TLDBG][NEG_PRED]",
-                    "cust_id=", cust_id,
-                    "source_date=", source_date,
-                    "eligible=", neg_pred.get("eligible"),
-                    "reason=", neg_pred.get("reason"),
-                    "detail=", neg_pred.get("detail"),
-                    "missing_days=", neg_pred.get("missing_days"),
-                )
-
-            except ModuleNotFoundError as e:
-                # ✅ torch/numpy 등 ML deps 없을 때: 페이지는 살리고 예측만 비활성
-                neg_pred = {
-                    "eligible": False,
-                    "reason": "예측 모듈이 아직 설치되지 않았습니다",
-                    "detail": {
-                        "type": "ml_dependency_missing",
-                        "missing_module": str(e),
-                        "asof": source_date,
-                        "missing_days": [],
-                    },
-                    "missing_days": [],
-                }
-
-            except Exception as e:
-                neg_pred = {
-                    "eligible": False,
-                    "reason": "예측 중 오류가 발생했습니다",
-                    "detail": {
-                        "type": "lstm_runtime_error",
-                        "error": str(e),
-                        "asof": source_date,
-                        "missing_days": [],
-                    },
-                    "missing_days": [],
-                }
-
-            # ✅ 템플릿 안정화: missing_days 정규화(항상 list)
-            detail = neg_pred.get("detail") or {}
-            md = detail.get("missing_days")
-            if md is None:
-                md = neg_pred.get("missing_days", [])
-            if not isinstance(md, list):
-                md = []
-            detail["missing_days"] = md
-            neg_pred["missing_days"] = md
-            neg_pred["detail"] = detail
-
-            # ✅ 예측 결과 DB 저장(저장은 target 키로) - eligible일 때만
-            if neg_pred.get("eligible"):
-                now_ts = timezone.localtime().strftime("%Y%m%d%H%M%S")
-
-                p_high = float(neg_pred.get("p_highrisk") or 0.0)
-                risk_score = int(round(p_high * 100))
-                risk_level = "y" if risk_score >= 30 else "n"
-
-                upsert_sql = """
-                INSERT INTO CUS_FEEL_RISK_TH (
-                    created_time, updated_time,
-                    cust_id, target_date, target_slot,
-                    risk_score, risk_level
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                    updated_time = VALUES(updated_time),
-                    risk_score   = VALUES(risk_score),
-                    risk_level   = VALUES(risk_level);
-                """
-
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        upsert_sql,
-                        [
-                            now_ts,
-                            now_ts,
-                            cust_id,
-                            target_date,
-                            target_slot,
-                            risk_score,
-                            risk_level,
-                        ],
-                    )
-
-                # ✅ 행동추천도 lazy import + 실패해도 페이지는 살림
+            if r:
+                risk_score, risk_level, updated_time = r
+                # risk_score(0~100) -> p_highrisk(0~1)로 환산
                 try:
-                    from ml.behavior_llm.behavior_service import (
-                        generate_and_save_behavior_recom,
-                    )
+                    p_high = float(risk_score or 0) / 100.0
+                except Exception:
+                    p_high = 0.0
 
-                    generate_and_save_behavior_recom(
-                        cust_id=cust_id,
-                        target_date=target_date,
-                        target_slot=target_slot,
-                    )
-                except ModuleNotFoundError as e:
-                    print("### 행동추천 모듈 미설치 ###", e)
-                except Exception as e:
-                    print("### 행동추천 생성 실패 ###")
-                    print(e)
-                    traceback.print_exc()
+                neg_pred = {
+                    "eligible": True,
+                    "reason": "DB 조회 결과",
+                    "p_highrisk": p_high,
+                    "risk_score": int(risk_score or 0),
+                    "risk_level": str(risk_level or ""),
+                    "detail": {
+                        "type": "from_db",
+                        "asof": source_date,
+                        "target_date": target_date,
+                        "target_slot": target_slot,
+                        "updated_time": str(updated_time) if updated_time is not None else None,
+                        "missing_days": [],
+                    },
+                    "missing_days": [],
+                }
+            else:
+                # source는 있는데 target 예측이 DB에 아직 없음
+                neg_pred = {
+                    "eligible": False,
+                    "reason": "예측 결과가 아직 생성되지 않았습니다",
+                    "detail": {
+                        "type": "no_pred_row",
+                        "rule": "예측/추천은 record 저장 시점에서 생성되어야 합니다",
+                        "asof": source_date,
+                        "target_date": target_date,
+                        "target_slot": target_slot,
+                        "missing_days": [],
+                    },
+                    "missing_days": [],
+                }
+
+            print(
+                "[TLDBG][RISK_ROW]",
+                "cust_id=", cust_id,
+                "target_date=", target_date,
+                "target_slot=", target_slot,
+                "eligible=", neg_pred.get("eligible"),
+                "reason=", neg_pred.get("reason"),
+                "detail_type=", (neg_pred.get("detail") or {}).get("type"),
+                flush=True,
+            )
 
     # =========================
     # (추가) UI용 상태 계산
     # =========================
-    # neg_pred는 항상 dict임이 보장됨
     neg_pred["ui_active_idx"] = 1
     neg_pred["ui_status_text"] = "예측 준비 중"
 
     if not neg_pred.get("eligible", False):
-        if (neg_pred.get("detail") or {}).get("type") == "no_recent_record":
+        dtype = (neg_pred.get("detail") or {}).get("type")
+        if dtype == "no_recent_record":
             neg_pred["ui_active_idx"] = 1
             neg_pred["ui_status_text"] = "데이터 없음"
-        elif (neg_pred.get("detail") or {}).get("type") == "ml_dependency_missing":
+        elif dtype == "no_pred_row":
             neg_pred["ui_active_idx"] = 1
-            neg_pred["ui_status_text"] = "예측 비활성"
+            neg_pred["ui_status_text"] = "예측 없음"
         else:
             neg_pred["ui_active_idx"] = 1
             neg_pred["ui_status_text"] = "예측 준비 중"
@@ -613,7 +548,7 @@ def timeline(request):
             neg_pred["ui_status_text"] = "안정적이에요"
 
     # =========================
-    # (추가) 행동추천 멘트 조회: CUS_BEH_RECOM_TH.content → llm_ment
+    # (추가) 행동추천 멘트 조회: DB 조회만
     # =========================
     llm_ment = ""
     if target_date and target_slot:
@@ -630,6 +565,15 @@ def timeline(request):
             row = cursor.fetchone()
             if row and row[0]:
                 llm_ment = str(row[0])
+
+    print(
+        "[TLDBG][EXIT]",
+        "cust_id=", cust_id,
+        "target_date=", target_date,
+        "target_slot=", target_slot,
+        "llm_ment_len=", len(llm_ment or ""),
+        flush=True,
+    )
 
     context = {
         "active_tab": "timeline",
