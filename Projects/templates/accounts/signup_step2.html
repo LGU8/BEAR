@@ -1,183 +1,204 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회원가입 - Step 2</title>
-    {% load static %}
-    <style>
-        /* 전체 배경 설정 (Step 1과 동일) */
-        body {
-            background-color: #FFFBE6;
-            margin: 0;
-            padding: 0;
-            font-family: 'Noto Sans KR', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회원가입 - Step 2</title>
+  {% load static %}
+  <style>
+    body {
+      background-color: #FFFBE6;
+      margin: 0; padding: 0;
+      font-family: 'Noto Sans KR', sans-serif;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh;
+    }
 
-        /* 상단 로고 및 진행 바 섹션 */
-        .header-container {
-            width: 100%;
-            max-width: 400px;
-            padding: 40px 20px 20px;
-            text-align: center;
-        }
+    .header-container { width: 100%; max-width: 400px; padding: 40px 20px 20px; text-align: center; }
+    .bear-logo { width: 120px; height: auto; margin-bottom: 20px; }
+    .progress-container { width: 80%; height: 12px; background-color: #F0EAD6; border-radius: 10px; margin: 0 auto; overflow: hidden; }
+    .progress-bar { width: 50%; height: 100%; background-color: #F38218; border-radius: 10px; }
 
-        .bear-logo {
-            width: 120px;
-            height: auto;
-            margin-bottom: 20px;
-        }
+    .card {
+      background-color: white; width: 90%; max-width: 400px;
+      border-radius: 15px; padding: 30px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      margin-top: 10px; box-sizing: border-box; margin-bottom: 40px;
+    }
+    h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 10px; color: #1a1a1a; }
+    .sub-title { color: #F38218; font-size: 0.9rem; font-weight: 500; margin-bottom: 30px; }
 
-        /* 프로그래스 바 (Step 2/4 = 50%) */
-        .progress-container {
-            width: 80%;
-            height: 12px;
-            background-color: #F0EAD6;
-            border-radius: 10px;
-            margin: 0 auto;
-            overflow: hidden;
-        }
+    .form-group { margin-bottom: 20px; }
+    label { display:block; font-size: 0.95rem; font-weight:700; margin-bottom:8px; color:#333; }
 
-        .progress-bar {
-            width: 50%; /* Step 2 이므로 50% */
-            height: 100%;
-            background-color: #F38218;
-            border-radius: 10px;
-        }
+    input, select {
+      width: 100%; padding: 15px;
+      border: 1px solid #E0E0E0; border-radius: 10px;
+      background-color: #FAFAFA; font-size: 1rem;
+      box-sizing: border-box; transition: all 0.2s;
+      font-family: inherit;
+    }
+    input:focus, select:focus { outline: none; border-color: #F38218; background-color: #fff; }
 
-        /* 카드형 컨텐츠 영역 */
-        .card {
-            background-color: white;
-            width: 90%;
-            max-width: 400px;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            margin-top: 10px;
-            box-sizing: border-box;
-            margin-bottom: 40px;
-        }
+    /* 버튼 공용(전역 width:100% 제거 대신 btn-group에서 제어) */
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
 
-        h2 {
-            font-size: 1.4rem;
-            font-weight: 800;
-            margin-bottom: 10px;
-            color: #1a1a1a;
-        }
+    .btn-prev {
+      background-color: #F38218;
+      color: white;
+      border: none;
+      padding: 15px;
+      border-radius: 12px;
+      cursor: pointer;
+      flex: 1;
 
-        .sub-title {
-            color: #F38218;
-            font-size: 0.9rem;
-            font-weight: 500;
-            margin-bottom: 30px;
-        }
+      font-weight: 800;
+      font-size: 1rem;
+    }
 
-        /* 폼 스타일 */
-        .form-group {
-            margin-bottom: 20px;
-        }
+    .btn-next {
+      background-color: #F38218;
+      color: white;
+      border: none;
+      padding: 15px;
+      border-radius: 12px;
+      cursor: pointer;
+      flex: 2;
 
-        label {
-            display: block;
-            font-size: 0.95rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: #333;
-        }
+      font-weight: 800;
+      font-size: 1rem;
+    }
 
-        input, select {
-            width: 100%;
-            padding: 15px;
-            border: 1px solid #E0E0E0;
-            border-radius: 10px;
-            background-color: #FAFAFA;
-            font-size: 1rem;
-            box-sizing: border-box;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
+    .btn-next:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
 
-        input:focus, select:focus {
-            outline: none;
-            border-color: #F38218;
-            background-color: #fff;
-        }
+    /* hover는 주석 처리 원하면 유지 */
+    /* .btn-prev:hover, .btn-next:hover { background-color: #D66D0E; } */
 
-        /* 버튼 스타일 */
-        button {
-            width: 100%;
-            padding: 16px;
-            background-color: #F38218;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background-color: #D66D0E;
-        }
-
-        /* 숫자 입력 옆 단위 표시 등 커스텀이 필요할 때 활용 */
-        .input-wrapper {
-            position: relative;
-        }
-    </style>
+    /* 아주 작은 화면에서 버튼 높이/폰트 살짝 다운 */
+    @media (max-width: 360px) {
+      .btn-prev, .btn-next {
+        padding: 14px;
+        font-size: 0.95rem;
+      }
+    }
+  </style>
 </head>
+
 <body>
+  <div class="header-container">
+    <a href="/"><img src="{% static 'nav_img/logo.png' %}" alt="BEAR logo" class="bear-logo"></a>
+    <div class="progress-container"><div class="progress-bar"></div></div>
+  </div>
 
-    <div class="header-container">
-         <a href="/">
-                <img src="{% static 'nav_img/logo.png' %}" alt="BEAR logo" class="bear-logo">
-         </a>
+  <div class="card">
+    <h2>Step 2/4. 기본 신체 정보</h2>
+    <div class="sub-title">정확한 분석을 위해 정보를 입력해주세요</div>
 
-        <div class="progress-container">
-            <div class="progress-bar"></div>
-        </div>
-    </div>
+    <form id="step2Form" method="post" action="{% url 'accounts_app:signup_step2' %}">
+      {% csrf_token %}
 
-    <div class="card">
-        <h2>Step 2/4. 기본 신체 정보</h2>
-        <div class="sub-title">정확한 분석을 위해 정보를 입력해주세요</div>
+      <div class="form-group">
+        <label for="gender">성별</label>
+        <select name="gender" id="gender" required>
+          <option value="M" {% if gender == "M" %}selected{% endif %}>남성</option>
+          <option value="F" {% if gender == "F" %}selected{% endif %}>여성</option>
+        </select>
+      </div>
 
-        <form method="post" action="{% url 'accounts_app:signup_step2' %}">
-            {% csrf_token %}
+      <div class="form-group">
+        <label for="birth_dt">생년월일</label>
+        <input type="date" name="birth_dt" id="birth_dt"
+               value="{{ birth_dt_ui|default:'2000-01-01' }}" required>
+      </div>
 
-            <div class="form-group">
-                <label for="gender">성별</label>
-                <select name="gender" id="gender" required>
-                    <option value="" disabled selected>성별을 선택하세요</option>
-                    <option value="M">남성</option>
-                    <option value="F">여성</option>
-                </select>
-            </div>
+      <div class="form-group">
+        <label for="height_cm">키 (cm)</label>
+        <input type="number" name="height_cm" id="height_cm"
+               value="{{ height_cm|default:'175.5' }}"
+               step="0.1" min="50" max="300" required>
+      </div>
 
-            <div class="form-group">
-                <label for="birth_dt">생년월일</label>
-                <input type="date" name="birth_dt" id="birth_dt" required>
-            </div>
+      <div class="form-group">
+        <label for="weight_kg">체중 (kg)</label>
+        <input type="number" name="weight_kg" id="weight_kg"
+               value="{{ weight_kg|default:'65.2' }}"
+               step="0.1" min="10" max="500" required>
+      </div>
 
-            <div class="form-group">
-                <label for="height_cm">키 (cm)</label>
-                <input type="number" name="height_cm" id="height_cm" placeholder="예: 175.5" step="0.1" min="50" max="300" required>
-            </div>
+      <!-- 버튼 그룹(이전/다음) -->
+      <div class="btn-group">
+        <button type="button" class="btn-prev" id="prevBtn">이전</button>
+        <button type="submit" class="btn-next" id="nextBtn" disabled>다음 단계</button>
+      </div>
+    </form>
+  </div>
 
-            <div class="form-group">
-                <label for="weight_kg">체중 (kg)</label>
-                <input type="number" name="weight_kg" id="weight_kg" placeholder="예: 65.2" step="0.1" min="10" max="500" required>
-            </div>
+  <script>
+    (function () {
+      const form = document.getElementById("step2Form");
+      if (!form) return;
 
-            <button type="submit">다음 단계</button>
-        </form>
-    </div>
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
 
+      const gender = document.getElementById("gender");
+      const birth = document.getElementById("birth_dt");
+      const height = document.getElementById("height_cm");
+      const weight = document.getElementById("weight_kg");
+
+      function allValid() {
+        // 1) required 값 체크
+        const hasAll =
+          (gender.value || "").trim() &&
+          (birth.value || "").trim() &&
+          (height.value || "").trim() &&
+          (weight.value || "").trim();
+
+        if (!hasAll) return false;
+
+        // 2) min/max/step 등 validity 체크
+        return (
+          gender.checkValidity() &&
+          birth.checkValidity() &&
+          height.checkValidity() &&
+          weight.checkValidity()
+        );
+      }
+
+      function updateNext() {
+        nextBtn.disabled = !allValid();
+      }
+
+      // 이전 버튼
+      prevBtn.addEventListener("click", () => history.back());
+
+      // 입력 변경 이벤트들
+      ["input", "change", "keyup"].forEach((evt) => {
+        gender.addEventListener(evt, updateNext);
+        birth.addEventListener(evt, updateNext);
+        height.addEventListener(evt, updateNext);
+        weight.addEventListener(evt, updateNext);
+      });
+
+      // submit 방어(혹시 nextBtn이 enabled라도)
+      form.addEventListener("submit", (e) => {
+        updateNext();
+        if (!allValid()) {
+          e.preventDefault();
+          // 브라우저 기본 경고 띄우기(필요 시)
+          // form.reportValidity();
+        }
+      });
+
+      updateNext();
+    })();
+  </script>
 </body>
 </html>
