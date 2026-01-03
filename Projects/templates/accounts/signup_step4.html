@@ -63,7 +63,7 @@
       <h3>활동량 설정</h3>
       <div class="selection-group">
         <label class="select-card" data-group="activity">
-          <input type="radio" name="activity_level" value="0" required {% if al == '0' %}checked{% endif %}>
+          <input type="radio" name="activity_level" value="1" required {% if al == '1' %}checked{% endif %}>
           <img src="{% static 'icons_img/bear_낮음.png' %}" alt="">
           <div class="select-info">
             <div class="select-title">낮음</div>
@@ -72,7 +72,7 @@
         </label>
 
         <label class="select-card" data-group="activity">
-          <input type="radio" name="activity_level" value="1" {% if activity_level == '1' %}checked{% endif %}>
+          <input type="radio" name="activity_level" value="2" {% if activity_level == '2' %}checked{% endif %}>
           <img src="{% static 'icons_img/bear_중간.png' %}" alt="">
           <div class="select-info">
             <div class="select-title">중간</div>
@@ -81,7 +81,7 @@
         </label>
 
         <label class="select-card" data-group="activity">
-          <input type="radio" name="activity_level" value="2" {% if activity_level == '2' %}checked{% endif %}>
+          <input type="radio" name="activity_level" value="3" {% if activity_level == '3' %}checked{% endif %}>
           <img src="{% static 'icons_img/bear_높음.png' %}" alt="">
           <div class="select-info">
             <div class="select-title">높음</div>
@@ -90,7 +90,7 @@
         </label>
 
         <label class="select-card" data-group="activity">
-          <input type="radio" name="activity_level" value="3" {% if activity_level == '3' %}checked{% endif %}>
+          <input type="radio" name="activity_level" value="4" {% if activity_level == '4' %}checked{% endif %}>
           <img src="{% static 'icons_img/bear_매우 높음.png' %}" alt="">
           <div class="select-info">
             <div class="select-title">매우 높음</div>
@@ -102,19 +102,19 @@
       <h3>목표 설정</h3>
       <div class="purpose-grid">
         <label class="purpose-card" data-group="purpose">
-          <input type="radio" name="purpose" value="0" required {% if purpose == '0' %}checked{% endif %}>
+          <input type="radio" name="purpose" value="1" required {% if purpose == '1' %}checked{% endif %}>
           <img src="{% static 'settings_img/bear_diet.png' %}" alt="">
           <div>다이어트</div>
         </label>
 
         <label class="purpose-card" data-group="purpose">
-          <input type="radio" name="purpose" value="1" {% if purpose == '1' %}checked{% endif %}>
+          <input type="radio" name="purpose" value="2" {% if purpose == '2' %}checked{% endif %}>
           <img src="{% static 'settings_img/bear_maintain.png' %}" alt="">
           <div>유지</div>
         </label>
 
         <label class="purpose-card" data-group="purpose">
-          <input type="radio" name="purpose" value="2" {% if purpose == '2' %}checked{% endif %}>
+          <input type="radio" name="purpose" value="3" {% if purpose == '3' %}checked{% endif %}>
           <img src="{% static 'settings_img/bear_bulkup.png' %}" alt="">
           <div>벌크업</div>
         </label>
