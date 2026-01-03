@@ -334,6 +334,19 @@
 .llm-box.is-risk p{
   color: #2B2B2B;
 }
+/* 행동추천 Empty-state */
+.llm-box.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 120px;
+}
+
+.llm-box.is-empty .llm-text {
+  opacity: 0.8;
+  font-weight: 600;
+}
 
 /* ======================================================
    FORCE OVERRIDE (최후방어)

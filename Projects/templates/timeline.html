@@ -112,14 +112,29 @@
         <h4 class="timeline-title">행동 추천</h4>
       </div>
 
-      <div class="llm-box {% if neg_pred.ui_active_idx == 2 %}is-risk{% endif %}">
+      {% if not neg_pred.eligible %}
+        <!-- 1) 예측 불가 → 추천도 불가 -->
+        <div class="llm-box is-empty">
+          <p class="llm-text">감정 예측 데이터가 없습니다.</p>
+        </div>
 
-        <p class="llm-text">{{ llm_ment }}</p>
-      </div>
+      {% elif not llm_ment %}
+        <!-- 2) 예측은 가능하지만 추천 데이터가 없음 -->
+        <div class="llm-box is-empty">
+          <p class="llm-text">행동 추천 데이터가 없습니다.</p>
+        </div>
+
+      {% else %}
+        <!-- 3) 정상 추천 -->
+        <div class="llm-box {% if neg_pred.ui_active_idx == 2 %}is-risk{% endif %}">
+          <p class="llm-text">{{ llm_ment }}</p>
+        </div>
+      {% endif %}
 
     </div>
   </div>
 </section>
+
 
 
 <!-- (3) 누적막대그래프 -->
