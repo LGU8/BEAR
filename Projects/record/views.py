@@ -286,6 +286,8 @@ def _target_from_source(source_date_ymd: str, source_slot: str) -> tuple[str, st
 # timeline
 # =========================
 def timeline(request):
+    print("[TLDBG][0] timeline entered")
+
     """
     감정 변화 요약 (주간)
     - 막대 높이 = 하루 총 감정 강도 합
