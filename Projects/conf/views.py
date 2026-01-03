@@ -203,21 +203,51 @@ def _recommend_target_slot_from_trigger_slot(trigger_slot: str) -> str:
     s = (trigger_slot or "").strip().upper()
     return {"M": "L", "L": "D", "D": "DONE"}.get(s, "M")
 
+def _derive_reco_target(rgs_dt: str, recorded_slot: str):
+    """
+    ✅ 추천 저장/표출 공통 키 생성 로직
+
+    recorded_slot(기록 슬롯: M/L/D) 기준:
+    - M 기록 완료 -> (같은날, L 추천 저장/조회)
+    - L 기록 완료 -> (같은날, D 추천 저장/조회)
+    - D 기록 완료 -> (다음날, M 추천 저장/조회)
+
+    반환: (reco_rgs_dt, reco_time_slot)
+    """
+    rgs_dt = (rgs_dt or "").strip()
+    recorded_slot = (recorded_slot or "").strip().upper()
+
+    # 입력 방어
+    if len(rgs_dt) != 8 or not rgs_dt.isdigit():
+        return "", ""
+
+    if recorded_slot == "M":
+        return rgs_dt, "L"
+    if recorded_slot == "L":
+        return rgs_dt, "D"
+    if recorded_slot == "D":
+        try:
+            dt = datetime.strptime(rgs_dt, "%Y%m%d").date()
+            dt2 = dt + timedelta(days=1)
+            return dt2.strftime("%Y%m%d"), "M"
+        except Exception:
+            return "", ""
+
+    return "", ""
 
 def _build_menu_reco_context(cust_id: str) -> dict:
     """
-    ✅ 최종 정책(네가 방금 확정한 것 반영)
+    ✅ 기존에 잘 동작하던 표출 로직을 최대한 유지하면서,
+    ✅ MENU_RECOM_TH 조회 키(rgs_dt, rec_time_slot)만 저장 로직과 동일하게 맞춘 버전
 
-    - 기본 조회 날짜는 무조건 오늘(KST 캘린더 날짜) rgs_dt
+    - 기본 조회 날짜는 오늘(KST 캘린더 날짜) rgs_dt
     - 다음 slot 판단은 CUS_FOOD_TH & CUS_FEEL_TH의 (오늘, slot) 동시 존재로 판정
     - 단, '어제(D 완료)' 상태가 있고 지금 시간이 새벽 4시 이전이면:
         -> "오늘 식사 기록이 모두 완료됐어요. 추천 준비 중" 유지
         -> (새로운 하루 추천 시작 안 함)
-      (즉, 4시가 지나면 자연스럽게 오늘 날짜로 새로 시작)
 
-    - 추천은 MENU_RECOM_TH(오늘, next_slot)에서 P/H/E를 FOOD_TB와 조인해서
-      성공한 것만 문구로 출력
-    - 조인 결과 0개면 "추천 준비 중"
+    - 추천 조회는 MENU_RECOM_TH에서 (reco_rgs_dt, reco_time_slot)로 조회
+      (⭐  시 사용한 _derive_reco_target()과 동일한 방식으로 계산)
     """
     base = {
         "is_done": False,
@@ -243,26 +273,20 @@ def _build_menu_reco_context(cust_id: str) -> dict:
             base["title"] = ""
             base["line"] = ""
             return base
-        # 어제가 DONE이 아니면 -> 오늘 기준으로 정상 진행(테스트 데이터가 00시대여도 오늘로 조회됨)
+        # 어제가 DONE이 아니면 -> 오늘 기준으로 정상 진행
 
     # 2) 오늘 기준으로 다음 slot 결정
     slot_or_done, _ = _next_slot_by_food_and_feel(cust_id, today_ymd)
 
-    # 오늘 DONE이면: 완료 문구 출력(너 요구대로)
+    # 오늘 DONE이면: 완료 문구 출력
     if slot_or_done == "DONE":
         base["is_done"] = True
         base["status_text"] = "오늘 식사 기록이 모두 완료됐어요. 추천 준비 중"
         return base
 
-    # 정님 코드
-    # target_slot = slot_or_done
-    # slot_label = {"M": "아침", "L": "점심", "D": "저녁"}[target_slot]
-    # base["title"] = f"{slot_label} 메뉴 추천"
-
     # -------------------------------------------------------
-    # ✅ 핵심 변경:
-    # - reco_key_slot: MENU_RECOM_TH.rec_time_slot 조회용 (마지막 완료 슬롯)
-    # - display_slot: 화면에 표기할 추천 대상 슬롯 (다음 슬롯)
+    # - reco_key_slot: "마지막으로 FOOD+FEEL이 동시에 존재한 슬롯"(트리거 슬롯)
+    # - display_slot: 화면에 보여줄 '다음 추천 슬롯'
     # -------------------------------------------------------
     reco_key_slot = _last_done_slot_by_food_and_feel(cust_id, today_ymd)
     if not reco_key_slot:
@@ -278,7 +302,22 @@ def _build_menu_reco_context(cust_id: str) -> dict:
     slot_label = {"M": "아침", "L": "점심", "D": "저녁"}[display_slot]
     base["title"] = f"{slot_label} 메뉴 추천"
 
-    # 3) 추천 로딩 (오늘 + reco_key_slot)
+    # -------------------------------------------------------
+    # MENU_RECOM_TH 조회 키를 저장 로직과 동일하게 계산
+    # - 저장 로직: reco_rgs_dt, reco_time_slot = _derive_reco_target(rgs_dt, time_slot)
+    # - 화면 로직도 동일하게:
+    #     trigger_slot(=reco_key_slot)을 넣어 조회 키를 만든다.
+    # -------------------------------------------------------
+    reco_rgs_dt, reco_time_slot = _derive_reco_target(today_ymd, reco_key_slot)
+
+    # 방어(혹시라도 빈값이 오면 준비중 처리)
+    reco_rgs_dt = (reco_rgs_dt or "").strip()
+    reco_time_slot = (reco_time_slot or "").strip().upper()
+    if not reco_rgs_dt or reco_time_slot not in ("M", "L", "D"):
+        base["status_text"] = "추천 준비 중"
+        return base
+
+    # 3) 추천 로딩 (오늘 고정이 아니라 reco_rgs_dt로 조회해야 함)
     name_col = _get_food_name_column()
     if not name_col:
         base["status_text"] = "추천 준비 중"
@@ -299,7 +338,8 @@ def _build_menu_reco_context(cust_id: str) -> dict:
         ORDER BY FIELD(r.rec_type, 'P','H','E');
     """
     with connection.cursor() as cursor:
-        cursor.execute(sql_reco, [cust_id, today_ymd, reco_key_slot])
+        # ✅ today_ymd -> reco_rgs_dt, reco_key_slot -> reco_time_slot
+        cursor.execute(sql_reco, [cust_id, reco_rgs_dt, reco_time_slot])
         rows = cursor.fetchall()
 
     if not rows:
@@ -325,6 +365,8 @@ def _build_menu_reco_context(cust_id: str) -> dict:
         "today_ymd=", today_ymd,
         "reco_key_slot=", reco_key_slot,
         "display_slot=", display_slot,
+        "reco_rgs_dt=", reco_rgs_dt,
+        "reco_time_slot=", reco_time_slot,
         "rows=", rows,
     )
 
