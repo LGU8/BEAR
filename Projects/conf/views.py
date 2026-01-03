@@ -37,32 +37,32 @@ def public_home(request):
     return render(request, "public_home.html")
 
 
-def _safe_get_cust_id(request) -> str:
-    """
-    ✅ 로그인 구현을 건드리지 않고,
-    '현재 로그인 사용자'에서 cust_id로 쓸 수 있는 후보를 안전하게 찾는다.
 
-    우선순위:
-    1) 세션에 cust_id가 있으면 그걸 최우선 (가장 안전)
-    2) request.user.username
-    3) request.user.email
-    4) request.user에 cust_id 속성이 직접 있는 경우
-    """
-    # 1) session
-    cust_id = request.session.get("cust_id")
+import logging
+logger = logging.getLogger(__name__)
+
+def _safe_get_cust_id(request) -> str:
+    # 1) authenticated user의 cust_id
+    user = getattr(request, "user", None)
+    if getattr(user, "is_authenticated", False):
+        cust_id = getattr(user, "cust_id", None)
+        if cust_id:
+            return str(cust_id)
+
+    # 2) session cust_id (보조)
+    cust_id = getattr(getattr(request, "session", {}), "get", lambda _k: None)("cust_id")
     if cust_id:
         return str(cust_id)
 
-    if request.user.is_authenticated and getattr(request.user, "cust_id", None):
-        return str(request.user.cust_id)
-
-    if request.user.is_authenticated and getattr(request.user, "username", None):
-        return str(request.user.username)
-
-    if request.user.is_authenticated and getattr(request.user, "email", None):
-        return str(request.user.email)
-
+    # 3) 없으면 로그 남기고 빈 값
+    logger.warning(
+        "[AUTH] cust_id not found (user_email=%s, session_keys=%s)",
+        getattr(user, "email", None),
+        list(getattr(request, "session", {}).keys()) if getattr(request, "session", None) else [],
+    )
     return ""
+
+
 
 
 def _build_daily_report_chart(cust_id: str, today_ymd: str) -> dict:
