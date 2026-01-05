@@ -54,6 +54,7 @@ def _safe_int(v, default=0) -> int:
 # =========================
 class AccountActivationTokenGenerator(PasswordResetTokenGenerator):
     def _make_hash_value(self, user, timestamp):
+        # ✅ password가 바뀌면 기존 토큰이 무효화되도록 포함
         return str(user.pk) + str(timestamp) + str(user.password)
 
 
@@ -61,13 +62,33 @@ account_activation_token = AccountActivationTokenGenerator()
 
 
 # =========================
+# 1-1) Password Reset URL Builder
+# =========================
+def _build_password_reset_link(request, uidb64: str, token: str) -> str:
+    """
+    ✅ 코드에 EB 링크 하드코딩 금지
+    ✅ 현재 요청 host/scheme 기반 absolute url 생성
+
+    - EB 뒤에서 https 인식은 settings의
+      SECURE_PROXY_SSL_HEADER / USE_X_FORWARDED_HOST가 잡아줌
+    """
+    # urls.py: path("password-reset-confirm/<uidb64>/<token>/", ...)
+    path = f"/accounts/password-reset-confirm/{uidb64}/{token}/"
+
+    # request.build_absolute_uri()는 request의 scheme/host를 사용
+    url = request.build_absolute_uri(path)
+
+    # ✅ 혹시 EB에서 scheme이 http로 잡히는 케이스를 "보정"하고 싶다면(옵션)
+    # if not settings.DEBUG and request.META.get("HTTP_X_FORWARDED_PROTO") == "https":
+    #     url = url.replace("http://", "https://", 1)
+
+    return url
+
+
+# =========================
 # 2) cust_id 생성
 # =========================
 def generate_new_cust_id() -> str:
-    """
-    CUST_TM.cust_id가 VARCHAR(10)이며 숫자형 문자열이라는 가정.
-    max(cust_id) + 1 방식.
-    """
     max_id_str = Cust.objects.all().aggregate(Max("cust_id"))["cust_id__max"]
     if max_id_str:
         new_id_int = int(max_id_str) + 1
@@ -85,7 +106,6 @@ def user_login(request):
         email = (request.POST.get("email") or "").strip()
         password = (request.POST.get("password") or "").strip()
 
-        # --- [LOGINDBG] (1) 입력값/요청 쿠키 상태 ---
         logger.warning("[LOGINDBG] POST email=%s", email)
         logger.warning("[LOGINDBG] cookie sessionid(before)=%s", request.COOKIES.get("sessionid"))
         logger.warning("[LOGINDBG] host=%s scheme=%s secure=%s",
@@ -93,10 +113,8 @@ def user_login(request):
                        request.scheme,
                        request.is_secure())
 
-        # --- authenticate ---
         user = authenticate(request, username=email, password=password)
 
-        # --- [LOGINDBG] (2) authenticate 결과 ---
         logger.warning("[LOGINDBG] authenticate result user_cust_id=%s user_email=%s",
                        getattr(user, "cust_id", None),
                        getattr(user, "email", None))
@@ -108,10 +126,8 @@ def user_login(request):
                 {"error_message": "이메일 또는 비밀번호가 올바르지 않습니다.", "email": email},
             )
 
-        # 1) Django session login
         login(request, user)
 
-        # --- [LOGINDBG] (3) login() 직후 request.user / session 상태 ---
         logger.warning("[LOGINDBG] after login request.user.cust_id=%s request.user.email=%s",
                        getattr(request.user, "cust_id", None),
                        getattr(request.user, "email", None))
@@ -119,22 +135,17 @@ def user_login(request):
         logger.warning("[LOGINDBG] _auth_user_id in session=%s", request.session.get("_auth_user_id"))
         logger.warning("[LOGINDBG] session keys=%s", list(request.session.keys()))
 
-        # 2) 세션 cust_id 저장 (settings 등 다른 앱에서 fallback으로 사용)
         request.session["cust_id"] = str(request.user.cust_id)
 
-        # --- [LOGINDBG] (4) cust_id 세션 저장 직후 확인 ---
         logger.warning("[LOGINDBG] session cust_id(after set)=%s", request.session.get("cust_id"))
 
-        # 3) 시각 파트
         today_8, now_14, time_6 = _now_parts()
 
-        # 4) CUST_TM last_login_dt / updated_dt / updated_time 갱신
-        user.last_login = today_8  # db_column='last_login_dt'
+        user.last_login = today_8
         user.updated_dt = today_8
         user.updated_time = now_14
         user.save(update_fields=["last_login", "updated_dt", "updated_time"])
 
-        # 5) LOGIN_TH 기록 (seq 증가)
         try:
             max_seq = (
                 LoginHistory.objects.filter(cust=user).aggregate(Max("seq"))["seq__max"] or 0
@@ -154,10 +165,8 @@ def user_login(request):
             request.session["current_login_seq"] = new_seq
 
         except Exception as e:
-            # 로그인 자체는 성공했지만, 이력 저장만 실패한 케이스
             logger.warning("[LOGINDBG] LoginHistory save error: %r", e)
 
-        # 6) redirect
         if next_url:
             return redirect(next_url)
         return redirect("home")
@@ -178,7 +187,6 @@ def user_logout(request):
         current_seq = request.session.get("current_login_seq")
 
         if current_seq:
-            # 로그아웃 시간 업데이트
             LoginHistory.objects.filter(
                 cust=user,
                 login_dt=today_8,
@@ -206,27 +214,51 @@ def home(request):
 
 
 # =========================
-# 6) PASSWORD RESET
+# 6) PASSWORD RESET (실기능)
 # =========================
 def password_reset(request):
+    """
+    UI -> 실제 메일 발송 기능으로 동작
+    """
     if request.method == "POST":
         email = (request.POST.get("email") or "").strip()
+
+        if not email:
+            return render(request, "accounts/password_reset.html", {"error": "이메일을 입력해주세요."})
+
         try:
             user = Cust.objects.get(email=email)
 
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
             token = account_activation_token.make_token(user)
 
-            # ⚠️ 운영에서는 도메인 기반으로 바꾸는 게 맞지만, 지금은 원인 파악용으로 유지
-            reset_link = f"http://127.0.0.1:8000/accounts/password-reset-confirm/{uid}/{token}/"
+            reset_link = _build_password_reset_link(request, uidb64, token)
 
-            send_mail(
-                "[BEAR] 비밀번호 재설정 안내",
-                f"아래 링크를 클릭하여 비밀번호를 변경하세요.\n\n{reset_link}",
-                from_email=None,
-                recipient_list=[email],
-                fail_silently=False,
+            # ✅ 운영에서 메일 설정 누락 시 바로 감지할 수 있도록 로그
+            logger.warning("[PWRESET] email=%s host=%s scheme=%s is_secure=%s xfp=%s link=%s",
+                           email,
+                           request.get_host(),
+                           request.scheme,
+                           request.is_secure(),
+                           request.META.get("HTTP_X_FORWARDED_PROTO"),
+                           reset_link)
+
+            subject = "[BEAR] 비밀번호 재설정 안내"
+            message = (
+                "아래 링크를 클릭하여 비밀번호를 변경하세요.\n\n"
+                f"{reset_link}\n\n"
+                "만약 본인이 요청하지 않았다면 이 메일을 무시해주세요."
             )
+
+            # ✅ DEFAULT_FROM_EMAIL은 settings에서 env로 받아옴
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                recipient_list=[email],
+                fail_silently=getattr(settings, "EMAIL_FAIL_SILENTLY", False),
+            )
+
             return render(request, "accounts/password_reset_done.html")
 
         except Cust.DoesNotExist:
@@ -235,11 +267,22 @@ def password_reset(request):
                 "accounts/password_reset.html",
                 {"error": "존재하지 않는 이메일입니다."},
             )
+        except Exception as e:
+            # SMTP 설정/네트워크/인증 실패 등
+            logger.exception("[PWRESET] send_mail failed: %r", e)
+            return render(
+                request,
+                "accounts/password_reset.html",
+                {"error": "메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요."},
+            )
 
     return render(request, "accounts/password_reset.html")
 
 
 def password_reset_confirm(request, uidb64, token):
+    """
+    링크 클릭 -> 토큰 검증 -> 새 비밀번호 저장
+    """
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = Cust.objects.get(pk=uid)
@@ -251,6 +294,8 @@ def password_reset_confirm(request, uidb64, token):
 
     if request.method == "POST":
         new_pw = (request.POST.get("new_password") or "").strip()
+        confirm_pw = (request.POST.get("confirm_password") or "").strip()
+
         if not new_pw:
             return render(
                 request,
@@ -258,8 +303,16 @@ def password_reset_confirm(request, uidb64, token):
                 {"error": "비밀번호를 입력해주세요."},
             )
 
+        if new_pw != confirm_pw:
+            return render(
+                request,
+                "accounts/password_reset_confirm.html",
+                {"error": "비밀번호 확인이 일치하지 않습니다."},
+            )
+
         today_8, now_14, _ = _now_parts()
 
+        # ✅ Django make_password(PBKDF2)로 저장 (현재 CustBackend가 check_password 사용중이므로 정합)
         user.password = make_password(new_pw)
         user.updated_dt = today_8
         user.updated_time = now_14
@@ -363,9 +416,8 @@ def signup_step3(request):
     return render(request, "accounts/signup_step3.html", context)
 
 
-# --- 계산 로직 ---
-ACTIVITY_FACTOR = {"0": 1.2, "1": 1.375, "2": 1.55, "3": 1.725}
-OFFSET_MAP = {"0": -400, "1": 0, "2": 400}
+ACTIVITY_FACTOR = {"1": 1.2, "2": 1.375, "3": 1.55, "4": 1.725}
+OFFSET_MAP = {"1": -400, "2": 0, "3": 400}
 
 
 def calc_age(birth_dt: str) -> int:
@@ -430,25 +482,20 @@ def signup_step4(request):
         "error": "",
     }
 
-    # GET: 화면 렌더만
     if request.method != "POST":
         return render(request, "accounts/signup_step4.html", ctx)
 
-    # Step1 세션 필수값
     email = request.session.get("reg_email")
     password = request.session.get("reg_password")
     if not email or not password:
         return redirect("accounts_app:signup_step1")
 
-    # POST 값
     activity_level = str((request.POST.get("activity_level") or "").strip())
     purpose = str((request.POST.get("purpose") or "").strip())
 
-    # POST 실패 시에도 체크 유지되도록 ctx 반영
     ctx["activity_level"] = activity_level
     ctx["purpose"] = purpose
 
-    # 필수 선택 검증
     if activity_level not in ACTIVITY_FACTOR:
         ctx["error"] = "활동량을 선택해주세요."
         return render(request, "accounts/signup_step4.html", ctx)
@@ -457,7 +504,6 @@ def signup_step4(request):
         ctx["error"] = "목표를 선택해주세요."
         return render(request, "accounts/signup_step4.html", ctx)
 
-    # 세션 저장 (뒤로가기/새로고침 대비)
     request.session["activity_level"] = activity_level
     request.session["purpose"] = purpose
 
@@ -532,9 +578,6 @@ def signup_step4(request):
         return render(request, "accounts/signup_step4.html", ctx)
 
 
-# =========================
-# 8) TEST LOGIN
-# =========================
 def test_login_view(request):
     test_email = "test@test"
     test_password = "11111111"

@@ -3,7 +3,7 @@
     <style>
         /* 기본 배경 설정 */
         body {
-            background-color: #FFFBE6; /* 이미지의 연한 아이보리 배경 */
+            background-color: #FFFBE6;
             margin: 0;
             font-family: 'Noto Sans KR', sans-serif;
         }
@@ -24,9 +24,10 @@
             font-weight: 800;
             margin-bottom: 5px;
             color: #1a1a1a;
+            line-height: 1.25;
         }
         .header-section .point-color {
-            color: #F38218; /* 짜잔 오렌지 색상 */
+            color: #F38218;
         }
         .header-section p {
             color: #F38218;
@@ -43,11 +44,12 @@
             width: 100%;
             padding: 18px 20px;
             border: none;
-            border-radius: 12px; /* 둥근 모서리 */
+            border-radius: 12px;
             background-color: #FFFFFF;
             font-size: 1rem;
             box-sizing: border-box;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            max-width: 100%;
         }
         input::placeholder {
             color: #A0A0A0;
@@ -58,19 +60,20 @@
             width: 100%;
             padding: 16px;
             border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 700;
+            border-radius: 12px; /* 버튼도 카드 톤과 맞추기 */
+            font-size: 1.05rem;
+            font-weight: 800;
             cursor: pointer;
             margin-top: 10px;
-            letter-spacing: 5px; /* 글자 간격 조정 */
+            letter-spacing: 3px; /* 모바일에서 과도한 spacing 방지 */
+            box-sizing: border-box;
         }
         .btn-login {
-            background-color: #F38218; /* 진한 오렌지 */
+            background-color: #F38218;
             color: white;
         }
         .btn-signup {
-            background-color: #FFB763; /* 연한 오렌지 */
+            background-color: #FFB763;
             color: white;
             text-decoration: none;
             display: block;
@@ -85,7 +88,7 @@
             color: #F38218;
             text-decoration: none;
             font-size: 0.9rem;
-            opacity: 0.8;
+            opacity: 0.85;
         }
 
         /* 에러 메시지 */
@@ -93,6 +96,59 @@
             color: #e74c3c;
             margin-bottom: 15px;
             font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        /* ─────────────────────────────
+           모바일/태블릿 반응형 + 안정화 패치
+           ───────────────────────────── */
+        @media (max-width: 768px) {
+            html, body {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+            body {
+                min-height: 100dvh;
+                min-height: 100vh;
+            }
+            *, *::before, *::after { box-sizing: border-box; }
+            img, video, svg, canvas { max-width: 100%; height: auto; }
+            input, button, a { max-width: 100%; }
+
+            .login-container {
+                max-width: 420px;
+                margin: 48px auto;
+                padding: 0 16px;
+            }
+            .header-section { margin-bottom: 36px; }
+            .header-section h1 { font-size: 2.0rem; }
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 36px auto;
+                padding: 0 14px;
+            }
+            .header-section { margin-bottom: 28px; }
+            .header-section h1 { font-size: 1.75rem; }
+            .header-section p { font-size: 0.95rem; }
+
+            input[type="email"], input[type="password"] {
+                padding: 16px 16px;
+                font-size: 1rem;
+            }
+            .btn {
+                padding: 15px;
+                font-size: 1rem;
+                letter-spacing: 2px;
+            }
+            .footer-links { margin-top: 34px; }
+        }
+
+        @media (max-width: 360px) {
+            .header-section h1 { font-size: 1.6rem; }
+            .btn { padding: 14px; }
         }
     </style>
 
@@ -123,9 +179,9 @@
 
         <div class="footer-links">
             <a href="{% url 'accounts_app:password_reset' %}">비밀번호를 잊으셨나요?</a>
-            <br><br> <a href="{% url 'accounts_app:test_login' %}" style="font-size: 1rem;">(둘러보기)</a>
+            <br><br>
+            <a href="{% url 'accounts_app:test_login' %}" style="font-size: 1rem;">(둘러보기)</a>
         </div>
     </div>
 </div>
-
 {% endblock %}

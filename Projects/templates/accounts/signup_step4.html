@@ -6,43 +6,130 @@
   <title>회원가입 - Step 4</title>
   {% load static %}
   <style>
-    body { background-color:#FFFBE6; margin:0; padding:0; font-family:'Noto Sans KR', sans-serif;
-      display:flex; flex-direction:column; align-items:center; min-height:100vh; }
+    body {
+      background-color:#FFFBE6;
+      margin:0; padding:0;
+      font-family:'Noto Sans KR', sans-serif;
+      display:flex; flex-direction:column; align-items:center;
+      min-height:100vh; min-height:100dvh;
+    }
     .header-container { width:100%; max-width:400px; padding:40px 20px 20px; text-align:center; }
     .bear-logo { width:100px; height:auto; margin-bottom:20px; }
     .progress-container { width:80%; height:12px; background-color:#F0EAD6; border-radius:10px; margin:0 auto; overflow:hidden; }
     .progress-bar { width:100%; height:100%; background-color:#F38218; border-radius:10px; }
-    .card { background-color:white; width:95%; max-width:450px; border-radius:15px; padding:30px 20px;
-      box-shadow:0 4px 10px rgba(0,0,0,0.05); margin-top:10px; box-sizing:border-box; margin-bottom:40px; }
+
+    .card {
+      background-color:white;
+      width:95%;
+      max-width:450px;
+      border-radius:15px;
+      padding:30px 20px;
+      box-shadow:0 4px 10px rgba(0,0,0,0.05);
+      margin-top:10px;
+      box-sizing:border-box;
+      margin-bottom:40px;
+    }
+
     h3 { font-size:1.1rem; margin-bottom:15px; color:#333; }
 
-    .error-box{ background:#fff2f2; border:1px solid #ffb3b3; color:#c0392b;
-      padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:700;
-      margin-bottom:18px; line-height:1.35; }
+    .error-box{
+      background:#fff2f2;
+      border:1px solid #ffb3b3;
+      color:#c0392b;
+      padding:12px 14px;
+      border-radius:12px;
+      font-size:0.9rem;
+      font-weight:700;
+      margin-bottom:18px;
+      line-height:1.35;
+    }
 
     .selection-group { display:flex; flex-direction:column; gap:12px; margin-bottom:30px; }
-    .select-card { display:flex; align-items:center; gap:15px; padding:15px; border:2px solid #F0EAD6;
-      border-radius:12px; cursor:pointer; transition:all 0.2s; background-color:white; }
+
+    .select-card {
+      display:flex; align-items:center; gap:15px;
+      padding:15px;
+      border:2px solid #F0EAD6;
+      border-radius:12px;
+      cursor:pointer;
+      transition:all 0.2s;
+      background-color:white;
+    }
     .select-card:hover { border-color:#F38218; background-color:#FFFDF5; }
-    .select-card.active { border-color:#F38218; background-color:#FFF8E1; box-shadow:0 2px 8px rgba(243,130,24,0.2); }
-    .select-card img { width:45px; height:45px; }
-    .select-info { flex:1; }
-    .select-title { font-weight:700; font-size:0.95rem; margin-bottom:4px; }
-    .select-desc { font-size:0.8rem; color:#888; line-height:1.3; }
+    .select-card.active {
+      border-color:#F38218;
+      background-color:#FFF8E1;
+      box-shadow:0 2px 8px rgba(243,130,24,0.2);
+    }
+    .select-card img { width:45px; height:45px; flex: 0 0 auto; }
+    .select-info { flex:1; min-width: 0; }
+    .select-title { font-weight:800; font-size:0.95rem; margin-bottom:4px; }
+    .select-desc { font-size:0.82rem; color:#888; line-height:1.3; }
 
     .purpose-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
-    .purpose-card { padding:15px 5px; border:2px solid #F0EAD6; border-radius:12px; text-align:center;
-      cursor:pointer; transition:all 0.2s; background-color:white; }
+    .purpose-card {
+      padding:15px 5px;
+      border:2px solid #F0EAD6;
+      border-radius:12px;
+      text-align:center;
+      cursor:pointer;
+      transition:all 0.2s;
+      background-color:white;
+    }
     .purpose-card img { width:50px; height:50px; margin-bottom:8px; }
-    .purpose-card div { font-size:0.85rem; font-weight:700; color:#555; }
+    .purpose-card div { font-size:0.85rem; font-weight:800; color:#555; }
     .purpose-card.active { border-color:#F38218; background-color:#FFF8E1; }
     .purpose-card.active div { color:#F38218; }
 
     .btn-group { display:flex; gap:10px; margin-top:20px; }
-    .btn-prev { background-color:#F38218; color:white; border:none; padding:16px; border-radius:12px; cursor:pointer; flex:1; font-weight:700; }
-    .btn-next { background-color:#F38218; color:white; border:none; padding:16px; border-radius:12px; cursor:pointer; flex:2; font-weight:700; }
+    .btn-prev {
+      background-color:#F38218; color:white; border:none;
+      padding:16px; border-radius:12px; cursor:pointer; flex:1;
+      font-weight:800; box-sizing:border-box;
+    }
+    .btn-next {
+      background-color:#F38218; color:white; border:none;
+      padding:16px; border-radius:12px; cursor:pointer; flex:2;
+      font-weight:800; box-sizing:border-box;
+    }
 
     input[type="radio"] { display:none; }
+
+    /* ─────────────────────────────
+       모바일/태블릿 반응형 + 안정화 패치
+       ───────────────────────────── */
+    @media (max-width: 768px) {
+      html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+      *, *::before, *::after { box-sizing: border-box; }
+      img, video, svg, canvas { max-width: 100%; height: auto; }
+      input, button { max-width: 100%; }
+
+      .header-container { padding: 32px 16px 18px; }
+      .card { padding: 26px 16px; }
+    }
+
+    @media (max-width: 480px) {
+      .header-container { padding: 26px 14px 16px; }
+      .progress-container { width: 86%; }
+      .card { width: 92%; padding: 22px 14px; margin-bottom: 28px; }
+
+      .select-card { gap: 12px; padding: 14px; }
+      .select-card img { width: 42px; height: 42px; }
+      .select-title { font-size: 0.92rem; }
+      .select-desc { font-size: 0.8rem; }
+
+      /* 목적 3열은 모바일에서 너무 좁음 → 2열 */
+      .purpose-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .purpose-card img { width: 46px; height: 46px; }
+
+      .btn-group { gap: 8px; }
+      .btn-prev, .btn-next { padding: 14px; }
+    }
+
+    @media (max-width: 360px) {
+      /* 초소형 폰은 1열도 고려 */
+      .purpose-grid { grid-template-columns: repeat(1, 1fr); }
+    }
   </style>
 </head>
 

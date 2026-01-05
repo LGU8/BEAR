@@ -12,6 +12,7 @@
       font-family: 'Noto Sans KR', sans-serif;
       display: flex; flex-direction: column; align-items: center;
       min-height: 100vh;
+      min-height: 100dvh;
     }
 
     .header-container { width: 100%; max-width: 400px; padding: 40px 20px 20px; text-align: center; }
@@ -37,40 +38,44 @@
       background-color: #FAFAFA; font-size: 1rem;
       box-sizing: border-box; transition: all 0.2s;
       font-family: inherit;
+      max-width: 100%;
     }
     input:focus, select:focus { outline: none; border-color: #F38218; background-color: #fff; }
 
-    /* 버튼 공용(전역 width:100% 제거 대신 btn-group에서 제어) */
+    /* iOS date input 폭 튐 방지(기본 글꼴/라인높이 안정화) */
+    input[type="date"]{
+      appearance: auto;
+      -webkit-appearance: auto;
+      line-height: 1.2;
+    }
+
     .btn-group {
       display: flex;
       gap: 10px;
       margin-top: 10px;
     }
 
-    .btn-prev {
-      background-color: #F38218;
-      color: white;
+    .btn-prev,
+    .btn-next {
       border: none;
       padding: 15px;
       border-radius: 12px;
       cursor: pointer;
-      flex: 1;
-
       font-weight: 800;
       font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    .btn-prev {
+      background-color: #F38218;
+      color: white;
+      flex: 1;
     }
 
     .btn-next {
       background-color: #F38218;
       color: white;
-      border: none;
-      padding: 15px;
-      border-radius: 12px;
-      cursor: pointer;
       flex: 2;
-
-      font-weight: 800;
-      font-size: 1rem;
     }
 
     .btn-next:disabled {
@@ -78,15 +83,39 @@
       cursor: not-allowed;
     }
 
-    /* hover는 주석 처리 원하면 유지 */
-    /* .btn-prev:hover, .btn-next:hover { background-color: #D66D0E; } */
-
-    /* 아주 작은 화면에서 버튼 높이/폰트 살짝 다운 */
     @media (max-width: 360px) {
       .btn-prev, .btn-next {
         padding: 14px;
         font-size: 0.95rem;
       }
+    }
+
+    /* ─────────────────────────────
+       모바일/태블릿 반응형 + 안정화 패치
+       ───────────────────────────── */
+    @media (max-width: 768px) {
+      html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+      *, *::before, *::after { box-sizing: border-box; }
+      img, video, svg, canvas { max-width: 100%; height: auto; }
+      input, select, button { max-width: 100%; }
+
+      .header-container { max-width: 420px; padding: 32px 16px 18px; }
+      .bear-logo { width: 110px; margin-bottom: 16px; }
+      .card { max-width: 420px; padding: 26px; }
+    }
+
+    @media (max-width: 480px) {
+      .header-container { padding: 26px 14px 16px; }
+      .bear-logo { width: 100px; }
+      .progress-container { width: 86%; }
+
+      .card { width: 92%; padding: 22px; margin-bottom: 28px; }
+      h2 { font-size: 1.25rem; }
+      .sub-title { margin-bottom: 22px; }
+
+      input, select { padding: 14px; }
+      .btn-group { gap: 8px; }
+      .btn-prev, .btn-next { padding: 14px; font-size: 0.98rem; }
     }
   </style>
 </head>
@@ -132,7 +161,6 @@
                step="0.1" min="10" max="500" required>
       </div>
 
-      <!-- 버튼 그룹(이전/다음) -->
       <div class="btn-group">
         <button type="button" class="btn-prev" id="prevBtn">이전</button>
         <button type="submit" class="btn-next" id="nextBtn" disabled>다음 단계</button>
@@ -154,7 +182,6 @@
       const weight = document.getElementById("weight_kg");
 
       function allValid() {
-        // 1) required 값 체크
         const hasAll =
           (gender.value || "").trim() &&
           (birth.value || "").trim() &&
@@ -163,7 +190,6 @@
 
         if (!hasAll) return false;
 
-        // 2) min/max/step 등 validity 체크
         return (
           gender.checkValidity() &&
           birth.checkValidity() &&
@@ -176,10 +202,8 @@
         nextBtn.disabled = !allValid();
       }
 
-      // 이전 버튼
       prevBtn.addEventListener("click", () => history.back());
 
-      // 입력 변경 이벤트들
       ["input", "change", "keyup"].forEach((evt) => {
         gender.addEventListener(evt, updateNext);
         birth.addEventListener(evt, updateNext);
@@ -187,13 +211,10 @@
         weight.addEventListener(evt, updateNext);
       });
 
-      // submit 방어(혹시 nextBtn이 enabled라도)
       form.addEventListener("submit", (e) => {
         updateNext();
         if (!allValid()) {
           e.preventDefault();
-          // 브라우저 기본 경고 띄우기(필요 시)
-          // form.reportValidity();
         }
       });
 

@@ -1,7 +1,26 @@
-
 {% block title %}마이 프로필{% endblock %}
 
 {% block content %}
+<style>
+  /* Bootstrap 페이지라도 모바일에서 최외곽 padding 보정 */
+  @media (max-width: 480px) {
+    .container.mt-5 {
+      margin-top: 24px !important;
+      padding-left: 14px !important;
+      padding-right: 14px !important;
+    }
+    .card-body p {
+      margin-bottom: 8px;
+    }
+    .btn.btn-danger.px-4 {
+      width: 100%;
+    }
+    .d-md-flex.justify-content-md-end {
+      justify-content: stretch !important;
+    }
+  }
+</style>
+
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -19,14 +38,14 @@
                     <h5 class="card-title border-bottom pb-2">신체 및 건강 정보</h5>
                     {% if user.cusprofile %}
                         <div class="row">
-                            <div class="col-6">
+                            <div class="col-12 col-sm-6">
                                 <p><strong>키:</strong> {{ user.cusprofile.height_cm }} cm</p>
                                 <p><strong>몸무게:</strong> {{ user.cusprofile.weight_kg }} kg</p>
                                 <p><strong>성별:</strong>
                                     {% if user.cusprofile.gender == 'M' %}남성{% elif user.cusprofile.gender == 'F' %}여성{% else %}미설정{% endif %}
                                 </p>
                             </div>
-                            <div class="col-6">
+                            <div class="col-12 col-sm-6">
                                 <p><strong>기초대사량 (BMR):</strong> {{ user.cusprofile.bmr|floatformat:0 }} kcal</p>
                                 <p><strong>BMI:</strong> {{ user.cusprofile.bmi }}</p>
                                 <p><strong>권장 칼로리:</strong> {{ user.cusprofile.recommended_calories|floatformat:0 }} kcal</p>
@@ -41,7 +60,6 @@
                     <hr class="my-4">
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        {# URL 별명은 urls.py에 정의된 accounts_app:user_logout 을 사용합니다 #}
                         <form method="post" action="{% url 'accounts_app:user_logout' %}">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger px-4">로그아웃</button>
