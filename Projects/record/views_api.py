@@ -7,7 +7,6 @@ import tempfile
 import math
 from pathlib import Path
 from datetime import datetime, timedelta
-
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
@@ -29,7 +28,10 @@ from .services.barcode.mapping_code import (
 
 from .models import FoodTb, CusFoodTh, CusFoodTs
 from .utils_time import now14
+from django.db import connection
+import logging
 
+logger = logging.getLogger(__name__)
 
 # =========================
 # 0) Keyword API
@@ -48,22 +50,27 @@ def keyword_api(request):
     if not mood or not energy:
         return JsonResponse({"error": "mood and energy are required"}, status=400)
 
-    sql = """
-        SELECT word
-        FROM COM_FEEL_TM
-        WHERE cluster_val IN (
-            SELECT cluster_val
-            FROM COM_FEEL_CLUSTER_TM
-            WHERE mood = %s AND energy = %s
-        )
-    """
+    try:
+        sql = """
+            SELECT word
+            FROM COM_FEEL_TM
+            WHERE cluster_val IN (
+                SELECT cluster_val
+                FROM COM_FEEL_CLUSTER_TM
+                WHERE mood = %s AND energy = %s
+            )
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(sql, [mood, energy])
+            rows = cursor.fetchall()
 
-    with connection.cursor() as cursor:
-        cursor.execute(sql, [mood, energy])
-        rows = cursor.fetchall()
+        keywords = [r[0] for r in rows]
+        return JsonResponse(keywords, safe=False)
 
-    keywords = [r[0] for r in rows]
-    return JsonResponse(keywords, safe=False)
+    except Exception:
+        logger.exception("[KEYWORD_API] failed mood=%s energy=%s", mood, energy)
+        return JsonResponse([], safe=False)
+
 
 
 # =========================
