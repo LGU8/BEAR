@@ -1,12 +1,4 @@
-/* =========================
-   settings_s4.js (FINAL)
-   - 활동량/목표 단일 선택
-   - hidden input 반영
-   - 변경 시 저장 버튼 활성화
-   - 유효성: activity & purpose 모두 선택
-   - a11y: aria-pressed
-   ========================= */
-
+/* static/js/settings/settings_s4.js */
 (function () {
   const form = document.getElementById("s4Form");
   if (!form) return;
@@ -18,49 +10,95 @@
   const activityBtns = Array.from(document.querySelectorAll(".js-activity"));
   const purposeBtns = Array.from(document.querySelectorAll(".js-purpose"));
 
+  // kcal preview
+  const kcalTargetEl = document.getElementById("kcalTarget");
+  const tdeeJsonScriptEl = document.getElementById("tdeeByLevelJson"); // json_script id
+
   const initial = {
     activity: (hidActivity?.value || "").trim(),
     purpose: (hidPurpose?.value || "").trim(),
   };
-
   const state = { ...initial };
 
   function setActive(btns, value) {
     btns.forEach((b) => {
-      const on = (b.dataset.value || "") === value;
+      const on = String(b.dataset.value || "") === String(value || "");
       b.classList.toggle("is-active", on);
       b.setAttribute("aria-pressed", on ? "true" : "false");
     });
   }
 
   function syncHidden() {
-    hidActivity.value = state.activity;
-    hidPurpose.value = state.purpose;
+    if (hidActivity) hidActivity.value = String(state.activity || "");
+    if (hidPurpose) hidPurpose.value = String(state.purpose || "");
   }
 
   function isChanged() {
-    return state.activity !== initial.activity || state.purpose !== initial.purpose;
+    return String(state.activity || "") !== String(initial.activity || "")
+        || String(state.purpose || "") !== String(initial.purpose || "");
   }
 
   function isValid() {
-    return !!state.activity && !!state.purpose;
+    return !!String(state.activity || "") && !!String(state.purpose || "");
   }
 
   function updateSave() {
+    if (!saveBtn) return;
     saveBtn.disabled = !(isValid() && isChanged());
   }
 
+  // -------------------------
+  // kcal preview helpers
+  // -------------------------
+  function safeJsonParse(s) {
+    try {
+      return JSON.parse(s);
+    } catch (e) {
+      return {};
+    }
+  }
+
+  const tdeeByLevel = safeJsonParse((tdeeJsonScriptEl?.textContent || "{}").trim());
+
+  function purposeOffset(purpose) {
+    const p = String(purpose || "");
+    if (p === "1") return -400; // diet
+    if (p === "3") return 400;  // bulkup
+    return 0;                  // maintain or invalid
+  }
+
+  function clampMinTarget(v) {
+    if (!Number.isFinite(v) || v <= 0) return 0;
+    return Math.max(1200, Math.round(v));
+  }
+
+  function updateKcalPreview() {
+    if (!kcalTargetEl) return;
+
+    const lv = String(state.activity || "");
+    const pu = String(state.purpose || "");
+
+    const tdee = parseInt(tdeeByLevel[lv] ?? "0", 10) || 0;
+    const off = purposeOffset(pu);
+    const target = tdee > 0 ? clampMinTarget(tdee + off) : 0;
+
+    kcalTargetEl.textContent = String(target);
+  }
+
+  // -------------------------
+  // events
+  // -------------------------
   activityBtns.forEach((btn) => {
     btn.setAttribute("aria-pressed", "false");
     btn.addEventListener("click", () => {
       const v = String(btn.dataset.value || "");
       if (!v) return;
 
-      // 단일 선택 유지 (재클릭으로 해제 X)
       state.activity = v;
 
       setActive(activityBtns, state.activity);
       syncHidden();
+      updateKcalPreview();
       updateSave();
     });
   });
@@ -75,6 +113,7 @@
 
       setActive(purposeBtns, state.purpose);
       syncHidden();
+      updateKcalPreview();
       updateSave();
     });
   });
@@ -83,6 +122,7 @@
   setActive(activityBtns, state.activity);
   setActive(purposeBtns, state.purpose);
   syncHidden();
+  updateKcalPreview();
   updateSave();
 
   form.addEventListener("submit", (e) => {

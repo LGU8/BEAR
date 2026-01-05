@@ -3,7 +3,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/settings/settings_base.css' %}">
-<link rel="stylesheet" href="{% static 'css/settings/settings_s2.css' %}"> 
+<link rel="stylesheet" href="{% static 'css/settings/settings_s2.css' %}">
 <link rel="stylesheet" href="{% static 'css/settings/settings_s4.css' %}">
 {% endblock %}
 
@@ -15,7 +15,6 @@
 <section class="settings-page s4">
 
   <article class="settings-card edit-card">
-    <!-- Header -->
     <div class="edit-header">
       <a class="back-btn" href="{% url 'settings_app:settings_account' %}" aria-label="back">
         <img class="back-ico" src="{% static 'settings_img/icon_back.png' %}" alt="back">
@@ -27,18 +26,27 @@
     <form id="s4Form" method="post">
       {% csrf_token %}
 
-      <!-- hidden inputs (DB 컬럼 그대로) -->
       <input type="hidden" id="hidActivity" name="activity_level" value="{{ activity_level|default:'' }}">
       <input type="hidden" id="hidPurpose" name="purpose" value="{{ purpose|default:'' }}">
+
+      <div class="kcal-preview" aria-live="polite">
+        <div class="kcal-preview-title">예상 목표 칼로리</div>
+        <div class="kcal-preview-row">
+          <span class="kcal-preview-label">Target</span>
+          <span class="kcal-preview-val" id="kcalTarget">{{ cur_target_kcal|default:0 }}</span>
+          <span class="kcal-preview-unit">kcal</span>
+        </div>
+
+        {# ✅ dict → <script type="application/json" id="tdeeByLevelJson">...</script> #}
+        {{ tdee_by_level|json_script:"tdeeByLevelJson" }}
+      </div>
 
       <!-- Activity -->
       <div class="select-section">
         <div class="edit-section-title">활동량 수정</div>
 
         <div class="select-list" id="activityList">
-          <button type="button"
-                  class="select-item js-activity {% if activity_level == '1' %}is-active{% endif %}"
-                  data-value="1">
+          <button type="button" class="select-item js-activity {% if activity_level == '1' %}is-active{% endif %}" data-value="1">
             <img class="select-icon" src="{% static 'settings_img/bear_low.png' %}" alt="low">
             <div>
               <div class="select-name">낮음</div>
@@ -46,9 +54,7 @@
             </div>
           </button>
 
-          <button type="button"
-                  class="select-item js-activity {% if activity_level == '2' %}is-active{% endif %}"
-                  data-value="2">
+          <button type="button" class="select-item js-activity {% if activity_level == '2' %}is-active{% endif %}" data-value="2">
             <img class="select-icon" src="{% static 'settings_img/bear_mid.png' %}" alt="mid">
             <div>
               <div class="select-name">중간</div>
@@ -56,9 +62,7 @@
             </div>
           </button>
 
-          <button type="button"
-                  class="select-item js-activity {% if activity_level == '3' %}is-active{% endif %}"
-                  data-value="3">
+          <button type="button" class="select-item js-activity {% if activity_level == '3' %}is-active{% endif %}" data-value="3">
             <img class="select-icon" src="{% static 'settings_img/bear_high.png' %}" alt="high">
             <div>
               <div class="select-name">높음</div>
@@ -66,9 +70,7 @@
             </div>
           </button>
 
-          <button type="button"
-                  class="select-item js-activity {% if activity_level == '4' %}is-active{% endif %}"
-                  data-value="4">
+          <button type="button" class="select-item js-activity {% if activity_level == '4' %}is-active{% endif %}" data-value="4">
             <img class="select-icon" src="{% static 'settings_img/bear_very_high.png' %}" alt="very high">
             <div>
               <div class="select-name">매우 높음</div>
@@ -85,9 +87,7 @@
         <div class="edit-section-title">목표 수정</div>
 
         <div class="select-list" id="purposeList">
-          <button type="button"
-                  class="select-item js-purpose {% if purpose == '2' %}is-active{% endif %}"
-                  data-value="2">
+          <button type="button" class="select-item js-purpose {% if purpose == '2' %}is-active{% endif %}" data-value="2">
             <img class="select-icon" src="{% static 'settings_img/bear_maintain.png' %}" alt="maintain">
             <div>
               <div class="select-name">유지</div>
@@ -95,9 +95,7 @@
             </div>
           </button>
 
-          <button type="button"
-                  class="select-item js-purpose {% if purpose == '1' %}is-active{% endif %}"
-                  data-value="1">
+          <button type="button" class="select-item js-purpose {% if purpose == '1' %}is-active{% endif %}" data-value="1">
             <img class="select-icon" src="{% static 'settings_img/bear_diet.png' %}" alt="diet">
             <div>
               <div class="select-name">다이어트</div>
@@ -105,9 +103,7 @@
             </div>
           </button>
 
-          <button type="button"
-                  class="select-item js-purpose {% if purpose == '3' %}is-active{% endif %}"
-                  data-value="3">
+          <button type="button" class="select-item js-purpose {% if purpose == '3' %}is-active{% endif %}" data-value="3">
             <img class="select-icon" src="{% static 'settings_img/bear_bulkup.png' %}" alt="bulkup">
             <div>
               <div class="select-name">벌크업</div>

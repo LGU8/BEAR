@@ -242,6 +242,45 @@
   padding-bottom: 86px;
 }
 
+/* ✅ (선택) kcal preview UI - settings_s4.css 맨 아래에 추가 */
+
+.settings-page.s4 .kcal-preview {
+  width: 100%;
+  margin: 6px 0 14px;
+  padding: 12px 12px;
+
+  background: var(--card-inner);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+}
+
+.settings-page.s4 .kcal-preview-title {
+  font-size: 12px;
+  color: rgba(0,0,0,0.85);
+  margin-bottom: 8px;
+}
+
+.settings-page.s4 .kcal-preview-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.settings-page.s4 .kcal-preview-label {
+  font-size: 12px;
+  color: rgba(0,0,0,0.65);
+}
+
+.settings-page.s4 .kcal-preview-val {
+  font-size: 14px;
+  color: var(--orange-1);
+}
+
+.settings-page.s4 .kcal-preview-unit {
+  font-size: 12px;
+  color: rgba(0,0,0,0.45);
+}
+
 /* 모바일 */
 @media (max-width: 420px) {
   .settings-page.s4 .edit-card .select-item {

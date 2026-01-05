@@ -8,7 +8,6 @@ import json
 import os
 import re
 
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import connection, transaction
 from django.shortcuts import render, redirect
@@ -19,16 +18,104 @@ from settings.utils.security import verify_password, hash_password
 
 DEFAULT_PROFILE_BADGE = "icons_img/bear_welcome.png"
 
+# ============================================================
+# ✅ [필수] CUS_PROFILE_TS 실제 컬럼명 (스크린샷 기준)
+# ============================================================
+RECO_KCAL_COL = "Recommended_calories"
+BURNED_KCAL_COL = "Calories_burned"
+OFFSET_COL = "Offset"
+
+RATIO_CARB_COL = "Ratio_carb"
+RATIO_PROTEIN_COL = "Ratio_protein"
+RATIO_FAT_COL = "Ratio_fat"
+
 
 # ============================================================
 # 0) Time helpers (DB updated_dt/updated_time 갱신용)
+# - ✅ KST(Asia/Seoul) 적용: timezone.localtime(timezone.now())
 # ============================================================
 def _now_yyyymmdd() -> str:
-    return datetime.now().strftime("%Y%m%d")
+    return timezone.localtime(timezone.now()).strftime("%Y%m%d")
 
 
 def _now_yyyymmddhhmmss() -> str:
-    return datetime.now().strftime("%Y%m%d%H%M%S")
+    return timezone.localtime(timezone.now()).strftime("%Y%m%d%H%M%S")
+
+
+# ============================================================
+# ✅ 0-1) Calories helpers (Signup과 동일하게 계산하기 위한 유틸)
+# ============================================================
+def _activity_factor(level: str) -> float:
+    return {
+        "1": 1.2,
+        "2": 1.375,
+        "3": 1.55,
+        "4": 1.725,
+    }.get(str(level or ""), 1.2)
+
+
+def _purpose_offset_kcal(purpose: str) -> int:
+    return {
+        "1": -400,
+        "2": 0,
+        "3": 400,
+    }.get(str(purpose or ""), 0)
+
+
+def _to_float(x: Any, default: float = 0.0) -> float:
+    try:
+        return float(x)
+    except Exception:
+        return default
+
+
+def _to_int(x: Any, default: int = 0) -> int:
+    try:
+        return int(float(x))
+    except Exception:
+        return default
+
+
+def _calc_bmr_msj(height_cm: Any, weight_kg: Any, age: Any, gender: Any) -> int:
+    """
+    Mifflin-St Jeor
+    남: 10w + 6.25h - 5a + 5
+    여: 10w + 6.25h - 5a - 161
+    """
+    h = _to_float(height_cm, 0.0)
+    w = _to_float(weight_kg, 0.0)
+    a = _to_int(age, 0)
+
+    if h <= 0 or w <= 0 or a <= 0:
+        return 0
+
+    g = str(gender or "").strip().upper()
+    if g == "F":
+        bmr = (10 * w) + (6.25 * h) - (5 * a) - 161
+    else:
+        bmr = (10 * w) + (6.25 * h) - (5 * a) + 5
+
+    return int(round(bmr))
+
+
+def _calc_tdee(height_cm: Any, weight_kg: Any, age: Any, gender: Any, activity_level: str) -> int:
+    bmr = _calc_bmr_msj(height_cm, weight_kg, age, gender)
+    if bmr <= 0:
+        return 0
+    return int(round(bmr * _activity_factor(activity_level)))
+
+
+def _calc_target_kcal(height_cm: Any, weight_kg: Any, age: Any, gender: Any, activity_level: str, purpose: str) -> int:
+    tdee = _calc_tdee(height_cm, weight_kg, age, gender, activity_level)
+    if tdee <= 0:
+        return 0
+
+    target = tdee + _purpose_offset_kcal(purpose)
+
+    if target < 1200:
+        target = 1200
+
+    return int(target)
 
 
 # ============================================================
@@ -108,10 +195,6 @@ def _get_cust_id(request) -> str:
 
 
 def _require_cust_id_or_redirect(request):
-    """
-    settings 화면 공통 가드:
-    cust_id 없으면 로그인으로 보내서 '공백 화면' 방지
-    """
     cust_id = _get_cust_id(request)
     if not cust_id:
         return None, redirect("accounts_app:user_login")
@@ -153,12 +236,15 @@ def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
         (cust_id,),
     )
 
+    # ✅ 스크린샷 실제 컬럼명 → alias로 기존 key 유지
     prof = _fetch_one(
-        """
+        f"""
         SELECT
           cust_id,
           height_cm, weight_kg, gender, birth_dt,
-          ratio_carb, ratio_protein, ratio_fat,
+          {RATIO_CARB_COL}   AS ratio_carb,
+          {RATIO_PROTEIN_COL} AS ratio_protein,
+          {RATIO_FAT_COL}    AS ratio_fat,
           activity_level, purpose,
           selected_badge_id
         FROM CUS_PROFILE_TS
@@ -233,14 +319,9 @@ def _base_ctx(request, active_tab: str = "settings") -> Dict[str, Any]:
 # 4-1) Badge meta safe loader (JSONDecodeError 방지)
 # ============================================================
 def _load_badge_meta() -> Dict[str, Any]:
-    """
-    - 파일이 비었거나, 깨졌거나, BOM(utf-8-sig)이거나, 경로가 어긋나도
-      화면이 죽지 않게 안전하게 로드
-    """
     base_dir = os.path.dirname(os.path.abspath(__file__))
     meta_path = os.path.join(base_dir, "badges_meta", "badge_meta.json")
 
-    # 기본 골격
     default = {
         "img_base": "/static/badges_img",
         "items": [],
@@ -253,7 +334,6 @@ def _load_badge_meta() -> Dict[str, Any]:
         return default
 
     try:
-        # BOM까지 방어하려고 utf-8-sig
         with open(meta_path, "r", encoding="utf-8-sig") as f:
             raw = f.read()
 
@@ -263,7 +343,6 @@ def _load_badge_meta() -> Dict[str, Any]:
 
         data = json.loads(raw)
 
-        # 최소 키 보정
         if not isinstance(data, dict):
             default["_meta_error"] = "badge_meta.json root must be object"
             return default
@@ -297,18 +376,12 @@ def _safe_ident(name: str) -> bool:
 
 
 def _count_rows(table: str, cust_id: str, filters: Dict[str, Any]) -> int:
-    """
-    count 타입에서 metric=rows 처리용.
-    - table/column은 화이트리스트 정규식으로만 허용(대문자/숫자/_)
-    - filters는 key/value 단순 equality만 지원
-    """
     if not _safe_ident(table):
         return 0
 
     where = ["cust_id = %s"]
     params: List[Any] = [cust_id]
 
-    # filters = {} → 조건 없음(정상) → 전체 count
     for k, v in (filters or {}).items():
         if not _safe_ident(str(k).upper()):
             continue
@@ -338,25 +411,17 @@ def _eval_badge_unlock(cust_id: str, badge_item: Dict[str, Any]) -> bool:
     if need <= 0:
         return False
 
-    # 지금 네 JSON은 metric="rows"가 핵심
     if metric == "rows":
         value = _count_rows(table, cust_id, filters)
         return value >= need
 
-    # 추후 확장(예: 특정 컬럼 Count) 필요하면 여기서만 확장
-    # (안전상 기본은 미지원)
     return False
 
 
 def _sync_acquired_badges(cust_id: str, items: List[Dict[str, Any]]) -> None:
-    """
-    - 조건을 만족하는 뱃지는 DB(CusBadge)에 자동 insert
-    - 이미 있으면 skip
-    """
     if not cust_id:
         return
 
-    # 현재 DB에 있는 badge_id
     existing = set(
         CusBadge.objects.filter(cust_id=cust_id).values_list("badge_id", flat=True)
     )
@@ -372,7 +437,6 @@ def _sync_acquired_badges(cust_id: str, items: List[Dict[str, Any]]) -> None:
             continue
 
         if _eval_badge_unlock(cust_id, it):
-            # CusBadge 모델 필드명이 아래와 다르면 여기만 맞추면 됨
             to_create.append(
                 CusBadge(
                     cust_id=cust_id,
@@ -382,7 +446,6 @@ def _sync_acquired_badges(cust_id: str, items: List[Dict[str, Any]]) -> None:
             )
 
     if to_create:
-        # 중복 삽입 방지(경쟁 상황) 위해 ignore_conflicts 권장
         with transaction.atomic():
             CusBadge.objects.bulk_create(to_create, ignore_conflicts=True)
 
@@ -395,7 +458,6 @@ def settings_index(request):  # S0
     cust_id, resp = _require_cust_id_or_redirect(request)
     if resp:
         return resp
-
     ctx = _base_ctx(request, active_tab="settings")
     return render(request, "settings/settings_index.html", ctx)
 
@@ -405,7 +467,6 @@ def settings_account(request):  # S1
     cust_id, resp = _require_cust_id_or_redirect(request)
     if resp:
         return resp
-
     ctx = _base_ctx(request, active_tab="settings")
     return render(request, "settings/settings_account.html", ctx)
 
@@ -418,7 +479,6 @@ def settings_profile_edit(request):  # S2
 
     ctx = _base_ctx(request, active_tab="settings")
 
-    # (A) GET에서도 배지 선택 모달에 쓸 데이터 준비
     meta = _load_badge_meta()
     items = meta.get("items", [])
     img_base = meta.get("img_base", "/static/badges_img")
@@ -452,11 +512,10 @@ def settings_profile_edit(request):  # S2
     ctx.update({
         "picker_items": picker_items,
         "selected_badge_id": ctx.get("selected_badge_id", ""),
-        "badge_meta_error": meta.get("_meta_error", ""),  # 디버그 표시용(템플릿에서 선택)
+        "badge_meta_error": meta.get("_meta_error", ""),
         "badge_meta_path": meta.get("_meta_path", ""),
     })
 
-    # (B) POST: 개인정보 + 대표배지 저장
     if request.method == "POST":
         nickname = (request.POST.get("nickname") or "").strip()
         gender = (request.POST.get("gender") or "").strip()
@@ -473,7 +532,6 @@ def settings_profile_edit(request):  # S2
             ctx["error"] = "생년월일 형식 오류(YYYYMMDD)"
             return render(request, "settings/settings_profile_edit.html", ctx)
 
-        # 잠김 배지 선택 방지(서버 검증)
         if selected_badge_id:
             has_badge = CusBadge.objects.filter(
                 cust_id=cust_id,
@@ -528,15 +586,15 @@ def settings_preferences_edit(request):  # S3
     ctx = _base_ctx(request, active_tab="settings")
 
     if request.method == "POST":
-        def _to_int(x, default=0):
+        def _to_int_local(x, default=0):
             try:
                 return int(x)
             except Exception:
                 return default
 
-        carb = max(0, min(10, _to_int(request.POST.get("ratio_carb"), 0)))
-        protein = max(0, min(10, _to_int(request.POST.get("ratio_protein"), 0)))
-        fat = max(0, min(10, _to_int(request.POST.get("ratio_fat"), 0)))
+        carb = max(0, min(10, _to_int_local(request.POST.get("ratio_carb"), 0)))
+        protein = max(0, min(10, _to_int_local(request.POST.get("ratio_protein"), 0)))
+        fat = max(0, min(10, _to_int_local(request.POST.get("ratio_fat"), 0)))
 
         if carb + protein + fat != 10:
             ctx["ratio_carb"] = carb
@@ -547,10 +605,12 @@ def settings_preferences_edit(request):  # S3
             return render(request, "settings/settings_preferences_edit.html", ctx)
 
         upd_time = _now_yyyymmddhhmmss()
+
+        # ✅ 실제 컬럼명 Ratio_* 로 UPDATE
         _execute(
-            """
+            f"""
             UPDATE CUS_PROFILE_TS
-            SET ratio_carb=%s, ratio_protein=%s, ratio_fat=%s,
+            SET {RATIO_CARB_COL}=%s, {RATIO_PROTEIN_COL}=%s, {RATIO_FAT_COL}=%s,
                 updated_time=%s
             WHERE cust_id=%s
             """,
@@ -560,14 +620,55 @@ def settings_preferences_edit(request):  # S3
 
     return render(request, "settings/settings_preferences_edit.html", ctx)
 
+# settings/views.py (S4 only - FINAL)
 
 @login_required(login_url="accounts_app:user_login")
-def settings_activity_goal_edit(request):  # S4
+def settings_activity_goal_edit(request):  # S4 ✅ FINAL
     cust_id, resp = _require_cust_id_or_redirect(request)
     if resp:
         return resp
 
     ctx = _base_ctx(request, active_tab="settings")
+
+    # 계산에 필요한 프로필(키/몸무게/성별/생년월일)
+    prof_for_calc = _fetch_one(
+        """
+        SELECT height_cm, weight_kg, gender, birth_dt
+        FROM CUS_PROFILE_TS
+        WHERE cust_id=%s
+        """,
+        (cust_id,),
+    )
+    age = _calc_age_from_birth(prof_for_calc.get("birth_dt")) or 0
+
+    cur_activity = str(ctx.get("activity_level") or "")
+    cur_purpose = str(ctx.get("purpose") or "")
+
+    # 현재(초기) Target kcal (서버 계산값)
+    cur_target_kcal = _calc_target_kcal(
+        prof_for_calc.get("height_cm"),
+        prof_for_calc.get("weight_kg"),
+        age,
+        prof_for_calc.get("gender"),
+        cur_activity,
+        cur_purpose,
+    )
+
+    # ✅ activity별 TDEE dict (템플릿에서 json_script로 안전하게 전달)
+    tdee_by_level = {}
+    for lv in ["1", "2", "3", "4"]:
+        tdee_by_level[lv] = _calc_tdee(
+            prof_for_calc.get("height_cm"),
+            prof_for_calc.get("weight_kg"),
+            age,
+            prof_for_calc.get("gender"),
+            lv,
+        )
+
+    ctx.update({
+        "cur_target_kcal": cur_target_kcal,
+        "tdee_by_level": tdee_by_level,  # ✅ dict 그대로
+    })
 
     if request.method == "POST":
         activity_level = (request.POST.get("activity_level") or "").strip()
@@ -579,19 +680,45 @@ def settings_activity_goal_edit(request):  # S4
             ctx["purpose"] = purpose
             return render(request, "settings/settings_activity_goal_edit.html", ctx)
 
+        # ✅ Signup과 동일 계산 세트
+        burned_kcal = _calc_tdee(
+            prof_for_calc.get("height_cm"),
+            prof_for_calc.get("weight_kg"),
+            age,
+            prof_for_calc.get("gender"),
+            activity_level,
+        )
+        offset_kcal = _purpose_offset_kcal(purpose)
+
+        target_kcal = _calc_target_kcal(
+            prof_for_calc.get("height_cm"),
+            prof_for_calc.get("weight_kg"),
+            age,
+            prof_for_calc.get("gender"),
+            activity_level,
+            purpose,
+        )
+
         upd_time = _now_yyyymmddhhmmss()
+
+        # ✅ 실제 컬럼명으로 저장 (Recommended_calories / Calories_burned / Offset)
         _execute(
-            """
+            f"""
             UPDATE CUS_PROFILE_TS
-            SET activity_level=%s, purpose=%s, updated_time=%s
+            SET activity_level=%s,
+                purpose=%s,
+                {BURNED_KCAL_COL}=%s,
+                {RECO_KCAL_COL}=%s,
+                `{OFFSET_COL}`=%s,
+                updated_time=%s
             WHERE cust_id=%s
             """,
-            (activity_level, purpose, upd_time, cust_id),
+            (activity_level, purpose, burned_kcal, target_kcal, offset_kcal, upd_time, cust_id),
         )
+
         return redirect("settings_app:settings_index")
 
     return render(request, "settings/settings_activity_goal_edit.html", ctx)
-
 
 @login_required(login_url="accounts_app:user_login")
 def settings_password(request):  # S5
@@ -642,7 +769,6 @@ def settings_password(request):  # S5
             ctx["error"] = "계정이 잠겨 있어요. 관리자에게 문의해주세요."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 레거시 SHA256 + Django 해시 모두 지원
         if not verify_password(cur_pw, db_hash):
             retry_cnt += 1
             new_lock = "Y" if retry_cnt >= 5 else "N"
@@ -661,7 +787,6 @@ def settings_password(request):  # S5
             ctx["error"] = "현재 비밀번호가 올바르지 않습니다."
             return render(request, "settings/settings_password.html", ctx)
 
-        # 앞으로는 Django 표준 해시로 통일
         new_hash = hash_password(new_pw)
         upd_dt = _now_yyyymmdd()
         upd_time = _now_yyyymmddhhmmss()
@@ -691,7 +816,6 @@ def settings_badges(request):
     meta = _load_badge_meta()
     items = meta.get("items", [])
 
-    # (핵심) 조건 만족 뱃지 자동 획득 동기화
     _sync_acquired_badges(cust_id, items)
 
     img_base = (meta.get("img_base") or "/static/badges_img").strip()
@@ -765,7 +889,6 @@ def settings_badges(request):
         "badge_rate": rate,
         "active_tab": "collection",
 
-        # meta 디버그 (원하면 템플릿에서 숨겨도 됨)
         "badge_meta_error": meta.get("_meta_error", ""),
         "badge_meta_path": meta.get("_meta_path", ""),
     })

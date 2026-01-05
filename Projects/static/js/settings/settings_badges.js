@@ -1,6 +1,15 @@
 // static/js/settings/settings_badges.js
 (() => {
-  const PAGE_SIZE = 6;
+  // -----------------------
+  // Responsive PAGE_SIZE
+  // - Mobile: 2x2 = 4
+  // - Desktop: 6
+  // -----------------------
+  const MOBILE_BREAKPOINT = 560;
+
+  function getPageSize() {
+    return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches ? 4 : 6;
+  }
 
   // CTA 이동 URL(프로젝트 라우팅에 맞게 필요 시 수정)
   const S2_URL = "/settings/profile/edit/";
@@ -12,9 +21,9 @@
     return out;
   }
 
-  function buildPages(trackEl) {
+  function buildPages(trackEl, pageSize) {
     const items = Array.from(trackEl.querySelectorAll(".badge-item"));
-    const pages = chunk(items, PAGE_SIZE);
+    const pages = chunk(items, pageSize);
 
     trackEl.innerHTML = "";
     pages.forEach((pageItems) => {
@@ -33,14 +42,21 @@
     const nextBtn = sliderRoot.querySelector(".badge-nav--next");
     if (!trackEl || !prevBtn || !nextBtn) return;
 
-    const pageCount = buildPages(trackEl);
+    // (A) slider state
+    let pageSize = getPageSize();
+    let pageCount = buildPages(trackEl, pageSize);
     let page = 0;
 
-    if (pageCount <= 1) {
+    // (B) If only 1 page
+    function applySinglePageUI() {
       prevBtn.style.display = "none";
       nextBtn.style.display = "none";
       trackEl.style.transform = "translateX(0%)";
-      return;
+    }
+
+    function applyMultiPageUI() {
+      prevBtn.style.display = "";
+      nextBtn.style.display = "";
     }
 
     function sync() {
@@ -48,6 +64,39 @@
       prevBtn.disabled = page <= 0;
       nextBtn.disabled = page >= pageCount - 1;
     }
+
+    function rebuild(keepLogicalIndex = true) {
+      // 현재 "전체 아이템 기준 인덱스"를 유지하려면
+      // page*oldPageSize -> globalIndex를 잡고 새 pageSize로 다시 계산
+      const oldPageSize = pageSize;
+      const oldPage = page;
+
+      let globalIndex = 0;
+      if (keepLogicalIndex) {
+        globalIndex = oldPage * oldPageSize;
+      }
+
+      pageSize = getPageSize();
+      pageCount = buildPages(trackEl, pageSize);
+
+      // 새 page 계산
+      page = Math.floor(globalIndex / pageSize);
+      page = Math.max(0, Math.min(pageCount - 1, page));
+
+      if (pageCount <= 1) {
+        applySinglePageUI();
+        return;
+      }
+      applyMultiPageUI();
+      sync();
+    }
+
+    // 초기 UI 세팅
+    if (pageCount <= 1) {
+      applySinglePageUI();
+      return;
+    }
+    applyMultiPageUI();
 
     prevBtn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -63,7 +112,20 @@
       sync();
     });
 
+    // resize/orientation 대응 (모바일 회전, 주소창 변화 등)
+    let resizeTimer = null;
+    function onResize() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => rebuild(true), 120);
+    }
+
+    window.addEventListener("resize", onResize, { passive: true });
+    window.addEventListener("orientationchange", onResize, { passive: true });
+
     sync();
+
+    // 외부에서 필요 시 강제 rebuild 가능하도록 저장
+    sliderRoot.__badgeRebuild = rebuild;
   }
 
   // -----------------------
@@ -144,8 +206,7 @@
       }
     }
 
-
-    // CTA (openModal 내부에서 payload/locked를 사용)
+    // CTA
     if (modalCta) {
       modalCta.href = buildCtaUrl(payload);
       modalCta.textContent = locked ? "획득하러 가기" : "프로필로 설정";
@@ -174,43 +235,42 @@
     lastFocused = null;
   }
 
-function formatAcquiredTime(raw) {
-  const s = (raw || "").trim();
-  if (!s) return "";
+  function formatAcquiredTime(raw) {
+    const s = (raw || "").trim();
+    if (!s) return "";
 
-  // 케이스 A) YYYYMMDDHHMMSS (14자리)
-  if (/^\d{14}$/.test(s)) {
-    const yyyy = s.slice(0, 4);
-    const mm = s.slice(4, 6);
-    const dd = s.slice(6, 8);
-    const HH = s.slice(8, 10);
-    const MI = s.slice(10, 12);
-    return `${yyyy}.${mm}.${dd} ${HH}:${MI}`;
+    // 케이스 A) YYYYMMDDHHMMSS (14자리)
+    if (/^\d{14}$/.test(s)) {
+      const yyyy = s.slice(0, 4);
+      const mm = s.slice(4, 6);
+      const dd = s.slice(6, 8);
+      const HH = s.slice(8, 10);
+      const MI = s.slice(10, 12);
+      return `${yyyy}.${mm}.${dd} ${HH}:${MI}`;
+    }
+
+    // 케이스 B) YYYYMMDD (8자리)
+    if (/^\d{8}$/.test(s)) {
+      const yyyy = s.slice(0, 4);
+      const mm = s.slice(4, 6);
+      const dd = s.slice(6, 8);
+      return `${yyyy}.${mm}.${dd}`;
+    }
+
+    // 케이스 C) ISO 혹은 기타 -> Date 파싱 시도
+    const d = new Date(s);
+    if (!Number.isNaN(d.getTime())) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const HH = String(d.getHours()).padStart(2, "0");
+      const MI = String(d.getMinutes()).padStart(2, "0");
+      return `${yyyy}.${mm}.${dd} ${HH}:${MI}`;
+    }
+
+    // fallback
+    return s;
   }
-
-  // 케이스 B) YYYYMMDD (8자리)
-  if (/^\d{8}$/.test(s)) {
-    const yyyy = s.slice(0, 4);
-    const mm = s.slice(4, 6);
-    const dd = s.slice(6, 8);
-    return `${yyyy}.${mm}.${dd}`;
-  }
-
-  // 케이스 C) ISO 혹은 기타 -> Date 파싱 시도
-  const d = new Date(s);
-  if (!Number.isNaN(d.getTime())) {
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    const HH = String(d.getHours()).padStart(2, "0");
-    const MI = String(d.getMinutes()).padStart(2, "0");
-    return `${yyyy}.${mm}.${dd} ${HH}:${MI}`;
-  }
-
-  // fallback: 원문 그대로
-  return s;
-}
-
 
   // -----------------------
   // click delegation
@@ -228,7 +288,7 @@ function formatAcquiredTime(raw) {
     // open modal by badge-item
     const item = target.closest(".badge-item");
     if (item) {
-      // ✅ badges-page 내부(도감)에서만 동작
+      // badges-page 내부(도감)에서만 동작
       if (!item.closest(".badges-page")) return;
 
       openModal({
@@ -253,7 +313,6 @@ function formatAcquiredTime(raw) {
       return;
     }
 
-    // Enter/Space to open (accessibility)
     const el = e.target;
     if (!(el instanceof Element)) return;
     const item = el.closest(".badge-item");
@@ -266,12 +325,12 @@ function formatAcquiredTime(raw) {
   });
 
   // -----------------------
-  // Modal micro-interaction (Nike Run 느낌: 클릭 bounce)
+  // Modal micro-interaction (click bounce)
   // -----------------------
   if (modalImgWrap) {
     modalImgWrap.addEventListener("click", () => {
       modalImgWrap.classList.remove("is-bounce");
-      void modalImgWrap.offsetWidth; // reflow to restart animation
+      void modalImgWrap.offsetWidth;
       modalImgWrap.classList.add("is-bounce");
     });
   }
@@ -281,6 +340,7 @@ function formatAcquiredTime(raw) {
   // -----------------------
   const foodSlider = document.querySelector('.badge-slider[data-slider="food"]');
   const emotionSlider = document.querySelector('.badge-slider[data-slider="emotion"]');
+
   if (foodSlider) initSlider(foodSlider, "food");
   if (emotionSlider) initSlider(emotionSlider, "emotion");
 })();
