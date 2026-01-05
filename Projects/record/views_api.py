@@ -28,27 +28,26 @@ from .services.barcode.mapping_code import (
 
 from .models import FoodTb, CusFoodTh, CusFoodTs
 from .utils_time import now14
+
+
+# =========================
+# 0) Keyword API
+# =========================
+from django.http import JsonResponse
 from django.db import connection
 import logging
 
 logger = logging.getLogger(__name__)
 
-# =========================
-# 0) Keyword API
-# =========================
 def keyword_api(request):
-    """
-    감정(mood) + 활성도(energy)에 따라
-    키워드 목록을 DB에서 조회해서 JSON으로 반환
-    """
     if request.method != "GET":
-        return JsonResponse({"error": "GET method only"}, status=405)
+        return JsonResponse({"error": "GET only"}, status=405)
 
     mood = request.GET.get("mood")
     energy = request.GET.get("energy")
 
     if not mood or not energy:
-        return JsonResponse({"error": "mood and energy are required"}, status=400)
+        return JsonResponse([], safe=False)
 
     try:
         sql = """
@@ -70,8 +69,6 @@ def keyword_api(request):
     except Exception:
         logger.exception("[KEYWORD_API] failed mood=%s energy=%s", mood, energy)
         return JsonResponse([], safe=False)
-
-
 
 # =========================
 # 1) Common Normalizers / Helpers
