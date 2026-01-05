@@ -18,6 +18,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.urls import reverse
 
 from .models import Cust, CusProfile, LoginHistory
 
@@ -73,17 +74,13 @@ def _build_password_reset_link(request, uidb64: str, token: str) -> str:
       SECURE_PROXY_SSL_HEADER / USE_X_FORWARDED_HOST가 잡아줌
     """
     # urls.py: path("password-reset-confirm/<uidb64>/<token>/", ...)
-    path = f"/accounts/password-reset-confirm/{uidb64}/{token}/"
-
-    # request.build_absolute_uri()는 request의 scheme/host를 사용
-    url = request.build_absolute_uri(path)
+    rel_path = reverse("accounts_app:password_reset_confirm", kwargs={"uidb64": uidb64, "token": token})
 
     # ✅ 혹시 EB에서 scheme이 http로 잡히는 케이스를 "보정"하고 싶다면(옵션)
     # if not settings.DEBUG and request.META.get("HTTP_X_FORWARDED_PROTO") == "https":
     #     url = url.replace("http://", "https://", 1)
 
-    return url
-
+    return request.build_absolute_uri(rel_path)
 
 # =========================
 # 2) cust_id 생성
