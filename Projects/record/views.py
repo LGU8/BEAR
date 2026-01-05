@@ -5,6 +5,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 import json
 import traceback
+from django.contrib.auth.decorators import login_required
 
 from conf.views import _safe_get_cust_id
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -190,13 +191,46 @@ def record_mood(request):
     return redirect("/record/meal/")
 
 
+@login_required
 def record_meal(request):
-    cust_id = request.user.cust_id
-    rgs_dt = request.session.get("rgs_dt")
-    seq = request.session.get("seq")
-    time_slot = request.session.get("time_slot")
-    return render(request, "record/record_meal.html")
+    try:
+        # ===== 1. 유저 / cust_id =====
+        cust_id = _safe_get_cust_id(request)
+        print("[MEALDBG] user=", request.user, "cust_id=", cust_id)
 
+        if not cust_id:
+            print("[MEALDBG] cust_id missing -> redirect record")
+            return redirect("record_app:record_mood")
+
+        # ===== 2. 세션 값 =====
+        rgs_dt = request.session.get("rgs_dt")
+        seq = request.session.get("seq")
+        time_slot = request.session.get("time_slot")
+
+        print("[MEALDBG] session:", rgs_dt, seq, time_slot)
+
+        if not (rgs_dt and seq and time_slot):
+            print("[MEALDBG] session incomplete -> redirect record")
+            return redirect("record_app:record_mood")
+
+        # ===== 3. 정상 렌더 =====
+        return render(
+            request,
+            "record/record_meal.html",
+            {
+                "cust_id": cust_id,
+                "rgs_dt": rgs_dt,
+                "seq": seq,
+                "time_slot": time_slot,
+            },
+        )
+
+    except Exception as e:
+        # ===== 4. 예외 로그 (배포 환경 필수) =====
+        print("[MEALERR]", str(e))
+        import traceback
+        traceback.print_exc()
+        return redirect("record_app:record_mood")
 
 def recipe_search(request):
     return render(request, "record/recipe_search.html")
