@@ -100,56 +100,123 @@
         }
 
         /* ─────────────────────────────
-           모바일/태블릿 반응형 + 안정화 패치
-           ───────────────────────────── */
-        @media (max-width: 768px) {
-            html, body {
-                width: 100%;
-                max-width: 100%;
-                overflow-x: hidden;
-            }
-            body {
-                min-height: 100dvh;
-                min-height: 100vh;
-            }
-            *, *::before, *::after { box-sizing: border-box; }
-            img, video, svg, canvas { max-width: 100%; height: auto; }
-            input, button, a { max-width: 100%; }
+       모바일/태블릿 반응형 (Login 최종 안정본)
+       ───────────────────────────── */
 
-            .login-container {
-                max-width: 420px;
-                margin: 48px auto;
-                padding: 0 16px;
-            }
-            .header-section { margin-bottom: 36px; }
-            .header-section h1 { font-size: 2.0rem; }
+    /* 공통 모바일 안정화 */
+    @media (max-width: 768px) {
+        html, body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
-        @media (max-width: 480px) {
-            .login-container {
-                margin: 36px auto;
-                padding: 0 14px;
-            }
-            .header-section { margin-bottom: 28px; }
-            .header-section h1 { font-size: 1.75rem; }
-            .header-section p { font-size: 0.95rem; }
-
-            input[type="email"], input[type="password"] {
-                padding: 16px 16px;
-                font-size: 1rem;
-            }
-            .btn {
-                padding: 15px;
-                font-size: 1rem;
-                letter-spacing: 2px;
-            }
-            .footer-links { margin-top: 34px; }
+        body {
+            min-height: 100vh;
+            min-height: 100dvh; /* 모바일 주소창 대응 */
         }
 
-        @media (max-width: 360px) {
-            .header-section h1 { font-size: 1.6rem; }
-            .btn { padding: 14px; }
+        *, *::before, *::after {
+            box-sizing: border-box;
         }
+
+        img, video, svg, canvas {
+            max-width: 100%;
+            height: auto;
+        }
+
+        input, button, a {
+            max-width: 100%;
+        }
+
+        /* 컨테이너 */
+        .login-container {
+            max-width: 420px;
+            margin: 40px auto;
+            padding: 0 16px;
+        }
+
+        /* 타이틀 */
+        .header-section {
+            margin-bottom: 32px;
+        }
+
+        .header-section h1 {
+            font-size: 1.95rem;
+            line-height: 1.25;
+        }
+
+        .header-section p {
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+    }
+
+    /* 일반 모바일 */
+    @media (max-width: 480px) {
+        .login-container {
+            margin: 32px auto;
+            padding: 0 14px;
+        }
+
+        .header-section {
+            margin-bottom: 26px;
+        }
+
+        .header-section h1 {
+            font-size: 1.7rem;
+        }
+
+        .header-section p {
+            font-size: 0.9rem;
+        }
+
+        /* 입력 필드 */
+        input[type="email"],
+        input[type="password"] {
+            padding: 15px 16px;
+            font-size: 0.95rem;
+        }
+
+        /* 버튼 */
+        .btn {
+            padding: 14px;
+            font-size: 0.95rem;
+            letter-spacing: 1.5px; /* 모바일에서 과도한 spacing 제거 */
+        }
+
+        .footer-links {
+            margin-top: 28px;
+        }
+
+        .footer-links a {
+            font-size: 0.85rem;
+        }
+    }
+
+    /* 초소형 기기 (iPhone SE 등) */
+    @media (max-width: 360px) {
+        .login-container {
+            margin: 26px auto;
+            padding: 0 12px;
+        }
+
+        .header-section h1 {
+            font-size: 1.55rem;
+        }
+
+        .btn {
+            padding: 13px;
+            font-size: 0.9rem;
+        }
+
+        input[type="email"],
+        input[type="password"] {
+            padding: 14px 14px;
+            font-size: 0.9rem;
+        }
+    }
+
     </style>
 
     <div class="login-container">
