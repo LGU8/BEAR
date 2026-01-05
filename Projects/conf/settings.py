@@ -7,8 +7,7 @@ For more information on this file, see
 https://docs.djangoproject.com/en/4.2/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/4.2/ref/settings/
-"""
+https://docs.djangoproject.com/en/4.2/ref/settings/"""
 
 from pathlib import Path
 import os
@@ -32,7 +31,7 @@ except Exception:
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 if not SECRET_KEY:
-    raise RuntimeError("SECRET_KEY is missing (check EB env vars or .env quoting).")
+    raise RuntimeError("SECRET_KEY is missing (check EB .env vars or ..env quoting).")
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
 
@@ -40,7 +39,7 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
 # EB 도메인(환경변수로 오버라이드 가능)
 EB_DOMAIN = os.environ.get(
     "EB_DOMAIN",
-    "bear-app-env.eba-temmzk66.ap-northeast-2.elasticbeanstalk.com",
+    "bear-app-.env.eba-temmzk66.ap-northeast-2.elasticbeanstalk.com",
 )
 
 # ALLOWED_HOSTS="*.elasticbeanstalk.com,localhost,127.0.0.1" 처럼 넣는다고 가정
@@ -122,7 +121,7 @@ required_env = ["DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD", "SECRET_KEY"]
 missing = [k for k in required_env if not os.environ.get(k)]
 if missing:
     # 환경변수 누락이면 배포 시 즉시 터지므로, EB 콘솔에서 반드시 설정해줘야 함
-    raise RuntimeError(f"Missing required .env vars: {', '.join(missing)}")
+    raise RuntimeError(f"Missing required ..env vars: {', '.join(missing)}")
 
 
 # =========================
@@ -211,12 +210,20 @@ USE_X_FORWARDED_HOST = True
 
 
 # =========================
-# Email (optional / commented)
+# Email (SMTP)
 # =========================
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = "smtp.gmail.com"
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = "your-email@gmail.com"
-# EMAIL_HOST_PASSWORD = "your-app-password"
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@bear.local")
+EMAIL_FAIL_SILENTLY = os.environ.get("EMAIL_FAIL_SILENTLY", "False").lower() in ("true", "1", "yes")
+
+# =========================
+# Password Reset
+# =========================
+# 토큰 유효시간(초). 기본값도 있지만 명시해두면 운영에서 편함.
+# 60 * 60 * 24 = 1 day
+PASSWORD_RESET_TIMEOUT = int(os.environ.get("PASSWORD_RESET_TIMEOUT", str(60 * 60 * 24)))
