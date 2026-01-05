@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 import re
-
 import json
 from dataclasses import dataclass
 from datetime import datetime
@@ -127,6 +126,24 @@ def _upsert_behavior_recom(
                 content,
             ],
         )
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM CUS_BEH_RECOM_TH
+            WHERE cust_id=%s AND target_date=%s AND target_slot=%s
+            """,
+            [cust_id, target_date, target_slot],
+        )
+        cnt = cur.fetchone()[0]
+        print(
+            "[BEHDBG][VERIFY_ROW]",
+            cust_id,
+            target_date,
+            target_slot,
+            "cnt=",
+            cnt,
+            flush=True,
+        )
 
 
 @lru_cache(maxsize=1)
@@ -143,9 +160,9 @@ def _load_top_actions() -> List[str]:
     df["final_score"] = (RULE_W * df["rule_score"]) + (CF_W * df["cf_score"])
     return (
         df.sort_values("final_score", ascending=False)
-          .head(TOP_ACTION_N)["activity"]
-          .astype(str)
-          .tolist()
+        .head(TOP_ACTION_N)["activity"]
+        .astype(str)
+        .tolist()
     )
 
 
@@ -154,7 +171,6 @@ def _get_retriever():
     if not CHROMA_DIR.exists():
         raise FileNotFoundError(f"chroma_store를 찾지 못했습니다: {CHROMA_DIR}")
 
-    # ✅ 팀원과 동일: api_key를 코드로 넘기지 않음(환경변수 자동 사용)
     embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
 
     vectorstore = Chroma(
@@ -166,7 +182,6 @@ def _get_retriever():
 
 @lru_cache(maxsize=1)
 def _get_llm():
-    # ✅ 팀원과 동일: api_key를 코드로 넘기지 않음(환경변수 자동 사용)
     return ChatOpenAI(model=LLM_MODEL)
 
 
@@ -186,8 +201,6 @@ def _parse_llm_json_message(raw: str) -> str:
         return ""
 
     text = raw.strip()
-
-    # ```json ... ``` 제거
     text = re.sub(r"```json\s*|\s*```", "", text, flags=re.IGNORECASE).strip()
 
     try:
@@ -198,7 +211,6 @@ def _parse_llm_json_message(raw: str) -> str:
     except Exception:
         pass
 
-    # fallback
     return text
 
 
@@ -210,7 +222,6 @@ def _enforce_length_policy(text: str) -> str:
 
 
 def _build_messages(risk: RiskRow) -> List[Any]:
-    # 최소 feeling_data: 우리 서비스 흐름에 필요한 것만
     feeling_data: Dict[str, Any] = {
         "cust_id": risk.cust_id,
         "date": risk.target_date,
@@ -239,29 +250,100 @@ def _build_messages(risk: RiskRow) -> List[Any]:
     ]
 
 
-def generate_and_save_behavior_recom(cust_id: str, target_date: str, target_slot: str) -> str:
+def _fallback_message(risk: RiskRow) -> str:
     """
-    ✅ 팀원 방식으로 환경 통일:
-    - 함수 시작 시 load_dotenv()
-    - api_key 인자 직접 주입 없이 환경변수 자동 사용
+    LLM/RAG 실패 시에도 DB에 '무조건' 쌓이게 하는 fallback.
+    (길이 80자 정책 적용됨)
     """
-    # ✅ 팀원과 동일: 호출 시점에 .env 로드
+    if risk.risk_level == "y":
+        base = (
+            "지금은 컨디션 회복이 우선이에요. 가벼운 산책/물 한 잔/호흡부터 해볼까요?"
+        )
+    else:
+        base = "오늘 흐름이 나쁘지 않아요. 이 리듬을 유지하려면 짧은 휴식과 수분 보충이 좋아요."
+    return _enforce_length_policy(base)
+
+
+from django.db import connection
+
+
+def generate_and_save_behavior_recom(
+    cust_id: str,
+    target_date: str,
+    target_slot: str,
+    reason: Optional[str] = None,
+) -> str:
+    """
+    - CUS_FEEL_RISK_TH가 있으면 행동추천 생성 후 CUS_BEH_RECOM_TH에 UPSERT
+    - reason은 디버깅/추적용(저장 컬럼이 없으면 로그에만 남김)
+    - LLM/RAG 실패하더라도 fallback 메시지로 DB 저장을 보장
+    """
     load_dotenv()
+    db = connection.settings_dict
+    print("[BEHDBG][DB]", "HOST=", db.get("HOST"), "NAME=", db.get("NAME"), flush=True)
+    print("[BEHDBG][ENTER]", cust_id, target_date, target_slot, flush=True)
+
+    print(
+        "[BEHDBG][ENTER]",
+        "cust_id=",
+        cust_id,
+        "target_date=",
+        target_date,
+        "target_slot=",
+        target_slot,
+        "reason=",
+        reason,
+        flush=True,
+    )
 
     risk = _fetch_risk_row(cust_id, target_date, target_slot)
     if risk.risk_level not in {"y", "n"}:
-        raise ValueError(f"risk_level은 'y' 또는 'n'이어야 합니다. 현재: {risk.risk_level}")
+        raise ValueError(
+            f"risk_level은 'y' 또는 'n'이어야 합니다. 현재: {risk.risk_level}"
+        )
 
-    messages = _build_messages(risk)
+    # 1) 메시지 생성(LLM 시도)
+    msg = ""
+    try:
+        messages = _build_messages(risk)
+        llm = _get_llm()
+        resp = llm.invoke(messages)
 
-    llm = _get_llm()
-    resp = llm.invoke(messages)
+        raw = getattr(resp, "content", "")
+        msg = _parse_llm_json_message(raw)
+        msg = _enforce_length_policy(msg)
 
-    raw = getattr(resp, "content", "")
-    msg = _parse_llm_json_message(raw)
-    msg = _enforce_length_policy(msg)
+        if not msg:
+            msg = _fallback_message(risk)
 
+        print(
+            "[BEHDBG][LLM_OK]",
+            "len=",
+            len(msg),
+            flush=True,
+        )
+
+    except Exception as e:
+        # ✅ 여기서 죽지 말고 fallback으로라도 저장
+        print("[BEHDBG][LLM_FAIL]", repr(e), flush=True)
+        msg = _fallback_message(risk)
+
+    # 2) DB 저장(UPSERT)
     with transaction.atomic():
         _upsert_behavior_recom(cust_id, target_date, target_slot, msg)
+
+    print(
+        "[BEHDBG][UPSERT_OK]",
+        cust_id,
+        target_date,
+        target_slot,
+        "risk_level=",
+        risk.risk_level,
+        "risk_score=",
+        risk.risk_score,
+        "len=",
+        len(msg),
+        flush=True,
+    )
 
     return msg

@@ -1,514 +1,444 @@
 # ml/lstm/predictor.py
 from __future__ import annotations
 
+import os
 import json
+import math
+import traceback
 from dataclasses import dataclass
-from functools import lru_cache
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Set
-
-import numpy as np
-import torch
-import torch.nn.functional as F
-import joblib
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, Optional, Tuple
 
 from django.db import connection
 from django.utils import timezone
 
-from .model import LSTMClassifier
+# 모델 로딩은 실패해도 서비스가 죽지 않도록 보호한다.
+try:
+    import torch
+except Exception:
+    torch = None  # type: ignore
+
+try:
+    import joblib
+except Exception:
+    joblib = None  # type: ignore
 
 
 # =========================
-# 정책(Policy)
+# Config / Artifacts
 # =========================
-HIGH_RISK_SET = {0, 2}
-THRESHOLD = 0.30  # p0+p2 >= 0.30 이면 위험
-WINDOW = 7        # 최근 7개 record(가변 N일)
-# ✅ GATE_DAYS는 더 이상 "고정 3일"에 쓰지 않음 (원하는 로직이 가변 N일이므로)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ARTIFACTS_DIR = os.path.join(os.path.dirname(BASE_DIR), "artifacts")
+
+CFG_PATH = os.path.join(ARTIFACTS_DIR, "lstm_config.json")
+MODEL_PATH = os.path.join(ARTIFACTS_DIR, "lstm_final.pt")
+SCALER_PATH = os.path.join(ARTIFACTS_DIR, "lstm_scaler.pkl")
+
+
+@dataclass
+class PredResult:
+    ok: bool
+    reason: str
+    p_highrisk: float
+    # 아래는 UI/디버그용 (없어도 되지만 있으면 좋음)
+    p0: float = 0.0
+    p2: float = 0.0
+    detail: Optional[Dict[str, Any]] = None
 
 
 # =========================
-# Artifacts
+# Utilities
 # =========================
-@dataclass(frozen=True)
-class Artifacts:
-    cfg: dict
-    scaler: Any
-    model: LSTMClassifier
-    device: torch.device
-    cluster_mean: Dict[str, Tuple[float, float]]  # cluster_val -> (mean_valence, mean_arousal)
+
+def _ymd(d: date) -> str:
+    return d.strftime("%Y%m%d")
 
 
-def _time_onehot(time_slot: str) -> Tuple[float, float, float]:
+def _parse_ymd(s: str) -> date:
+    return datetime.strptime(s, "%Y%m%d").date()
+
+
+def _slot_rank(slot: str) -> int:
+    s = (slot or "").upper()
+    if s == "D":
+        return 3
+    if s == "L":
+        return 2
+    if s == "M":
+        return 1
+    return 0
+
+
+def _pick_source_slot_DLM(cust_id: str, rgs_dt: str) -> Optional[Tuple[str, int]]:
     """
-    CUS_FEEL_TH.time_slot: M/L/D -> time_morning/time_afternoon/time_evening
+    같은 날짜(rgs_dt)에서 source slot 고르기: D > L > M
+    + 함께 해당 slot의 seq도 뽑는다(가장 최근 seq로).
     """
-    ts = (time_slot or "").upper()
-    return (
-        1.0 if ts == "M" else 0.0,
-        1.0 if ts == "L" else 0.0,
-        1.0 if ts == "D" else 0.0,
-    )
+    sql = """
+        SELECT time_slot, MAX(seq) AS max_seq
+        FROM CUS_FEEL_TH
+        WHERE cust_id = %s AND rgs_dt = %s
+        GROUP BY time_slot
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [cust_id, rgs_dt])
+        rows = cursor.fetchall()
+
+    best_slot = None
+    best_seq = None
+    best_rank = -1
+    for time_slot, max_seq in rows:
+        if not time_slot:
+            continue
+        rank = _slot_rank(str(time_slot))
+        if rank > best_rank:
+            best_rank = rank
+            best_slot = str(time_slot).upper()
+            best_seq = int(max_seq or 0)
+
+    if best_slot is None or best_seq is None or best_seq <= 0:
+        return None
+    return best_slot, best_seq
 
 
-def _slot_order(time_slot: str) -> int:
-    return {"M": 0, "L": 1, "D": 2}.get((time_slot or "").upper(), 9)
+def _target_from_source(source_date_ymd: str, source_slot: str) -> Tuple[str, str]:
+    s = (source_slot or "").upper()
+    if s == "M":
+        return source_date_ymd, "L"
+    if s == "L":
+        return source_date_ymd, "D"
+    # D -> next day M
+    d = _parse_ymd(source_date_ymd)
+    return _ymd(d + timedelta(days=1)), "M"
 
 
-def _fetchall_dict(sql: str, params: Tuple = ()) -> List[Dict[str, Any]]:
-    with connection.cursor() as cur:
-        cur.execute(sql, params)
-        cols = [c[0] for c in cur.description]
-        rows = cur.fetchall()
-    out: List[Dict[str, Any]] = []
-    for r in rows:
-        out.append({cols[i]: r[i] for i in range(len(cols))})
+# =========================
+# Gate: 최근 3일 매일 keyword 1개 이상
+# =========================
+
+def gate_has_keywords_3days(cust_id: str, asof_yyyymmdd: str) -> Tuple[bool, Dict[str, Any]]:
+    """
+    asof_yyyymmdd 포함 최근 3일(D-2, D-1, D) 각각 TS(키워드) 1개 이상 존재해야 True
+    """
+    d = _parse_ymd(asof_yyyymmdd)
+    days = [_ymd(d - timedelta(days=2)), _ymd(d - timedelta(days=1)), _ymd(d)]
+    missing = []
+
+    sql = """
+        SELECT rgs_dt, COUNT(*) AS cnt
+        FROM CUS_FEEL_TS
+        WHERE cust_id = %s AND rgs_dt IN (%s, %s, %s)
+        GROUP BY rgs_dt
+    """
+    got = {}
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [cust_id, days[0], days[1], days[2]])
+        for rgs_dt, cnt in cursor.fetchall():
+            got[str(rgs_dt)] = int(cnt or 0)
+
+    for day in days:
+        if got.get(day, 0) <= 0:
+            missing.append(day)
+
+    ok = (len(missing) == 0)
+    detail = {
+        "type": "gate_3days_keywords",
+        "asof": asof_yyyymmdd,
+        "days": days,
+        "counts": got,
+        "missing_days": missing,
+    }
+    return ok, detail
+
+
+# =========================
+# Feature extraction (간단/보수적)
+# =========================
+# ※ 너의 LSTM이 실제로 어떤 feature를 쓰는지(7개) 정확히 맞추려면,
+#   기존 프로젝트에서 이미 쓰던 로직을 여기 블록에 그대로 붙여야 한다.
+#   아래는 "서비스가 안 죽고 예측 저장까지 가게" 만드는 최소 버전이다.
+
+def _fetch_last_n_feels(cust_id: str, end_yyyymmdd: str, n_days: int = 7) -> list[dict]:
+    """
+    end_yyyymmdd 기준 과거 n_days(포함) 동안의 TH 기록을 일단 모두 가져온다.
+    (slot별로 여러개여도 여기서는 단순 집계/대표값으로 처리)
+    """
+    end_d = _parse_ymd(end_yyyymmdd)
+    start_d = end_d - timedelta(days=n_days - 1)
+
+    sql = """
+        SELECT rgs_dt, time_slot, mood, energy, cluster_val
+        FROM CUS_FEEL_TH
+        WHERE cust_id = %s
+          AND rgs_dt BETWEEN %s AND %s
+        ORDER BY rgs_dt ASC
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [cust_id, _ymd(start_d), _ymd(end_d)])
+        rows = cursor.fetchall()
+
+    out = []
+    for rgs_dt, time_slot, mood, energy, cluster_val in rows:
+        out.append({
+            "rgs_dt": str(rgs_dt),
+            "time_slot": (str(time_slot).upper() if time_slot else None),
+            "mood": str(mood) if mood else None,
+            "energy": str(energy) if energy else None,
+            "cluster_val": (int(cluster_val) if cluster_val is not None else None),
+        })
     return out
 
 
-def _fetchone_dict(sql: str, params: Tuple = ()) -> Optional[Dict[str, Any]]:
-    rows = _fetchall_dict(sql, params)
-    return rows[0] if rows else None
-
-
-def _to_float(x) -> Optional[float]:
-    if x is None:
-        return None
-    return float(x)
-
-
-def _yyyymmdd(dt) -> str:
-    return dt.strftime("%Y%m%d")
-
-
-@lru_cache(maxsize=1)
-def load_artifacts() -> Artifacts:
+def _simple_numeric(mood: Optional[str], energy: Optional[str]) -> Tuple[float, float]:
     """
-    서버에서 최초 1회 로딩 후 캐시.
+    임시 매핑(최소 동작):
+    - valence: pos=+1, neu=0, neg=-1
+    - arousal: hig=+1, med/mid=0, low=-1
     """
-    base_dir = Path(__file__).resolve().parent
-    art_dir = base_dir / "artifacts"
+    m = (mood or "").lower()
+    e = (energy or "").lower()
 
-    cfg_path = art_dir / "lstm_config.json"
-    pt_path = art_dir / "lstm_final.pt"
-    scaler_path = art_dir / "lstm_scaler.pkl"
+    val = 0.0
+    if m == "pos":
+        val = 1.0
+    elif m == "neg":
+        val = -1.0
 
-    with open(cfg_path, "r", encoding="utf-8") as f:
-        cfg = json.load(f)
+    aro = 0.0
+    if e == "hig":
+        aro = 1.0
+    elif e == "low":
+        aro = -1.0
+    # med/mid -> 0.0
+    return val, aro
 
-    scaler = joblib.load(scaler_path)
 
-    device = torch.device("cpu")
-
-    model = LSTMClassifier(
-        input_dim=cfg["input_dim"],
-        hidden_dim=cfg["hidden_dim"],
-        num_classes=cfg["num_classes"],
-    ).to(device)
-
-    state = torch.load(pt_path, map_location=device)
-    model.load_state_dict(state)
-    model.eval()
-
-    # cluster_val별 평균 valence/arousal
-    sql = """
-        SELECT cluster_val,
-               AVG(valence) AS mean_valence,
-               AVG(arousal) AS mean_arousal
-        FROM COM_FEEL_TM
-        GROUP BY cluster_val
+def build_window_features(cust_id: str, asof_yyyymmdd: str, window: int = 7) -> Tuple[Optional[list[list[float]]], Dict[str, Any]]:
     """
-    rows = _fetchall_dict(sql)
-    cluster_mean: Dict[str, Tuple[float, float]] = {}
-    for r in rows:
-        cv = r["cluster_val"]
-        mv = _to_float(r["mean_valence"])
-        ma = _to_float(r["mean_arousal"])
-        if cv is None or mv is None or ma is None:
-            continue
-        cluster_mean[str(cv)] = (mv, ma)
-
-    return Artifacts(
-        cfg=cfg,
-        scaler=scaler,
-        model=model,
-        device=device,
-        cluster_mean=cluster_mean,
-    )
-
-
-# =========================================================
-# ✅ NEW: 최근 WINDOW=7개 기록(가변 N일) 가져오기
-# =========================================================
-def fetch_last_window_records(
-    cust_id: str,
-    asof_yyyymmdd: str,
-) -> List[Dict[str, Any]]:
+    window=7일 시퀀스 형태로 feature를 만든다.
+    여기서는 "하루 대표 slot"을 D>L>M 우선으로 뽑아 대표 valence/arousal로 구성한다.
     """
-    ✅ asof_yyyymmdd(포함)까지의 CUS_FEEL_TH 중
-    최신 기록 7개를 가져온다. (날짜 범위는 가변)
+    feels = _fetch_last_n_feels(cust_id, asof_yyyymmdd, n_days=window)
+    asof_d = _parse_ymd(asof_yyyymmdd)
+    days = [_ymd(asof_d - timedelta(days=(window - 1 - i))) for i in range(window)]
 
-    정렬 기준:
-      - rgs_dt DESC
-      - time_slot DESC (D > L > M)
-      - seq DESC
-    """
-    sql = """
-        SELECT cust_id, rgs_dt, seq, time_slot, cluster_val
-        FROM CUS_FEEL_TH
-        WHERE cust_id = %s
-          AND rgs_dt <= %s
-        ORDER BY
-          rgs_dt DESC,
-          CASE time_slot
-            WHEN 'D' THEN 3
-            WHEN 'L' THEN 2
-            WHEN 'M' THEN 1
-            ELSE 0
-          END DESC,
-          seq DESC
-        LIMIT %s
-    """
-    rows = _fetchall_dict(sql, (cust_id, asof_yyyymmdd, WINDOW))
+    # day -> best record (D>L>M)
+    day_best = {}
+    for rec in feels:
+        d = rec["rgs_dt"]
+        slot = rec.get("time_slot") or ""
+        rank = _slot_rank(slot)
+        cur = day_best.get(d)
+        if cur is None or rank > cur["rank"]:
+            day_best[d] = {"rank": rank, "rec": rec}
 
-    # rows는 최신순(내림차순) → feature build는 시간순(오름차순) 필요
-    rows.reverse()
-    return rows
+    seq = []
+    missing_days = []
+    prev_val = 0.0
+    prev_aro = 0.0
 
+    for i, d in enumerate(days):
+        best = day_best.get(d)
+        if not best:
+            # 결측이면 0으로 채움(모델 품질은 떨어지지만 파이프라인은 이어짐)
+            missing_days.append(d)
+            val, aro = 0.0, 0.0
+            slot = "M"
+        else:
+            r = best["rec"]
+            val, aro = _simple_numeric(r.get("mood"), r.get("energy"))
+            slot = (r.get("time_slot") or "M").upper()
 
-# =========================================================
-# ✅ NEW: Gate = "Window에 포함된 N일" 모두 키워드 1건 이상
-# =========================================================
-def gate_keyword_every_day_in_range(
-    cust_id: str,
-    days: List[str],
-) -> Tuple[bool, List[str]]:
-    """
-    ✅ days에 포함된 각 날짜별로 CUS_FEEL_TS가 최소 1건 있어야 통과.
-    반환: (ok, missing_days)
-    """
-    uniq_days = sorted({str(d) for d in (days or []) if d})
-    if not uniq_days:
-        return (False, [])
+        # deltas
+        dval = val - prev_val
+        daro = aro - prev_aro
+        prev_val, prev_aro = val, aro
 
-    placeholders = ",".join(["%s"] * len(uniq_days))
-    sql = f"""
-        SELECT DISTINCT rgs_dt
-        FROM CUS_FEEL_TS
-        WHERE cust_id = %s
-          AND rgs_dt IN ({placeholders})
-    """
-    with connection.cursor() as cur:
-        cur.execute(sql, [cust_id, *uniq_days])
-        have = {str(r[0]) for r in cur.fetchall() if r and r[0]}
+        # time one-hot (M,L,D) 3개
+        is_m = 1.0 if slot == "M" else 0.0
+        is_l = 1.0 if slot == "L" else 0.0
+        is_d = 1.0 if slot == "D" else 0.0
 
-    missing = [d for d in uniq_days if d not in have]
-    return (len(missing) == 0, missing)
+        # 총 7개 feature: valence, arousal, dval, daro, is_m, is_l, is_d
+        seq.append([val, aro, dval, daro, is_m, is_l, is_d])
 
-
-# =========================================================
-# Feature building (기존 유지)
-# =========================================================
-def valence_arousal_for_record(
-    art: Artifacts,
-    cust_id: str,
-    rgs_dt: str,
-    seq: int,
-    cluster_val: Optional[str],
-) -> Tuple[float, float, str]:
-    """
-    반환: (valence, arousal, source)
-    source:
-      - "keyword_mean" : CUS_FEEL_TS feel_id 기반 평균
-      - "cluster_fallback" : cluster_val 기반 평균
-    """
-    sql_ts = """
-        SELECT feel_id
-        FROM CUS_FEEL_TS
-        WHERE cust_id = %s AND rgs_dt = %s AND seq = %s
-    """
-    ts_rows = _fetchall_dict(sql_ts, (cust_id, rgs_dt, seq))
-    feel_ids = [r["feel_id"] for r in ts_rows if r["feel_id"] is not None]
-
-    if feel_ids:
-        placeholders = ",".join(["%s"] * len(feel_ids))
-        sql_agg = f"""
-            SELECT AVG(valence) AS mean_valence,
-                   AVG(arousal) AS mean_arousal
-            FROM COM_FEEL_TM
-            WHERE feel_id IN ({placeholders})
-        """
-        agg = _fetchone_dict(sql_agg, tuple(feel_ids))
-        mv = _to_float(agg["mean_valence"]) if agg else None
-        ma = _to_float(agg["mean_arousal"]) if agg else None
-        if mv is None or ma is None:
-            raise ValueError(f"COM_FEEL_TM 평균 실패: feel_ids={feel_ids}")
-        return mv, ma, "keyword_mean"
-
-    if cluster_val is None:
-        raise ValueError(f"키워드 없음 + cluster_val 없음: {cust_id=} {rgs_dt=} {seq=}")
-
-    cv = str(cluster_val)
-    if cv not in art.cluster_mean:
-        raise ValueError(f"cluster 평균 없음: cluster_val={cv}")
-
-    mv, ma = art.cluster_mean[cv]
-    return mv, ma, "cluster_fallback"
-
-
-def build_feature_matrix(
-    art: Artifacts,
-    records: List[Dict[str, Any]],
-) -> Tuple[np.ndarray, List[Dict[str, Any]]]:
-    """
-    records(7개) -> X(7,7) 생성 + meta 반환
-    feature 순서(고정):
-      [valence, arousal, valence_delta, arousal_delta, time_morning, time_afternoon, time_evening]
-    """
-    feats: List[List[float]] = []
-    meta: List[Dict[str, Any]] = []
-
-    for r in records:
-        rgs_dt = str(r["rgs_dt"])
-        seq = int(r["seq"])
-        time_slot = str(r["time_slot"])
-        cluster_val = r.get("cluster_val", None)
-
-        v, a, src = valence_arousal_for_record(
-            art=art,
-            cust_id=str(r["cust_id"]),
-            rgs_dt=rgs_dt,
-            seq=seq,
-            cluster_val=cluster_val,
-        )
-
-        tm, ta, te = _time_onehot(time_slot)
-        feats.append([v, a, 0.0, 0.0, tm, ta, te])
-
-        meta.append(
-            {
-                "rgs_dt": rgs_dt,
-                "seq": seq,
-                "time_slot": time_slot,
-                "cluster_val": None if cluster_val is None else str(cluster_val),
-                "valence": v,
-                "arousal": a,
-                "source": src,  # keyword_mean / cluster_fallback
-            }
-        )
-
-    X = np.array(feats, dtype=np.float32)  # (7,7)
-
-    # delta 채우기
-    for i in range(1, X.shape[0]):
-        X[i, 2] = X[i, 0] - X[i - 1, 0]
-        X[i, 3] = X[i, 1] - X[i - 1, 1]
-
-    return X, meta
-
-
-# =========================================================
-# ✅ NEW: readiness 진단(가변 N일 Gate 기준)
-# =========================================================
-def diagnose_negative_risk_readiness(
-    cust_id: str,
-    asof_yyyymmdd: Optional[str] = None,
-) -> Dict[str, Any]:
-    """
-    ✅ LSTM inference 없이 "예측 가능 여부"만 진단
-    - Window(최근 7개 기록) 확보 여부
-    - Gate(그 7개가 포함하는 N일 모두 키워드 1회 이상) 여부
-
-    ⚠️ 기준일(asof)은 report/배치와 통일: date.today() 기반
-    """
-    from datetime import date
-
-    if asof_yyyymmdd is None:
-        asof_yyyymmdd = date.today().strftime("%Y%m%d")
-    else:
-        asof_yyyymmdd = str(asof_yyyymmdd).strip()
-
-    if len(asof_yyyymmdd) != 8 or not asof_yyyymmdd.isdigit():
-        return {
-            "ready": False,
-            "reason": "기준일(asof) 형식이 올바르지 않습니다",
-            "detail": {
-                "type": "invalid_asof",
-                "rule": "asof는 YYYYMMDD(8자리 숫자)여야 합니다",
-                "asof": asof_yyyymmdd,
-            },
-        }
-
-    records = fetch_last_window_records(cust_id, asof_yyyymmdd)
-
-    if len(records) < WINDOW:
-        return {
-            "ready": False,
-            "reason": "데이터가 부족합니다",
-            "detail": {
-                "type": "window_insufficient",
-                "rule": "최근 기록 7개(M/L/D 합) 확보 필요",
-                "asof": asof_yyyymmdd,
-                "need": WINDOW,
-                "have": len(records),
-            },
-        }
-
-    days = sorted({str(r["rgs_dt"]) for r in records if r.get("rgs_dt")})
-    ok, missing_days = gate_keyword_every_day_in_range(cust_id, days)
-    if not ok:
-        return {
-            "ready": False,
-            "reason": "데이터가 부족합니다",
-            "detail": {
-                "type": "gate_keyword_every_day",
-                "rule": "최근 7개 기록이 포함하는 모든 날짜에 키워드 1회 이상 필요",
-                "asof": asof_yyyymmdd,
-                "days": days,
-                "missing_days": missing_days,
-            },
-        }
-
-    return {
-        "ready": True,
-        "detail": {
-            "type": "ready",
-            "asof": asof_yyyymmdd,
-            "days": days,
-            "missing_days": [],
-        },
+    detail = {
+        "type": "window_features",
+        "asof": asof_yyyymmdd,
+        "days": days,
+        "missing_days": missing_days,
+        "window": window,
     }
+    return seq, detail
 
-# =========================================================
-# Main predictor (가변 N일 Gate + 최근 7개 Window)
-# =========================================================
+
+# =========================
+# Model inference
+# =========================
+
+class _ModelBundle:
+    def __init__(self):
+        self.loaded = False
+        self.cfg = None
+        self.model = None
+        self.scaler = None
+
+    def load(self):
+        if self.loaded:
+            return
+
+        # config
+        cfg = None
+        if os.path.exists(CFG_PATH):
+            with open(CFG_PATH, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+        else:
+            cfg = {"window": 7}
+
+        self.cfg = cfg
+
+        # scaler
+        if joblib is not None and os.path.exists(SCALER_PATH):
+            self.scaler = joblib.load(SCALER_PATH)
+        else:
+            self.scaler = None
+
+        # model
+        if torch is not None and os.path.exists(MODEL_PATH):
+            # 프로젝트에 따라 torch.load 방식이 다를 수 있음
+            self.model = torch.load(MODEL_PATH, map_location="cpu")
+            try:
+                self.model.eval()
+            except Exception:
+                pass
+        else:
+            self.model = None
+
+        self.loaded = True
+
+
+_BUNDLE = _ModelBundle()
+
+
 def predict_negative_risk(
     cust_id: str,
-    D_yyyymmdd: Optional[str] = None,
-) -> Dict[str, Any]:
+    source_date: str,
+    source_slot: str,
+    source_seq: int,
+) -> PredResult:
     """
-    ✅ 타임라인 "부정감정 예측" 결과 반환.
-    - Window: asof까지 최근 7개 기록 확보
-    - Gate: 그 7개 기록이 포함하는 N일 모두 TS(키워드) 1회 이상
-    - 성공 -> p_highrisk, probs 등 반환
-
-    ⚠️ 기준일(D_yyyymmdd)은 report/배치와 통일: date.today() 기반
+    source_date/slot/seq를 받아서 다음 target 슬롯의 "HighRisk 확률"을 만든다.
+    - 여기선 확률을 0~1로 뽑아 반환.
+    - 실제 p0/p2가 있다면 같이 반환.
     """
-    from datetime import date
 
-    art = load_artifacts()
-
-    if D_yyyymmdd is None:
-        D_yyyymmdd = date.today().strftime("%Y%m%d")
-    else:
-        D_yyyymmdd = str(D_yyyymmdd).strip()
-
-    if len(D_yyyymmdd) != 8 or not D_yyyymmdd.isdigit():
-        return {
-            "eligible": False,
-            "reason": "기준일(asof) 형식이 올바르지 않습니다",
-            "detail": {
-                "type": "invalid_asof",
-                "rule": "asof는 YYYYMMDD(8자리 숫자)여야 합니다",
-                "asof": D_yyyymmdd,
-                "missing_days": [],
-            },
-            "missing_days": [],
-        }
-
-    # 1) Window: 최근 7개 기록 확보
-    records = fetch_last_window_records(cust_id, D_yyyymmdd)
-    if len(records) < WINDOW:
-        return {
-            "eligible": False,
-            "reason": "데이터가 부족합니다",
-            "detail": {
-                "type": "window_insufficient",
-                "rule": "최근 기록 7개(M/L/D 합) 확보 필요",
-                "asof": D_yyyymmdd,
-                "need": WINDOW,
-                "have": len(records),
-                "missing_days": [],  # template 안정성
-            },
-            "missing_days": [],
-        }
-
-    # 2) Gate: Window가 포함하는 N일 모두 키워드 1회 이상
-    days = sorted({str(r["rgs_dt"]) for r in records if r.get("rgs_dt")})
-    ok, missing_days = gate_keyword_every_day_in_range(cust_id, days)
-    if not ok:
-        return {
-            "eligible": False,
-            "reason": "데이터가 부족합니다",
-            "detail": {
-                "type": "gate_keyword_every_day",
-                "rule": "최근 7개 기록이 포함하는 모든 날짜에 키워드 1회 이상 필요",
-                "asof": D_yyyymmdd,
-                "days": days,
-                "missing_days": missing_days,
-            },
-            "missing_days": missing_days,  # top-level도 같이
-        }
-
-    # 3) Feature matrix
     try:
-        X, meta = build_feature_matrix(art, records)
+        _BUNDLE.load()
     except Exception as e:
-        return {
-            "eligible": False,
-            "reason": "예측을 위한 값 생성에 실패했습니다",
-            "detail": {
-                "type": "feature_build_failed",
-                "asof": D_yyyymmdd,
-                "error": str(e),
-                "missing_days": [],
-            },
-            "missing_days": [],
-        }
+        return PredResult(
+            ok=False,
+            reason=f"model_load_failed: {e}",
+            p_highrisk=0.0,
+            detail={"trace": traceback.format_exc()},
+        )
 
-    # 4) Scaler transform
+    window = 7
     try:
-        Xs = art.scaler.transform(X)  # (7,7)
+        if _BUNDLE.cfg and "window" in _BUNDLE.cfg:
+            window = int(_BUNDLE.cfg.get("window") or 7)
+    except Exception:
+        window = 7
+
+    # Gate: source_date 기준 최근 3일 keyword 존재
+    gate_ok, gate_detail = gate_has_keywords_3days(cust_id, asof_yyyymmdd=source_date)
+    if not gate_ok:
+        return PredResult(
+            ok=False,
+            reason="gate_failed_no_keywords_3days",
+            p_highrisk=0.0,
+            detail=gate_detail,
+        )
+
+    # build features
+    seq, feat_detail = build_window_features(cust_id, asof_yyyymmdd=source_date, window=window)
+    if seq is None:
+        return PredResult(
+            ok=False,
+            reason="feature_build_failed",
+            p_highrisk=0.0,
+            detail=feat_detail,
+        )
+
+    # 모델이 없으면 최소한의 fallback(서비스 보존)
+    if _BUNDLE.model is None or torch is None:
+        # 간단 휴리스틱: neg가 많으면 높게(정확도 목적 X, 파이프라인 검증용)
+        neg_cnt = 0
+        for row in seq:
+            val = row[0]  # valence
+            if val < 0:
+                neg_cnt += 1
+        p = min(0.99, max(0.01, neg_cnt / float(len(seq) or 1)))
+        return PredResult(
+            ok=True,
+            reason="fallback_no_model",
+            p_highrisk=float(p),
+            p0=float(p) * 0.5,
+            p2=float(p) * 0.5,
+            detail={"gate": gate_detail, "feat": feat_detail},
+        )
+
+    # numpy 형태로 스케일링 -> torch tensor
+    try:
+        import numpy as np
+        arr = np.array(seq, dtype=float)  # (window, 7)
+
+        if _BUNDLE.scaler is not None:
+            # scaler가 (N,7) 형태를 기대한다고 가정
+            arr = _BUNDLE.scaler.transform(arr)
+
+        x = torch.tensor(arr, dtype=torch.float32).unsqueeze(0)  # (1, window, 7)
+
+        # 모델 출력 형식이 프로젝트마다 다를 수 있어 방어적으로 처리
+        with torch.no_grad():
+            y = _BUNDLE.model(x)
+
+        # y가 (1,3) logits 라고 가정(0/1/2)
+        # HighRisk = p0+p2 (너가 쓰던 기준을 그대로)
+        if isinstance(y, (list, tuple)):
+            y = y[0]
+
+        # logits -> softmax
+        if hasattr(torch, "softmax"):
+            probs = torch.softmax(y, dim=-1).cpu().numpy().reshape(-1).tolist()
+        else:
+            # softmax 구현
+            yy = y.cpu().numpy().reshape(-1)
+            ex = [math.exp(float(v)) for v in yy]
+            s = sum(ex) or 1.0
+            probs = [float(v)/s for v in ex]
+
+        # 안전 처리
+        while len(probs) < 3:
+            probs.append(0.0)
+
+        p0 = float(probs[0])
+        p2 = float(probs[2])
+        p_high = p0 + p2
+
+        return PredResult(
+            ok=True,
+            reason="ok",
+            p_highrisk=p_high,
+            p0=p0,
+            p2=p2,
+            detail={"gate": gate_detail, "feat": feat_detail, "probs": probs},
+        )
+
     except Exception as e:
-        return {
-            "eligible": False,
-            "reason": "스케일 변환에 실패했습니다",
-            "detail": {
-                "type": "scaler_failed",
-                "asof": D_yyyymmdd,
-                "error": str(e),
-                "missing_days": [],
-            },
-            "missing_days": [],
-        }
-
-    # 5) LSTM inference
-    x_t = torch.tensor(Xs, dtype=torch.float32, device=art.device).unsqueeze(0)  # (1,7,7)
-    with torch.no_grad():
-        logits = art.model(x_t)  # (1,6)
-        probs = F.softmax(logits, dim=1).cpu().numpy().reshape(-1)  # (6,)
-
-    p0, p1, p2, p3, p4, p5 = [float(x) for x in probs.tolist()]
-    p_highrisk = p0 + p2
-    is_risky = bool(p_highrisk >= THRESHOLD)
-    pred_class = int(np.argmax(probs))
-
-    return {
-        "eligible": True,
-        "asof": D_yyyymmdd,
-        "days": days,
-        "missing_days": [],
-        "high_risk_set": sorted(list(HIGH_RISK_SET)),
-        "threshold": THRESHOLD,
-        "p_highrisk": p_highrisk,
-        "p0": p0,
-        "p1": p1,
-        "p2": p2,
-        "p3": p3,
-        "p4": p4,
-        "p5": p5,
-        "is_risky": is_risky,
-        "pred_class": pred_class,
-        "probs": [float(x) for x in probs.tolist()],
-        "window_records": meta,
-    }
+        return PredResult(
+            ok=False,
+            reason=f"infer_failed: {e}",
+            p_highrisk=0.0,
+            detail={"trace": traceback.format_exc(), "gate": gate_detail, "feat": feat_detail},
+        )

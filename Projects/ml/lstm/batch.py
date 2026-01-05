@@ -1,75 +1,102 @@
 # ml/lstm/batch.py
 from __future__ import annotations
 
-from datetime import date, datetime, time
-from typing import List
+import traceback
+from datetime import datetime, time, date
+from typing import Any, Dict, List, Tuple
 
 from django.db import connection
+from django.utils import timezone
 
-from ml.lstm.prediction_service import upsert_next_morning_negative_prediction
+from ml.lstm.prediction_service import run_prediction_for_date
+from ml.lstm.predictor import _pick_source_slot_DLM
 
 
 def _today_yyyymmdd() -> str:
-    return date.today().strftime("%Y%m%d")
+    return timezone.localdate().strftime("%Y%m%d")
 
 
 def _is_after_8pm() -> bool:
-    return datetime.now().time() >= time(20, 0)
+    # 서버 기준(naive) 대신 Django timezone.localtime을 사용
+    now = timezone.localtime().time()
+    return now >= time(20, 0)
 
 
-def _fetch_cust_ids_with_today_ts(today_yyyymmdd: str) -> List[str]:
+def _get_cust_ids_with_any_ts_on_date(rgs_dt: str) -> List[str]:
     """
-    정책: 오늘 날짜(rgs_dt=오늘)에 CUS_FEEL_TS가 1건 이상 존재하는 사용자만 배치 대상
-    (아침/점심만 있어도 OK — 날짜만 오늘이면 OK)
+    배치 대상: 오늘 TS(키워드)가 있는 사용자들
+    (Gate도 키워드를 보므로, 최소 조건으로 TS 존재를 사용)
     """
     sql = """
         SELECT DISTINCT cust_id
         FROM CUS_FEEL_TS
         WHERE rgs_dt = %s
     """
-    with connection.cursor() as cur:
-        cur.execute(sql, [today_yyyymmdd])
-        return [str(r[0]) for r in cur.fetchall() if r and r[0]]
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [rgs_dt])
+        return [str(r[0]) for r in cursor.fetchall() if r and r[0]]
 
 
-def run_batch_predict_next_morning_if_needed() -> dict:
+def run_8pm_batch_prediction(force: bool = False) -> Dict[str, Any]:
     """
-    report와 동일한 기준(naive date/datetime)으로 20:00 이후에만 실행되도록 보호.
-    - 실제 스케줄러가 20:00에 호출하더라도,
-      혹시 다른 시간에 호출되는 걸 방지하기 위한 방어 로직임.
+    20:00 배치(백업):
+    - 원칙: 기록 저장 이벤트 훅이 이미 예측을 생성한다.
+    - 그래도 혹시 누락되었거나, 특정 사용자에 대해 예측이 비어있을 수 있으니 20:00에 한번 더 보장.
+    - 정책: '오늘 rgs_dt'에서 source는 D>L>M, 그걸로 target 생성.
+    - 배치는 보통 skip_if_exists=True(이미 있으면 건너뜀) 권장.
     """
+    if not force and not _is_after_8pm():
+        return {"ok": False, "reason": "before_20:00", "now": timezone.localtime().strftime("%Y-%m-%d %H:%M:%S")}
+
     today = _today_yyyymmdd()
+    cust_ids = _get_cust_ids_with_any_ts_on_date(today)
 
-    if not _is_after_8pm():
-        return {
-            "ran": False,
-            "today": today,
-            "reason": "before_20:00",
-            "processed": 0,
-            "skipped": 0,
-        }
+    print("[BATCHDBG][ENTER]", "today=", today, "cust_cnt=", len(cust_ids), "force=", force, flush=True)
 
-    cust_ids = _fetch_cust_ids_with_today_ts(today)
+    results = []
+    ok_cnt = 0
+    skip_cnt = 0
+    fail_cnt = 0
 
-    processed = 0
-    skipped = 0
     for cust_id in cust_ids:
-        res = upsert_next_morning_negative_prediction(
-            cust_id=cust_id,
-            asof_yyyymmdd=today,
-            source="batch_20",
-            skip_if_exists=True,  # ✅ 운영 안전: 이미 내일M row 있으면 스킵
-        )
-        if res.get("skipped"):
-            skipped += 1
-        else:
-            processed += 1
+        try:
+            picked = _pick_source_slot_DLM(cust_id, today)
+            if not picked:
+                results.append({"cust_id": cust_id, "ok": False, "reason": "no_source_today"})
+                fail_cnt += 1
+                continue
 
-    return {
-        "ran": True,
+            source_slot, source_seq = picked
+
+            r = run_prediction_for_date(
+                cust_id=cust_id,
+                source_date=today,
+                source_slot=source_slot,
+                source_seq=int(source_seq),
+                skip_if_exists=True,  # 배치는 보통 스킵
+            )
+
+            results.append({"cust_id": cust_id, **r})
+
+            if r.get("ok") and r.get("skipped"):
+                skip_cnt += 1
+            elif r.get("ok"):
+                ok_cnt += 1
+            else:
+                fail_cnt += 1
+
+        except Exception as e:
+            fail_cnt += 1
+            results.append({"cust_id": cust_id, "ok": False, "reason": f"batch_exception: {e}", "trace": traceback.format_exc()})
+
+    summary = {
+        "ok": True,
         "today": today,
-        "reason": "after_20:00",
-        "candidates": len(cust_ids),
-        "processed": processed,
-        "skipped": skipped,
+        "total": len(cust_ids),
+        "ok_cnt": ok_cnt,
+        "skip_cnt": skip_cnt,
+        "fail_cnt": fail_cnt,
+        "results": results,
     }
+    print("[BATCHDBG][EXIT]", summary, flush=True)
+    return summary

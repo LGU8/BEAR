@@ -175,6 +175,13 @@ def record_mood(request):
 
     except Exception as e:
         return HttpResponseBadRequest(f"저장 중 오류 발생: {e}")
+    from ml.lstm.event_hooks import on_mood_recorded
+
+    transaction.on_commit(
+        lambda: on_mood_recorded(
+            cust_id=cust_id, rgs_dt=rgs_dt, time_slot=time_slot, seq=int(seq)
+        )
+    )
 
     # meal.html에 데이터 전송
     request.session["rgs_dt"] = rgs_dt
@@ -297,14 +304,22 @@ def timeline(request):
     # ---- ENTER LOG ----
     print(
         "[TLDBG][ENTER]",
-        "path=", request.path,
-        "method=", request.method,
-        "session_key=", getattr(request.session, "session_key", None),
-        "_auth_user_id=", request.session.get("_auth_user_id"),
-        "session_cust_id=", request.session.get("cust_id"),
-        "user_auth=", request.user.is_authenticated,
-        "user_cust_id=", getattr(request.user, "cust_id", None),
-        "cust_id_var=", cust_id,
+        "path=",
+        request.path,
+        "method=",
+        request.method,
+        "session_key=",
+        getattr(request.session, "session_key", None),
+        "_auth_user_id=",
+        request.session.get("_auth_user_id"),
+        "session_cust_id=",
+        request.session.get("cust_id"),
+        "user_auth=",
+        request.user.is_authenticated,
+        "user_cust_id=",
+        getattr(request.user, "cust_id", None),
+        "cust_id_var=",
+        cust_id,
         flush=True,
     )
 
@@ -329,11 +344,16 @@ def timeline(request):
 
     print(
         "[TLDBG][DATE]",
-        "today=", today.strftime("%Y-%m-%d"),
-        "start=", start,
-        "end=", end,
-        "start_date=", start_date.strftime("%Y-%m-%d"),
-        "end_date=", end_date.strftime("%Y-%m-%d"),
+        "today=",
+        today.strftime("%Y-%m-%d"),
+        "start=",
+        start,
+        "end=",
+        end,
+        "start_date=",
+        start_date.strftime("%Y-%m-%d"),
+        "end_date=",
+        end_date.strftime("%Y-%m-%d"),
         flush=True,
     )
 
@@ -424,14 +444,20 @@ def timeline(request):
     neg_pred = {
         "eligible": False,
         "reason": "데이터가 없습니다",
-        "detail": {"type": "no_recent_record", "asof": today_ymd, "missing_days": [yest_ymd, today_ymd]},
+        "detail": {
+            "type": "no_recent_record",
+            "asof": today_ymd,
+            "missing_days": [yest_ymd, today_ymd],
+        },
         "missing_days": [yest_ymd, today_ymd],
     }
 
     print(
         "[TLDBG][SOURCE]",
-        "cust_id=", cust_id,
-        "source_date=", source_date,
+        "cust_id=",
+        cust_id,
+        "source_date=",
+        source_date,
         flush=True,
     )
 
@@ -440,9 +466,12 @@ def timeline(request):
 
         print(
             "[TLDBG][SOURCE_SLOT]",
-            "cust_id=", cust_id,
-            "source_date=", source_date,
-            "source_slot=", source_slot,
+            "cust_id=",
+            cust_id,
+            "source_date=",
+            source_date,
+            "source_slot=",
+            source_slot,
             flush=True,
         )
 
@@ -481,7 +510,9 @@ def timeline(request):
                         "asof": source_date,
                         "target_date": target_date,
                         "target_slot": target_slot,
-                        "updated_time": str(updated_time) if updated_time is not None else None,
+                        "updated_time": (
+                            str(updated_time) if updated_time is not None else None
+                        ),
                         "missing_days": [],
                     },
                     "missing_days": [],
@@ -504,12 +535,18 @@ def timeline(request):
 
             print(
                 "[TLDBG][RISK_ROW]",
-                "cust_id=", cust_id,
-                "target_date=", target_date,
-                "target_slot=", target_slot,
-                "eligible=", neg_pred.get("eligible"),
-                "reason=", neg_pred.get("reason"),
-                "detail_type=", (neg_pred.get("detail") or {}).get("type"),
+                "cust_id=",
+                cust_id,
+                "target_date=",
+                target_date,
+                "target_slot=",
+                target_slot,
+                "eligible=",
+                neg_pred.get("eligible"),
+                "reason=",
+                neg_pred.get("reason"),
+                "detail_type=",
+                (neg_pred.get("detail") or {}).get("type"),
                 flush=True,
             )
 
@@ -568,10 +605,14 @@ def timeline(request):
 
     print(
         "[TLDBG][EXIT]",
-        "cust_id=", cust_id,
-        "target_date=", target_date,
-        "target_slot=", target_slot,
-        "llm_ment_len=", len(llm_ment or ""),
+        "cust_id=",
+        cust_id,
+        "target_date=",
+        target_date,
+        "target_slot=",
+        target_slot,
+        "llm_ment_len=",
+        len(llm_ment or ""),
         flush=True,
     )
 
