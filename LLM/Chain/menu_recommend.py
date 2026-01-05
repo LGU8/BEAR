@@ -64,6 +64,31 @@ system_prompt = """
 }
 """
 
+"""
+사용한 쿼리문
+SELECT Recommended_calories, 
+	round((Recommended_calories*(Ratio_carb/10))/4) AS Recom_carb, 
+    round((Recommended_calories*(Ratio_protein/10))/4) AS Recom_pro,
+    round((Recommended_calories*(Ratio_fat/10))/4) AS Recom_fat,
+    h.rgs_dt,
+    GROUP_CONCAT(name SEPARATOR ', ') AS NAME,
+	h.time_slot, h.kcal, h.carb_g, h.protein_g, h.fat_g,
+    f.mood, f.energy
+FROM bear.CUS_FOOD_TH h
+JOIN (SELECT * FROM bear.CUS_PROFILE_TS) p
+ON h.cust_id = p.cust_id
+JOIN (SELECT * FROM bear.CUS_FOOD_TS) s
+ON h.cust_id = s.cust_id AND h.rgs_dt = s.rgs_dt AND h.seq = s.seq
+JOIN (SELECT name, food_id FROM bear.FOOD_TB) b
+ON s.food_id = b.food_id
+JOIN bear.CUS_FEEL_TH f
+ON  h.cust_id = f.cust_id AND h.rgs_dt = f.rgs_dt
+WHERE h.cust_id = 0000000011
+GROUP BY time_slot, rgs_dt
+ORDER BY rgs_dt 
+LIMIT 6;
+"""
+
 data = {
   "user_id": "002",
   "recommend_info": {"kcal": 1522.39,	"carbohydrate":114,	"protein": 152,	"fat": 114},
