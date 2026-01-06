@@ -213,7 +213,6 @@ def home(request):
 # =========================
 # 6) PASSWORD RESET (실기능)
 # =========================
-<<<<<<< HEAD
 # def password_reset(request):
 #     """
 #     UI -> 실제 메일 발송 기능으로 동작
@@ -332,7 +331,6 @@ def home(request):
 #         return redirect("accounts_app:user_login")
 #
 #     return render(request, "accounts/password_reset_confirm.html")
-=======
 def password_reset(request):
     """
     UI -> 실제 메일 발송 기능으로 동작
@@ -438,7 +436,6 @@ def password_reset_confirm(request, uidb64, token):
         return redirect("accounts_app:user_login")
 
     return render(request, "accounts/password_reset_confirm.html")
->>>>>>> parent of 1eff934 (도전)
 
 
 # =========================
