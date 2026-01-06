@@ -248,15 +248,28 @@ def password_reset(request):
             )
 
             # ✅ DEFAULT_FROM_EMAIL은 settings에서 env로 받아옴
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
-                recipient_list=[email],
-                fail_silently=getattr(settings, "EMAIL_FAIL_SILENTLY", False),
-            )
+            try:
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or "no-reply@bear.local",
+                    recipient_list=[email],
+                    fail_silently=getattr(settings, "EMAIL_FAIL_SILENTLY", False),
+                )
+            except Exception:
+                logger.exception("[PWRESET] send_mail failed: email=%s host=%s", email, request.get_host())
+                return render(
+                    request,
+                    "accounts/password_reset.html",
+                    {
+                        "email": email,
+                        "error": "메일 전송에 실패했습니다. 잠시 후 다시 시도해 주세요. 문제가 계속되면 관리자에게 문의해 주세요.",
+                    },
+                )
+            else:
+                return render(request, "accounts/password_reset_done.html")
 
-            return render(request, "accounts/password_reset_done.html")
+
 
         except Cust.DoesNotExist:
             return render(
