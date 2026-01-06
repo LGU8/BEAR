@@ -213,124 +213,124 @@ def home(request):
 # =========================
 # 6) PASSWORD RESET (실기능)
 # =========================
-def password_reset(request):
-    """
-    UI -> 실제 메일 발송 기능으로 동작
-    """
-    if request.method == "POST":
-        email = (request.POST.get("email") or "").strip()
-
-        if not email:
-            return render(request, "accounts/password_reset.html", {"error": "이메일을 입력해주세요."})
-
-        try:
-            user = Cust.objects.get(email=email)
-
-            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-            token = account_activation_token.make_token(user)
-
-            reset_link = _build_password_reset_link(request, uidb64, token)
-
-            # ✅ 운영에서 메일 설정 누락 시 바로 감지할 수 있도록 로그
-            logger.warning("[PWRESET] email=%s host=%s scheme=%s is_secure=%s xfp=%s link=%s",
-                           email,
-                           request.get_host(),
-                           request.scheme,
-                           request.is_secure(),
-                           request.META.get("HTTP_X_FORWARDED_PROTO"),
-                           reset_link)
-
-            subject = "[BEAR] 비밀번호 재설정 안내"
-            message = (
-                "아래 링크를 클릭하여 비밀번호를 변경하세요.\n\n"
-                f"{reset_link}\n\n"
-                "만약 본인이 요청하지 않았다면 이 메일을 무시해주세요."
-            )
-
-            # ✅ DEFAULT_FROM_EMAIL은 settings에서 env로 받아옴
-            try:
-                send_mail(
-                    subject=subject,
-                    message=message,
-                    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or "no-reply@bear.local",
-                    recipient_list=[email],
-                    fail_silently=getattr(settings, "EMAIL_FAIL_SILENTLY", False),
-                )
-            except Exception:
-                logger.exception("[PWRESET] send_mail failed: email=%s host=%s", email, request.get_host())
-                return render(
-                    request,
-                    "accounts/password_reset.html",
-                    {
-                        "email": email,
-                        "error": "메일 전송에 실패했습니다. 잠시 후 다시 시도해 주세요. 문제가 계속되면 관리자에게 문의해 주세요.",
-                    },
-                )
-            else:
-                return render(request, "accounts/password_reset_done.html")
-
-
-
-        except Cust.DoesNotExist:
-            return render(
-                request,
-                "accounts/password_reset.html",
-                {"error": "존재하지 않는 이메일입니다."},
-            )
-        except Exception as e:
-            # SMTP 설정/네트워크/인증 실패 등
-            logger.exception("[PWRESET] send_mail failed: %r", e)
-            return render(
-                request,
-                "accounts/password_reset.html",
-                {"error": "메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요."},
-            )
-
-    return render(request, "accounts/password_reset.html")
-
-
-def password_reset_confirm(request, uidb64, token):
-    """
-    링크 클릭 -> 토큰 검증 -> 새 비밀번호 저장
-    """
-    try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = Cust.objects.get(pk=uid)
-    except Exception:
-        user = None
-
-    if not (user and account_activation_token.check_token(user, token)):
-        return render(request, "accounts/password_reset_error.html")
-
-    if request.method == "POST":
-        new_pw = (request.POST.get("new_password") or "").strip()
-        confirm_pw = (request.POST.get("confirm_password") or "").strip()
-
-        if not new_pw:
-            return render(
-                request,
-                "accounts/password_reset_confirm.html",
-                {"error": "비밀번호를 입력해주세요."},
-            )
-
-        if new_pw != confirm_pw:
-            return render(
-                request,
-                "accounts/password_reset_confirm.html",
-                {"error": "비밀번호 확인이 일치하지 않습니다."},
-            )
-
-        today_8, now_14, _ = _now_parts()
-
-        # ✅ Django make_password(PBKDF2)로 저장 (현재 CustBackend가 check_password 사용중이므로 정합)
-        user.password = make_password(new_pw)
-        user.updated_dt = today_8
-        user.updated_time = now_14
-        user.save(update_fields=["password", "updated_dt", "updated_time"])
-
-        return redirect("accounts_app:user_login")
-
-    return render(request, "accounts/password_reset_confirm.html")
+# def password_reset(request):
+#     """
+#     UI -> 실제 메일 발송 기능으로 동작
+#     """
+#     if request.method == "POST":
+#         email = (request.POST.get("email") or "").strip()
+#
+#         if not email:
+#             return render(request, "accounts/password_reset.html", {"error": "이메일을 입력해주세요."})
+#
+#         try:
+#             user = Cust.objects.get(email=email)
+#
+#             uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+#             token = account_activation_token.make_token(user)
+#
+#             reset_link = _build_password_reset_link(request, uidb64, token)
+#
+#             # ✅ 운영에서 메일 설정 누락 시 바로 감지할 수 있도록 로그
+#             logger.warning("[PWRESET] email=%s host=%s scheme=%s is_secure=%s xfp=%s link=%s",
+#                            email,
+#                            request.get_host(),
+#                            request.scheme,
+#                            request.is_secure(),
+#                            request.META.get("HTTP_X_FORWARDED_PROTO"),
+#                            reset_link)
+#
+#             subject = "[BEAR] 비밀번호 재설정 안내"
+#             message = (
+#                 "아래 링크를 클릭하여 비밀번호를 변경하세요.\n\n"
+#                 f"{reset_link}\n\n"
+#                 "만약 본인이 요청하지 않았다면 이 메일을 무시해주세요."
+#             )
+#
+#             # ✅ DEFAULT_FROM_EMAIL은 settings에서 env로 받아옴
+#             try:
+#                 send_mail(
+#                     subject=subject,
+#                     message=message,
+#                     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or "no-reply@bear.local",
+#                     recipient_list=[email],
+#                     fail_silently=getattr(settings, "EMAIL_FAIL_SILENTLY", False),
+#                 )
+#             except Exception:
+#                 logger.exception("[PWRESET] send_mail failed: email=%s host=%s", email, request.get_host())
+#                 return render(
+#                     request,
+#                     "accounts/password_reset.html",
+#                     {
+#                         "email": email,
+#                         "error": "메일 전송에 실패했습니다. 잠시 후 다시 시도해 주세요. 문제가 계속되면 관리자에게 문의해 주세요.",
+#                     },
+#                 )
+#             else:
+#                 return render(request, "accounts/password_reset_done.html")
+#
+#
+#
+#         except Cust.DoesNotExist:
+#             return render(
+#                 request,
+#                 "accounts/password_reset.html",
+#                 {"error": "존재하지 않는 이메일입니다."},
+#             )
+#         except Exception as e:
+#             # SMTP 설정/네트워크/인증 실패 등
+#             logger.exception("[PWRESET] send_mail failed: %r", e)
+#             return render(
+#                 request,
+#                 "accounts/password_reset.html",
+#                 {"error": "메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요."},
+#             )
+#
+#     return render(request, "accounts/password_reset.html")
+#
+#
+# def password_reset_confirm(request, uidb64, token):
+#     """
+#     링크 클릭 -> 토큰 검증 -> 새 비밀번호 저장
+#     """
+#     try:
+#         uid = force_str(urlsafe_base64_decode(uidb64))
+#         user = Cust.objects.get(pk=uid)
+#     except Exception:
+#         user = None
+#
+#     if not (user and account_activation_token.check_token(user, token)):
+#         return render(request, "accounts/password_reset_error.html")
+#
+#     if request.method == "POST":
+#         new_pw = (request.POST.get("new_password") or "").strip()
+#         confirm_pw = (request.POST.get("confirm_password") or "").strip()
+#
+#         if not new_pw:
+#             return render(
+#                 request,
+#                 "accounts/password_reset_confirm.html",
+#                 {"error": "비밀번호를 입력해주세요."},
+#             )
+#
+#         if new_pw != confirm_pw:
+#             return render(
+#                 request,
+#                 "accounts/password_reset_confirm.html",
+#                 {"error": "비밀번호 확인이 일치하지 않습니다."},
+#             )
+#
+#         today_8, now_14, _ = _now_parts()
+#
+#         # ✅ Django make_password(PBKDF2)로 저장 (현재 CustBackend가 check_password 사용중이므로 정합)
+#         user.password = make_password(new_pw)
+#         user.updated_dt = today_8
+#         user.updated_time = now_14
+#         user.save(update_fields=["password", "updated_dt", "updated_time"])
+#
+#         return redirect("accounts_app:user_login")
+#
+#     return render(request, "accounts/password_reset_confirm.html")
 
 
 # =========================
