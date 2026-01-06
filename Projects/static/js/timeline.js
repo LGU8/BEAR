@@ -240,10 +240,12 @@ function calcBarThickness(chartAreaWidth, N) {
     const N = labels.length || 7;
 
     const isMobile = window.matchMedia("(max-width: 480px)").matches;
+
     const initialThickness = {
-      barThickness: isMobile ? 10 : 22,
-      maxBarThickness: isMobile ? 12 : 28,
+      barThickness: isMobile ? 10 : 44,
+      maxBarThickness: isMobile ? 12 : 56,
     };
+
 
     // ✅ score 데이터(0~9), 비어도 0으로 채움
     const pos = normalizeToLength(payload?.pos, N, 0);
@@ -362,15 +364,20 @@ function calcBarThickness(chartAreaWidth, N) {
       const ca = chartInstance?.chartArea;
       if (!ca) return;
 
-      const areaWidth = ca.right - ca.left;
-      const t = calcBarThickness(areaWidth, N);
+      const isMobileNow = window.matchMedia("(max-width: 480px)").matches;
 
-      chartInstance.data.datasets.forEach((ds) => {
-        ds.barThickness = t.barThickness;
-        ds.maxBarThickness = t.maxBarThickness;
-      });
+      if (isMobileNow) {
+        const areaWidth = ca.right - ca.left;
+        const t = calcBarThickness(areaWidth, N);
 
-      chartInstance.update("none");
+        chartInstance.data.datasets.forEach((ds) => {
+          ds.barThickness = t.barThickness;
+          ds.maxBarThickness = t.maxBarThickness;
+        });
+
+        chartInstance.update("none");
+      }
+
     });
 
 
@@ -385,6 +392,18 @@ function calcBarThickness(chartAreaWidth, N) {
 
         const ca = chartInstance.chartArea;
         if (!ca) return;
+
+        const isMobileNow = window.matchMedia("(max-width: 480px)").matches;
+
+        // ✅ PC면 원래 두께로 되돌리고 종료
+        if (!isMobileNow) {
+          chartInstance.data.datasets.forEach((ds) => {
+            ds.barThickness = 44;
+            ds.maxBarThickness = 56;
+          });
+          chartInstance.update("none");
+          return;
+        }
 
         const areaWidth = ca.right - ca.left;
         const t = calcBarThickness(areaWidth, chartInstance.data.labels?.length ?? 7);

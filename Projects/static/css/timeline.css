@@ -48,13 +48,15 @@
   align-items: center;
   gap: 8px;
 
-  background-color: #FFF2DD;
+  background-color: #FFFFFF;   /* ✅ 흰색 배경 */
+  border: 3px solid #FFF2DD;   /* ✅ 테두리 색상 변경 */
   border-radius: 12px;
   padding: 8px 12px;
 
   cursor: pointer;
   user-select: none;
 }
+
 
 .timeline-datebar-icon{
   font-size: 14px;
@@ -368,6 +370,61 @@
   width: clamp(64px, 18vw, 92px) !important;
   height: auto !important;
   display: block !important;
+}
+
+/* ✅ 카드 내부로 들어간 타이틀 간격/정렬 보정 */
+.timeline-title--inside{
+  padding: 0 0 0 5px; /* 기존 느낌 유지 */
+  margin: 0 0 10px 0; /* 아래 컨텐츠와 간격 */
+}
+
+.negpred-wrap{
+  margin-top: 12px;
+}
+
+/* ✅ 타이틀이 wrap 안에 들어오면, 타이틀과 흰 패널 사이 간격만 관리 */
+.negpred-wrap .timeline-title--inside{
+  margin-bottom: 10px;
+}
+/* ✅ llm-box 안에 타이틀이 들어오는 케이스 */
+.llm-box--titled{
+  flex-direction: column;     /* 핵심: 세로 배치 */
+  align-items: stretch;       /* 타이틀은 좌측 시작이 자연스러움 */
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+/* 타이틀은 좌측 정렬 */
+.llm-box--titled .timeline-title--inside{
+  text-align: left;
+  margin: 0;
+}
+
+/* 기존 p 스타일은 유지하되, 타이틀 들어오면 본문만 중앙정렬 유지 */
+.llm-box--titled .llm-text{
+  text-align: center;
+}
+
+/* ✅ 차트 흰 패널 내부 헤더 */
+.timeline-chart-head{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px; /* 헤더와 차트 사이 */
+}
+
+/* datebar는 기존 그대로 사용 (스타일 재활용) */
+.timeline-chart-head .timeline-datebar{
+  align-self: flex-start;
+}
+
+/* ✅ negpred-panel 안쪽 타이틀 전용 */
+.negpred-title-inpanel{
+  width: 100%;
+  text-align: left;
+  align-self: flex-start;
+  margin: 0 0 12px 0;
+  padding-left: 5px; /* 기존 느낌 유지 */
 }
 
 @media (max-width: 480px){
