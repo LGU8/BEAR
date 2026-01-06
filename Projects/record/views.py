@@ -18,7 +18,6 @@ def record_mood(request):
     # ✅ report.views가 LLM import를 당길 수 있으니 lazy import + fallback
     try:
         from report.views import get_selected_date
-
         selected_date = get_selected_date(request)
     except Exception:
         selected_date = timezone.localdate()
@@ -28,10 +27,13 @@ def record_mood(request):
         "active_tab": "record",
     }
 
+    # GET이면 화면 렌더
     if request.method != "POST":
         return render(request, "record/record_mood.html", context)
 
-    # 입력값 정리
+    # =========================
+    # 1) 입력값 정리
+    # =========================
     time_slot = request.POST.get("time_slot")
     mood = request.POST.get("mood")
     energy = request.POST.get("energy")
@@ -41,17 +43,46 @@ def record_mood(request):
     if not time_slot or not mood or not energy:
         return HttpResponseBadRequest("시간, 감정, 활성도는 필수 항목입니다.")
 
-    cust_id = request.user.cust_id
+    # =========================
+    # 2) 공통 파라미터
+    # =========================
+    # ✅ 로그인 강제는 아직 안 붙였지만, cust_id는 최대한 안전하게 가져오기
+    cust_id = None
+    try:
+        cust_id = _safe_get_cust_id(request)
+    except Exception:
+        cust_id = None
+
+    if not cust_id:
+        # fallback (기존 너 코드 흐름 최대 유지)
+        cust_id = getattr(request.user, "cust_id", None)
+
+    if not cust_id:
+        # 여기서 500 나지 않게 방어
+        return HttpResponseBadRequest("cust_id를 확인할 수 없습니다. 로그인 상태를 확인해주세요.")
+
     rgs_dt = selected_date.strftime("%Y%m%d")
     date_time = selected_date.strftime("%Y%m%d%H%M%S")
     stable_yn = "y" if (mood in ("pos", "neu") and energy in ("low", "med")) else "n"
 
-    # 트랜잭션 시작
+    # seq는 insert/update 결과로 결정됨
+    seq = None
+
+    # =========================
+    # 3) DB 저장 + on_commit 등록(atomic 안에서!)
+    # =========================
     try:
+        # ✅ hook import는 atomic "밖"에서 해도 되고, "안"에서 해도 됨.
+        #    (대부분은 import 비용이 작아서 밖에서 해도 괜찮고, 실패 시 저장 자체를 막고 싶지 않으면 try/except로 분리)
+        try:
+            from ml.lstm.event_hooks import on_mood_recorded
+        except Exception as e:
+            on_mood_recorded = None
+            print("[RECWARN][HOOK_IMPORT_FAIL]", str(e), flush=True)
+
         with transaction.atomic():
             with connection.cursor() as cursor:
-
-                # 기존 기록 존재 여부 확인
+                # (1) 기존 기록 존재 여부 확인
                 cursor.execute(
                     """
                     SELECT seq
@@ -64,7 +95,7 @@ def record_mood(request):
                 )
                 row = cursor.fetchone()
 
-                # INSERT 경로
+                # (2) INSERT 경로
                 if row is None:
                     cursor.execute(
                         """
@@ -108,7 +139,7 @@ def record_mood(request):
                         ],
                     )
 
-                # UPDATE 경로
+                # (3) UPDATE 경로
                 else:
                     seq = row[0]
 
@@ -149,13 +180,11 @@ def record_mood(request):
                         [cust_id, rgs_dt, seq],
                     )
 
-                # 키워드 재삽입
+                # (4) 키워드 재삽입
                 if keywords:
                     ts_rows = []
                     for i, k in enumerate(keywords, start=1):
-                        ts_rows.append(
-                            (date_time, date_time, cust_id, rgs_dt, seq, i, k)
-                        )
+                        ts_rows.append((date_time, date_time, cust_id, rgs_dt, seq, i, k))
 
                     cursor.executemany(
                         """
@@ -174,22 +203,37 @@ def record_mood(request):
                         ts_rows,
                     )
 
+            # ✅ (중요) atomic "안"에서 on_commit 등록
+            # - on_mood_recorded가 import 실패했으면 None이므로 그냥 스킵
+            # - 여기서 등록만 하고, 실행은 커밋 이후로 미뤄짐
+            if on_mood_recorded is not None:
+                # seq가 None이면 말이 안 되므로 방어
+                _seq_int = int(seq) if seq is not None else None
+
+                if _seq_int is not None:
+                    transaction.on_commit(
+                        lambda: on_mood_recorded(
+                            cust_id=cust_id,
+                            rgs_dt=rgs_dt,
+                            time_slot=time_slot,
+                            seq=_seq_int,
+                        )
+                    )
+                else:
+                    print("[RECWARN][SEQ_NONE_SKIP_HOOK]", flush=True)
+
     except Exception as e:
+        # 저장 트랜잭션 자체의 실패만 여기서 잡힘
         return HttpResponseBadRequest(f"저장 중 오류 발생: {e}")
-    from ml.lstm.event_hooks import on_mood_recorded
 
-    transaction.on_commit(
-        lambda: on_mood_recorded(
-            cust_id=cust_id, rgs_dt=rgs_dt, time_slot=time_slot, seq=int(seq)
-        )
-    )
-
-    # meal.html에 데이터 전송
+    # =========================
+    # 4) meal.html로 넘길 세션 세팅 + redirect
+    # =========================
     request.session["rgs_dt"] = rgs_dt
     request.session["seq"] = seq
     request.session["time_slot"] = time_slot
-    return redirect("/record/meal/")
 
+    return redirect("/record/meal/")
 
 @login_required
 def record_meal(request):
