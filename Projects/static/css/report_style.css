@@ -566,3 +566,138 @@
 #weekly-mood-card[data-has-data="1"] .weekly-chart {
   display: block;
 }
+
+/* ===============================
+   모바일 사이즈
+   =============================== */
+@media (max-width: 480px) {
+  /* Feedback 카드: 구조 유지 */
+  .feedback-card {
+    grid-template-columns: 1fr 3fr;  /* 이미지 1, 텍스트 3 */
+    gap: 12px;
+    padding: 14px;
+    margin: 8px;
+  }
+
+  .feedback-ico {
+    width: 60px;         /* 실제 이미지 크기는 따로 제어 */
+    justify-self: center;
+  }
+
+  .feedback-text {
+    font-size: 13px;
+    line-height: 1.5;
+    padding-right: 0;
+  }
+
+  /* 영양소-자세히*/
+  .detail-grid {
+    grid-template-columns: 1fr;
+    padding: 16px 10px;
+  }
+
+  .detail-left {
+    border-right: none;
+    padding-right: 0;
+    border-bottom: 1px solid #FFB845;
+    padding-bottom: 20px;
+  }
+
+  .detail-right {
+    padding-left: 0;
+    margin-top: 20px;
+  }
+
+    .meal-toggle {
+    padding-left: 0;
+  }
+
+  .meal-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .meal-menu {
+    padding-left: 0;
+    margin-top: 24px;
+  }
+
+  .meal-menu-title {
+    font-size: 15px;
+  }
+
+  .meal-menu-text {
+    font-size: 13px;
+  }
+
+  .meal-donut-wrap,
+  .mood-donut-wrap {
+    width: 140px;
+    height: 140px;
+  }
+
+  /* 기분 */
+  .mood-left {
+    border-right: none;
+    padding-right: 0;
+    border-bottom: 1px solid #FFB845;
+    padding-bottom: 20px;
+  }
+
+  .mood-right {
+    padding-left: 0;
+    margin-top: 20px;
+  }
+
+  .mood_img {
+    width: 120px;
+    height: 120px;
+  }
+
+  .mood_text {
+    font-size: 14px;
+  }
+
+  /* 주간 그래프 공통 */
+  .weekly-chart {
+    padding: 16px 12px;   /* ⬅ 좌우/상하 여백 축소 */
+    height: 220px;        /* ⬅ 그래프 높이 축소 */
+    margin-top: 4px;
+  }
+
+  .nut-type-toggle{
+    gap: 6px;
+  }
+
+ .nut-type-toggle .divider{
+    font-size: 10px;
+ }
+  .toggle-btn {
+    font-size: 11px;
+  }
+
+  .mood-legend {
+    gap: 6px;
+  }
+
+  .legend-title {
+    font-size: 11px;
+    margin-right: 0px;
+  }
+
+  .legend-item {
+    font-size: 11px;
+    padding-left: 30px;
+  }
+
+  .legend-item::before {
+    width: 20px;          /* 선 길이 ↓ */
+    border-top-width: 2px;/* 선 두께 ↓ */
+  }
+
+  .legend-item::after {
+    width: 7px;           /* 점 크기 ↓ */
+    height: 7px;
+    left: 8px;            /* 선 중앙 보정 */
+  }
+}
