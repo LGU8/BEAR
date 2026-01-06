@@ -427,9 +427,49 @@
   padding-left: 5px; /* 기존 느낌 유지 */
 }
 
+/* =========================================
+   Timeline = Badges처럼 네비바 폭에 맞추기
+   - 컨테이너(settings-page)가 기준선 담당
+   - section/card-inner는 폭/패딩 재정의 금지
+   ========================================= */
+
+/* (1) 페이지 컨테이너를 도감과 동일한 정렬 방식으로 */
+.settings-page.timeline-page{
+  width: 100%;
+  max-width: 980px;          /* ✅ 네비바 기준 폭과 동일 값으로 맞추기 */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* (2) 섹션이 자체 max-width/padding으로 다시 좁히지 못하게 차단 */
+.timeline-page .timeline-section{
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 12px 0 !important; /* ✅ 좌우 0: 컨테이너 기준선에 딱 붙게 */
+}
+
+/* (3) inner padding도 제거해서 좌우 기준선 2중 생성 방지 */
+.timeline-page .timeline-card-inner{
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* (4) 흰 박스(패널)들은 컨테이너 폭을 100% 채우기 */
+.timeline-page .negpred-panel,
+.timeline-page .llm-box,
+.timeline-page .timeline-chart-panel{
+  width: 100%;
+}
+
+
+
+
 @media (max-width: 480px){
   .timeline-chart-panel{
     height: 280px; /* 너무 크면 스크롤 길어져서 줄이는 선택지 */
     padding: 14px 12px 10px;
   }
 }
+
+
+

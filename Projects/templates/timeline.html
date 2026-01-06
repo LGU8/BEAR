@@ -15,155 +15,156 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/locales/bootstrap-datepicker.ko.min.js"></script>
 
 
+<div class="settings-page timeline-page">
+  <!-- (1) ML 오늘의 감정 예측 결과 -->
+  <section class="timeline-section">
+    <div class="timeline-card">
+      <div class="timeline-card-inner">
 
-<!-- (1) ML 오늘의 감정 예측 결과 -->
-<section class="timeline-section">
-  <div class="timeline-card">
-    <div class="timeline-card-inner">
+        {# ✅ 기존 timeline-card-head 제거 #}
 
-      {# ✅ 기존 timeline-card-head 제거 #}
+        {% if not neg_pred.eligible %}
+          <div class="negpred-wrap">
 
-      {% if not neg_pred.eligible %}
-        <div class="negpred-wrap">
+            <div class="negpred-panel negpred-panel--empty">
 
-          <div class="negpred-panel negpred-panel--empty">
+              {# ✅ 흰 박스 안으로 이동 #}
+              <h4 class="timeline-title timeline-title--inside negpred-title-inpanel">
+                오늘의 감정 예측
+              </h4>
 
-            {# ✅ 흰 박스 안으로 이동 #}
-            <h4 class="timeline-title timeline-title--inside negpred-title-inpanel">
-              오늘의 감정 예측
-            </h4>
-
-            <div class="negpred-empty-text">
-              <p class="negpred-empty-title">⚠️데이터가 부족합니다</p>
-              <p class="negpred-empty-desc">
-                {% if neg_pred.detail.type == "no_recent_record" %}
-                  아래 날짜에 감정 기록이 없어 예측할 수 없어
-                {% else %}
-                  키워드 입력이 없는 날짜가 존재합니다.
-                {% endif %}
-              </p>
-
-              {% if neg_pred.detail.type == "gate_keyword_3days" or neg_pred.detail.type == "no_recent_record" %}
-                <p class="negpred-empty-dates">
-                  {{ neg_pred.detail.missing_days|join:", " }}
+              <div class="negpred-empty-text">
+                <p class="negpred-empty-title">⚠️데이터가 부족합니다</p>
+                <p class="negpred-empty-desc">
+                  {% if neg_pred.detail.type == "no_recent_record" %}
+                    아래 날짜에 감정 기록이 없어 예측할 수 없어
+                  {% else %}
+                    키워드 입력이 없는 날짜가 존재합니다.
+                  {% endif %}
                 </p>
-              {% endif %}
+
+                {% if neg_pred.detail.type == "gate_keyword_3days" or neg_pred.detail.type == "no_recent_record" %}
+                  <p class="negpred-empty-dates">
+                    {{ neg_pred.detail.missing_days|join:", " }}
+                  </p>
+                {% endif %}
+              </div>
+
             </div>
-
           </div>
-        </div>
 
-      {% else %}
-        <div class="negpred-wrap">
+        {% else %}
+          <div class="negpred-wrap">
 
-          <div class="negpred-panel">
+            <div class="negpred-panel">
 
-            {# ✅ 흰 박스 안으로 이동 #}
-            <h4 class="timeline-title timeline-title--inside negpred-title-inpanel">
-              오늘의 감정 예측
-            </h4>
+              {# ✅ 흰 박스 안으로 이동 #}
+              <h4 class="timeline-title timeline-title--inside negpred-title-inpanel">
+                오늘의 감정 예측
+              </h4>
 
-            <div class="negpred-icons" aria-label="부정 감정 예측 아이콘">
-              <!-- 긍정 -->
-              <div class="negpred-item {% if neg_pred.ui_active_idx == 0 %}is-active{% endif %}">
-                <img src="{% static 'icons_img/긍정.png' %}" alt="Positive(긍정)" class="negpred-img" />
-                {% if neg_pred.ui_active_idx == 0 %}
-                  <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
-                {% endif %}
+              <div class="negpred-icons" aria-label="부정 감정 예측 아이콘">
+                <!-- 긍정 -->
+                <div class="negpred-item {% if neg_pred.ui_active_idx == 0 %}is-active{% endif %}">
+                  <img src="{% static 'icons_img/긍정.png' %}" alt="Positive(긍정)" class="negpred-img" />
+                  {% if neg_pred.ui_active_idx == 0 %}
+                    <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
+                  {% endif %}
+                </div>
+
+                <!-- 중립 -->
+                <div class="negpred-item {% if neg_pred.ui_active_idx == 1 %}is-active{% endif %}">
+                  <img src="{% static 'icons_img/중립.png' %}" alt="Neutral(중립)" class="negpred-img" />
+                  {% if neg_pred.ui_active_idx == 1 %}
+                    <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
+                  {% endif %}
+                </div>
+
+                <!-- 부정 -->
+                <div class="negpred-item {% if neg_pred.ui_active_idx == 2 %}is-active{% endif %}">
+                  <img src="{% static 'icons_img/부정.png' %}" alt="Negative(부정)" class="negpred-img" />
+                  {% if neg_pred.ui_active_idx == 2 %}
+                    <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
+                  {% endif %}
+                </div>
               </div>
 
-              <!-- 중립 -->
-              <div class="negpred-item {% if neg_pred.ui_active_idx == 1 %}is-active{% endif %}">
-                <img src="{% static 'icons_img/중립.png' %}" alt="Neutral(중립)" class="negpred-img" />
-                {% if neg_pred.ui_active_idx == 1 %}
-                  <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
-                {% endif %}
-              </div>
-
-              <!-- 부정 -->
-              <div class="negpred-item {% if neg_pred.ui_active_idx == 2 %}is-active{% endif %}">
-                <img src="{% static 'icons_img/부정.png' %}" alt="Negative(부정)" class="negpred-img" />
-                {% if neg_pred.ui_active_idx == 2 %}
-                  <p class="negpred-status">{{ neg_pred.ui_status_text }}</p>
-                {% endif %}
-              </div>
             </div>
-
           </div>
-        </div>
-      {% endif %}
+        {% endif %}
 
 
-    </div>
-  </div>
-</section>
-
-
-<!-- (2) LLM 멘트 -->
-<section class="timeline-section">
-  <div class="timeline-card">
-    <div class="timeline-card-inner">
-
-      {# ✅ 기존 timeline-card-head 제거 #}
-
-      {% if not neg_pred.eligible %}
-        <div class="llm-box is-empty llm-box--titled">
-          <h4 class="timeline-title timeline-title--inside">행동 추천</h4>
-          <p class="llm-text">감정 예측 데이터가 없습니다.</p>
-        </div>
-
-      {% elif not llm_ment %}
-        <div class="llm-box is-empty llm-box--titled">
-          <h4 class="timeline-title timeline-title--inside">행동 추천</h4>
-          <p class="llm-text">행동 추천 데이터가 없습니다.</p>
-        </div>
-
-      {% else %}
-        <div class="llm-box llm-box--titled {% if neg_pred.ui_active_idx == 2 %}is-risk{% endif %}">
-          <h4 class="timeline-title timeline-title--inside">행동 추천</h4>
-          <p class="llm-text">{{ llm_ment }}</p>
-        </div>
-      {% endif %}
-
-    </div>
-  </div>
-</section>
-
-
-
-<!-- (3) 누적막대그래프 -->
-<section class="timeline-section">
-  <div class="timeline-card">
-    <div class="timeline-card-inner">
-
-      {# ✅ 기존 timeline-card-head timeline-card-head--stack 제거 #}
-
-      <div class="timeline-chart-panel">
-
-        {# ✅ 패널 내부 헤더 추가 (타이틀+datebar 모두 안으로) #}
-        <div class="timeline-chart-head" id="week-picker-trigger">
-          <h4 class="timeline-title timeline-title--inside">감정 변화 요약</h4>
-
-          <div class="timeline-datebar">
-            <span class="timeline-datebar-icon">📅</span>
-            <span class="timeline-datebar-text" id="week-picker-label">
-              {{ week_start }} ~ {{ week_end }}
-            </span>
-            <span class="timeline-datebar-caret">▾</span>
-            <input type="text" id="week-picker" class="timeline-week-hidden-input" readonly>
-          </div>
-        </div>
-
-        <div class="timeline-canvas-wrap">
-          <canvas id="weeklyEmotionChart"></canvas>
-        </div>
-
-        <div class="timeline-xlabels" id="weeklyDateLabels" aria-hidden="true"></div>
       </div>
-
     </div>
-  </div>
-</section>
+  </section>
+
+
+  <!-- (2) LLM 멘트 -->
+  <section class="timeline-section">
+    <div class="timeline-card">
+      <div class="timeline-card-inner">
+
+        {# ✅ 기존 timeline-card-head 제거 #}
+
+        {% if not neg_pred.eligible %}
+          <div class="llm-box is-empty llm-box--titled">
+            <h4 class="timeline-title timeline-title--inside">행동 추천</h4>
+            <p class="llm-text">감정 예측 데이터가 없습니다.</p>
+          </div>
+
+        {% elif not llm_ment %}
+          <div class="llm-box is-empty llm-box--titled">
+            <h4 class="timeline-title timeline-title--inside">행동 추천</h4>
+            <p class="llm-text">행동 추천 데이터가 없습니다.</p>
+          </div>
+
+        {% else %}
+          <div class="llm-box llm-box--titled {% if neg_pred.ui_active_idx == 2 %}is-risk{% endif %}">
+            <h4 class="timeline-title timeline-title--inside">행동 추천</h4>
+            <p class="llm-text">{{ llm_ment }}</p>
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </section>
+
+
+
+  <!-- (3) 누적막대그래프 -->
+  <section class="timeline-section">
+    <div class="timeline-card">
+      <div class="timeline-card-inner">
+
+        {# ✅ 기존 timeline-card-head timeline-card-head--stack 제거 #}
+
+        <div class="timeline-chart-panel">
+
+          {# ✅ 패널 내부 헤더 추가 (타이틀+datebar 모두 안으로) #}
+          <div class="timeline-chart-head" id="week-picker-trigger">
+            <h4 class="timeline-title timeline-title--inside">감정 변화 요약</h4>
+
+            <div class="timeline-datebar">
+              <span class="timeline-datebar-icon">📅</span>
+              <span class="timeline-datebar-text" id="week-picker-label">
+                {{ week_start }} ~ {{ week_end }}
+              </span>
+              <span class="timeline-datebar-caret">▾</span>
+              <input type="text" id="week-picker" class="timeline-week-hidden-input" readonly>
+            </div>
+          </div>
+
+          <div class="timeline-canvas-wrap">
+            <canvas id="weeklyEmotionChart"></canvas>
+          </div>
+
+          <div class="timeline-xlabels" id="weeklyDateLabels" aria-hidden="true"></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</div>
 
 
 <!-- ✅ Chart data -->
