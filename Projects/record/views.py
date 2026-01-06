@@ -18,6 +18,7 @@ def record_mood(request):
     # ✅ report.views가 LLM import를 당길 수 있으니 lazy import + fallback
     try:
         from report.views import get_selected_date
+
         selected_date = get_selected_date(request)
     except Exception:
         selected_date = timezone.localdate()
@@ -59,7 +60,9 @@ def record_mood(request):
 
     if not cust_id:
         # 여기서 500 나지 않게 방어
-        return HttpResponseBadRequest("cust_id를 확인할 수 없습니다. 로그인 상태를 확인해주세요.")
+        return HttpResponseBadRequest(
+            "cust_id를 확인할 수 없습니다. 로그인 상태를 확인해주세요."
+        )
 
     rgs_dt = selected_date.strftime("%Y%m%d")
     date_time = selected_date.strftime("%Y%m%d%H%M%S")
@@ -184,7 +187,9 @@ def record_mood(request):
                 if keywords:
                     ts_rows = []
                     for i, k in enumerate(keywords, start=1):
-                        ts_rows.append((date_time, date_time, cust_id, rgs_dt, seq, i, k))
+                        ts_rows.append(
+                            (date_time, date_time, cust_id, rgs_dt, seq, i, k)
+                        )
 
                     cursor.executemany(
                         """
@@ -235,6 +240,7 @@ def record_mood(request):
 
     return redirect("/record/meal/")
 
+
 @login_required
 def record_meal(request):
     try:
@@ -273,8 +279,10 @@ def record_meal(request):
         # ===== 4. 예외 로그 (배포 환경 필수) =====
         print("[MEALERR]", str(e))
         import traceback
+
         traceback.print_exc()
         return redirect("record_app:record_mood")
+
 
 def recipe_search(request):
     return render(request, "record/recipe_search.html")
@@ -367,6 +375,20 @@ def _target_from_source(source_date_ymd: str, source_slot: str) -> tuple[str, st
     return (next_ymd, "M")
 
 
+from django.utils import timezone
+
+
+def _fmt_kst(dt):
+    if not dt:
+        return None
+    try:
+        # dt가 aware면 localtime으로 KST 변환됨
+        return timezone.localtime(dt).strftime("%Y-%m-%d %H:%M:%S %Z")
+    except Exception:
+        # naive이거나 타입 이상이면 그냥 문자열로
+        return str(dt)
+
+
 # =========================
 # timeline
 # =========================
@@ -398,6 +420,16 @@ def timeline(request):
         getattr(request.user, "cust_id", None),
         "cust_id_var=",
         cust_id,
+        flush=True,
+    )
+    print(
+        "[TLDBG][TZCHK]",
+        "now_utc=",
+        timezone.now().strftime("%Y-%m-%d %H:%M:%S %Z"),
+        "now_kst=",
+        timezone.localtime().strftime("%Y-%m-%d %H:%M:%S %Z"),
+        "date_kst=",
+        timezone.localdate().strftime("%Y%m%d"),
         flush=True,
     )
 
@@ -592,7 +624,7 @@ def timeline(request):
                         "target_date": target_date,
                         "target_slot": target_slot,
                         "updated_time": (
-                            str(updated_time) if updated_time is not None else None
+                            _fmt_kst(updated_time) if updated_time is not None else None
                         ),
                         "missing_days": [],
                     },
@@ -706,4 +738,3 @@ def timeline(request):
         "llm_ment": llm_ment,
     }
     return render(request, "timeline.html", context)
-
