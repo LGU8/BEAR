@@ -512,13 +512,16 @@ def timeline(request):
         if source_slot is not None:
             target_date, target_slot = _target_from_source(source_date, source_slot)
 
+            target_slot = "M"
+
             # ✅ 여기서부터는 DB 조회만 한다 (절대 ML 호출 X)
             sql_risk = """
                 SELECT risk_score, risk_level, updated_time
                 FROM CUS_FEEL_RISK_TH
                 WHERE cust_id = %s
-                  AND target_date = %s
-                  AND target_slot = %s
+                AND target_date = %s
+                AND target_slot = %s
+                ORDER BY created_time DESC
                 LIMIT 1
             """
             with connection.cursor() as cursor:
@@ -659,3 +662,4 @@ def timeline(request):
         "llm_ment": llm_ment,
     }
     return render(request, "timeline.html", context)
+

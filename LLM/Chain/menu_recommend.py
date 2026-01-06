@@ -31,7 +31,7 @@ llm = ChatOpenAI(model="gpt-4o-mini")
 # 3) System Prompt (역할 정의)
 system_prompt = """
 너는 식단과 감정 데이터를 바탕으로
-다음 식사에 가장 적합한 메뉴를 하나 선택하는 추천 엔진이다.
+다음 식사에 가장 적합한 메뉴를 하나 선택하는 추천 엔진이야.
 
 너에게는 다음 정보가 주어진다:
 1. 사용자의 권장 섭취 영양소 정보 (recommend_info)
