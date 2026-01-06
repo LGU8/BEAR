@@ -5,6 +5,7 @@ import uuid
 import json
 import tempfile
 import math
+import requests
 from pathlib import Path
 from datetime import datetime, timedelta
 from django.http import JsonResponse
@@ -376,6 +377,9 @@ def api_barcode_scan(request):
 
     # 영양 merge
     for c in candidates:
+
+        c.update(_nutr_payload(None, "no_data"))
+
         report_no = (c.get("report_no") or "").strip()
         product_name = (c.get("name") or "").strip()
         if not report_no or not product_name:
@@ -390,8 +394,16 @@ def api_barcode_scan(request):
                 c.update(_nutr_payload(nutr, "api"))
 
         except UpstreamAPIError as e:
-            # detail이 timeout이면 timeout, 아니면 error
             if getattr(e, "detail", "") == "timeout":
+                c.update(_nutr_payload(None, "timeout"))
+            else:
+                c.update(_nutr_payload(None, "error"))
+
+        except Exception as e:
+            # ✅ UpstreamAPIError로 감싸지지 않은 Timeout/네트워크 오류까지 여기서 흡수
+            if isinstance(
+                e, requests.exceptions.ReadTimeout
+            ) or "Read timed out" in str(e):
                 c.update(_nutr_payload(None, "timeout"))
             else:
                 c.update(_nutr_payload(None, "error"))
@@ -488,9 +500,13 @@ def api_barcode_commit(request):
     body = _parse_body_json(request)
 
     # 0) 입력 파싱(폼/JSON 모두 대응)
-    draft_id = (request.POST.get("draft_id") or "").strip() or str(body.get("draft_id", "")).strip()
+    draft_id = (request.POST.get("draft_id") or "").strip() or str(
+        body.get("draft_id", "")
+    ).strip()
 
-    candidate_id = (request.POST.get("candidate_id") or "").strip() or str(body.get("candidate_id", "")).strip()
+    candidate_id = (request.POST.get("candidate_id") or "").strip() or str(
+        body.get("candidate_id", "")
+    ).strip()
 
     candidate_ids = request.POST.getlist("candidate_ids")
     if not candidate_ids:
@@ -502,7 +518,11 @@ def api_barcode_commit(request):
 
     if not draft_id or not candidate_ids:
         return JsonResponse(
-            {"ok": False, "error": "BAD_REQUEST", "message": "draft_id와 candidate_ids가 필요합니다."},
+            {
+                "ok": False,
+                "error": "BAD_REQUEST",
+                "message": "draft_id와 candidate_ids가 필요합니다.",
+            },
             status=400,
         )
 
@@ -510,19 +530,28 @@ def api_barcode_commit(request):
     session_key = f"barcode_draft:{draft_id}"
     data = request.session.get(session_key)
     if not data:
-        return JsonResponse({"ok": False, "error": "DRAFT_NOT_FOUND", "message": "draft not found"}, status=404)
+        return JsonResponse(
+            {"ok": False, "error": "DRAFT_NOT_FOUND", "message": "draft not found"},
+            status=404,
+        )
 
     candidates = data.get("candidates", []) or []
 
     # 2) picked_list 구성
     picked_list = []
     for cid in candidate_ids:
-        picked = next((c for c in candidates if str(c.get("candidate_id", "")).strip() == cid), None)
+        picked = next(
+            (c for c in candidates if str(c.get("candidate_id", "")).strip() == cid),
+            None,
+        )
         if picked:
             picked_list.append(picked)
 
     if not picked_list:
-        return JsonResponse({"ok": False, "error": "BAD_REQUEST", "detail": "picked_list empty"}, status=400)
+        return JsonResponse(
+            {"ok": False, "error": "BAD_REQUEST", "detail": "picked_list empty"},
+            status=400,
+        )
 
     # 3) 저장 키(세션) 가져오기
     cust_id = getattr(request.user, "cust_id", None) or request.session.get("cust_id")
@@ -552,7 +581,11 @@ def api_barcode_commit(request):
 
     if not (cust_id and rgs_dt and seq and time_slot):
         return JsonResponse(
-            {"ok": False, "error": "SESSION_MISSING", "detail": "cust_id/rgs_dt/seq/time_slot"},
+            {
+                "ok": False,
+                "error": "SESSION_MISSING",
+                "detail": "cust_id/rgs_dt/seq/time_slot",
+            },
             status=400,
         )
 
@@ -566,7 +599,10 @@ def api_barcode_commit(request):
     body_fat = body.get("fat_g")
 
     apply_body_nutr = (len(picked_list) == 1) and (
-        _has_val(body_kcal) or _has_val(body_carb) or _has_val(body_prot) or _has_val(body_fat)
+        _has_val(body_kcal)
+        or _has_val(body_carb)
+        or _has_val(body_prot)
+        or _has_val(body_fat)
     )
 
     cleaned = []
@@ -583,7 +619,12 @@ def api_barcode_commit(request):
         raw_prot = body_prot if (apply_body_nutr and _has_val(body_prot)) else cand_prot
         raw_fat = body_fat if (apply_body_nutr and _has_val(body_fat)) else cand_fat
 
-        if raw_kcal in (None, "") or raw_carb in (None, "") or raw_prot in (None, "") or raw_fat in (None, ""):
+        if (
+            raw_kcal in (None, "")
+            or raw_carb in (None, "")
+            or raw_prot in (None, "")
+            or raw_fat in (None, "")
+        ):
             return JsonResponse(
                 {
                     "ok": False,
@@ -666,7 +707,9 @@ def api_barcode_commit(request):
                 )
                 row = cursor.fetchone()
                 if row is None:
-                    return JsonResponse({"ok": False, "error": "CUS_FEEL_TH_NOT_FOUND"}, status=404)
+                    return JsonResponse(
+                        {"ok": False, "error": "CUS_FEEL_TH_NOT_FOUND"}, status=404
+                    )
 
                 feel_mood = (row[0] or "").strip().lower()
                 feel_energy = (row[1] or "").strip().lower()
@@ -696,7 +739,18 @@ def api_barcode_commit(request):
                         (created_time, updated_time, cust_id, rgs_dt, seq, time_slot, kcal, carb_g, protein_g, fat_g)
                         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                         """,
-                        [t, t, cust_id, rgs_dt, seq, time_slot, total_kcal, total_carb, total_prot, total_fat],
+                        [
+                            t,
+                            t,
+                            cust_id,
+                            rgs_dt,
+                            seq,
+                            time_slot,
+                            total_kcal,
+                            total_carb,
+                            total_prot,
+                            total_fat,
+                        ],
                     )
                     th_action = "insert"
                 else:
@@ -708,7 +762,17 @@ def api_barcode_commit(request):
                             kcal=%s, carb_g=%s, protein_g=%s, fat_g=%s
                         WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
                         """,
-                        [t, time_slot, total_kcal, total_carb, total_prot, total_fat, cust_id, rgs_dt, seq],
+                        [
+                            t,
+                            time_slot,
+                            total_kcal,
+                            total_carb,
+                            total_prot,
+                            total_fat,
+                            cust_id,
+                            rgs_dt,
+                            seq,
+                        ],
                     )
                     th_action = "update"
 
@@ -750,7 +814,11 @@ def api_barcode_commit(request):
                                 rgs_dt=str(reco_rgs_dt),
                                 rec_time_slot=str(reco_time_slot).strip().upper(),
                                 current_food=None,
-                                recent_foods=recent_food_names[:10] if recent_food_names else None,
+                                recent_foods=(
+                                    recent_food_names[:10]
+                                    if recent_food_names
+                                    else None
+                                ),
                             )
                     except Exception:
                         # 저장 성공은 유지 (추천 실패는 별도로 삼킴)
@@ -782,7 +850,9 @@ def api_barcode_commit(request):
         )
 
     except Exception as e:
-        return JsonResponse({"ok": False, "error": "DB_SAVE_FAILED", "detail": str(e)}, status=500)
+        return JsonResponse(
+            {"ok": False, "error": "DB_SAVE_FAILED", "detail": str(e)}, status=500
+        )
 
 
 # =========================
