@@ -52,14 +52,19 @@
   <!-- 2) NUTRITION(OCR) 결과 패널 -->
   <div id="result-nutrition" class="result-panel" style="display:none;">
     
-    <!-- OCR 결과 표시 영역(원래 네가 표시하던 곳) -->
-    <div class="selected-product">
-      <div id="nutrition-product-name" class="product-name"></div>
-      <div id="nutrition-company-name" class="company-name"></div>
-    </div>
-
-    <!-- ✅ 영양 입력/수정 영역(동일하게 넣어두기) -->
+    <!-- 제품명 입력 -->
     <div class="nutr-edit">
+      <div class="nutr-row">
+        <label for="nutrition-name-input">제품명</label>
+        <input
+          id="nutrition-name-input"
+          type="text"
+          placeholder="제품명을 입력하세요"
+          required
+        />
+      </div>
+
+      <!-- ✅ 영양 입력/수정 영역(동일하게 넣어두기) -->
       <div class="nutr-row">
         <label for="nutrition-nutr-kcal">kcal</label>
         <input id="nutrition-nutr-kcal" type="number" inputmode="decimal" step="0.01" min="0" placeholder="kcal" />
