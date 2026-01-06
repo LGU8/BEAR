@@ -407,6 +407,7 @@ def api_barcode_scan(request):
                 c.update(_nutr_payload(None, "timeout"))
             else:
                 c.update(_nutr_payload(None, "error"))
+                
 
     draft_id = uuid.uuid4().hex
     request.session[f"barcode_draft:{draft_id}"] = {
