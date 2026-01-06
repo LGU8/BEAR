@@ -1,6 +1,8 @@
 // static/js/result.js
 (function () {
-  // ✅ CSRF cookie 읽기 (result.js에서 필요)
+  // -------------------------
+  // 0) CSRF cookie
+  // -------------------------
   function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -8,107 +10,174 @@
     return "";
   }
 
-  const params = new URLSearchParams(location.search);
-  const draftId = params.get("draft_id");
-
-  if (!draftId) {
-    console.error("[result] draft_id missing");
-    alert("후보 데이터를 불러오기 위한 정보(draft_id)가 없어요.");
-    return;
-  }
-
-  const listEl = document.getElementById("candidate-list");
-  const btnSave = document.getElementById("btn-save");
-
-  if (!listEl || !btnSave) {
-    console.error("[result] required elements missing:", {
-      candidateList: !!listEl,
-      btnSave: !!btnSave,
-    });
-    alert("결과 페이지 UI 요소가 누락되었어요. (candidate-list / btn-save)");
-    return;
-  }
-
-  // ✅ 영양 입력 input (result.html에 있어야 함)
-  const panelBarcode = document.getElementById("result-barcode");
-  const panelNutrition = document.getElementById("result-nutrition");
-
-  const nutrKcal = document.getElementById("barcode-nutr-kcal");
-  const nutrCarb = document.getElementById("barcode-nutr-carb");
-  const nutrProtein = document.getElementById("barcode-nutr-protein");
-  const nutrFat = document.getElementById("barcode-nutr-fat");
-  const nutrErr = document.getElementById("barcode-nutr-error");
-
-  if (panelBarcode) panelBarcode.style.display = "block";
-  if (panelNutrition) panelNutrition.style.display = "none";
-
-  btnSave.disabled = true;
-
-  // ✅ single-select checkbox를 위한 상태
-  let selectedId = null;
-  let selectedCandidate = null;
-
-  function showNutrError(msg) {
-    if (!nutrErr) return;
-    nutrErr.textContent = msg;
-    nutrErr.style.display = "block";
-  }
-  function clearNutrError() {
-    if (!nutrErr) return;
-    nutrErr.textContent = "";
-    nutrErr.style.display = "none";
-  }
-
+  // -------------------------
+  // 1) Helpers
+  // -------------------------
   function fmtNum(v) {
-    // null/undefined/"" -> "-"
     if (v === null || v === undefined || v === "") return "-";
     const n = Number(v);
     if (Number.isNaN(n)) return String(v);
     return String(n);
   }
 
-  function toNumberOrEmpty(v) {
-    if (v === null || v === undefined) return "";
-    const s = String(v).trim();
-    if (!s || s === "-" || s.toLowerCase() === "na" || s.toLowerCase() === "n/a")
-      return "";
+  function isVisible(el) {
+    if (!el) return false;
+    // inline style 우선, 없으면 computed로 판단
+    if (el.style && el.style.display) return el.style.display !== "none";
+    const cs = window.getComputedStyle(el);
+    return cs.display !== "none";
+  }
+
+  function showError(el, msg) {
+    if (!el) return;
+    el.textContent = msg;
+    
+    // ✅ 무조건 보이게
+    el.style.display = "block";
+    el.style.visibility = "visible";
+    el.style.opacity = "1";
+
+    // ✅ class로 숨기는 경우도 방어
+    el.classList.remove("hidden", "is-hidden");
+  }
+
+  function clearError(el) {
+    if (!el) return;
+    el.textContent = "";
+    el.style.display = "none";
+  }
+
+  function numOrEmpty(v) {
+    const s = (v ?? "").toString().trim();
+    if (!s) return null;
     const n = Number(s);
-    return Number.isFinite(n) ? String(n) : "";
+    if (!Number.isFinite(n) || n < 0) return null;
+    return n;
   }
 
-  function isValidNumInput(el) {
-    const v = (el?.value || "").trim();
-    if (!v) return false;
-    const n = Number(v);
-    return Number.isFinite(n) && n >= 0;
+  function hasAllNutrition(candidate) {
+    if (!candidate) return false;
+
+    const kcal = candidate.kcal;
+    const carb = candidate.carb_g;
+    const protein = candidate.protein_g;
+    const fat = candidate.fat_g;
+
+    // null / undefined / 빈 문자열이면 false
+    return (
+      kcal !== null && kcal !== undefined && kcal !== "" &&
+      carb !== null && carb !== undefined && carb !== "" &&
+      protein !== null && protein !== undefined && protein !== "" &&
+      fat !== null && fat !== undefined && fat !== ""
+    );
   }
 
-  function readNum(el) {
-    const v = (el?.value || "").trim();
-    if (!v) return null;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : NaN;
+  // -------------------------
+  // 2) Context & mode
+  // -------------------------
+  const params = new URLSearchParams(location.search);
+  const draftId = params.get("draft_id");
+  const modeParam = (params.get("mode") || "").toLowerCase(); // "ocr" / "nutrition" 같은 값 추천
+
+  const panelBarcode = document.getElementById("result-barcode");
+  const panelNutrition = document.getElementById("result-nutrition");
+
+  // ✅ mode 판별: URL param 우선, 없으면 panel visibility로 fallback
+  const useOcr =
+    modeParam === "ocr" ||
+    modeParam === "nutrition" ||
+    (isVisible(panelNutrition) && !isVisible(panelBarcode));
+
+  const btnSave = document.getElementById("btn-save");
+  if (!btnSave) {
+    alert("결과 페이지 UI 요소가 누락되었어요. (btn-save)");
+    return;
   }
 
-  function updateSaveEnabled() {
-    const selectedOk = !!selectedId;
-    const nutrOk =
-      isValidNumInput(nutrKcal) &&
-      isValidNumInput(nutrCarb) &&
-      isValidNumInput(nutrProtein) &&
-      isValidNumInput(nutrFat);
+  // barcode에서만 필요한 요소
+  const listEl = document.getElementById("candidate-list");
 
-    btnSave.disabled = !(selectedOk && nutrOk);
+  // 공통 hidden ctx (있으면 사용, 없어도 세션 기반이라 큰 문제 없음)
+  const ctxRgsDt = document.getElementById("ctx-rgs-dt")?.value || "";
+  const ctxSeq = document.getElementById("ctx-seq")?.value || "";
+
+  // -------------------------
+  // 3) Barcode flow
+  // -------------------------
+  let selectedId = null;
+
+    // ✅ barcode 영양 input 참조 (initBarcodeCommit에서 세팅)
+  let barcodeNutr = {
+    nameEl: null,
+    kcalEl: null,
+    carbEl: null,
+    protEl: null,
+    fatEl: null,
+    errEl: null,
+  };
+
+  // ✅ (C안) nutr_source 기반으로 수동 입력 여부 판단
+  function needManualBySource(candidate) {
+    const src = (candidate && candidate.nutr_source) || "api"; // 기본 api 취급
+    return src !== "api";
   }
 
-  [nutrKcal, nutrCarb, nutrProtein, nutrFat].forEach((el) => {
-    el?.addEventListener("input", () => {
-      clearNutrError();
-      updateSaveEnabled();
-    });
-  });
+  function showManualHintIfNeeded(candidate) {
+    const { errEl } = barcodeNutr;
+    if (!errEl) return;
+
+    if (needManualBySource(candidate)) {
+      showError(errEl, "일부 영양 정보가 없습니다. 직접 입력해 주세요");
+    } else {
+      clearError(errEl);
+    }
+  }
+
+  // ✅ 후보 선택 시: input 채우기 + 입력 활성화 + 문구 표시
+  function applyCandidateToNutrUI(candidate) {
+    const { nameEl, kcalEl, carbEl, protEl, fatEl } = barcodeNutr;
+    if (!candidate) return;
+
+    // 1) 이름 prefill (있을 때만)
+    if (nameEl) nameEl.value = candidate.name ?? "";
+
+    // 2) 영양 prefill: C안에서는 fallback이면 null로 내려오므로, null이면 빈칸
+    if (kcalEl) kcalEl.value = candidate.kcal ?? "";
+    if (carbEl) carbEl.value = candidate.carb_g ?? "";
+    if (protEl) protEl.value = candidate.protein_g ?? "";
+    if (fatEl) fatEl.value = candidate.fat_g ?? "";
+
+    // 3) 입력 가능하게(체크하면 입력 가능이 요구사항이었지)
+    // - C안 정석: nutr_source가 api가 아니면 반드시 입력 가능
+    // - 실무 추천: api여도 사용자가 수정할 수 있게 항상 enabled로 두는 편이 UX가 좋음
+    if (kcalEl) kcalEl.disabled = false;
+    if (carbEl) carbEl.disabled = false;
+    if (protEl) protEl.disabled = false;
+    if (fatEl) fatEl.disabled = false;
+
+    // 4) 문구 표시/숨김: nutr_source로 결정
+    showManualHintIfNeeded(candidate);
+  }
+
+  // ✅ 체크 해제 시: 문구 숨김 + 입력 잠금(정책)
+  function resetNutrUIOnUncheck() {
+    const { kcalEl, carbEl, protEl, fatEl, errEl } = barcodeNutr;
+
+    if (errEl) clearError(errEl);
+
+    // 해제하면 다시 잠그고 싶으면 true, 계속 열어둘 거면 false
+    // 지금 요구는 “체크하면 입력 가능”이므로 해제 시 잠금이 자연스러움
+    if (kcalEl) kcalEl.disabled = true;
+    if (carbEl) carbEl.disabled = true;
+    if (protEl) protEl.disabled = true;
+    if (fatEl) fatEl.disabled = true;
+  }
+
+
 
   function renderCandidates(candidates) {
+    if (!listEl) return;
+
     listEl.innerHTML = (candidates || [])
       .map((c) => {
         const cid = c.candidate_id;
@@ -146,58 +215,59 @@
         const cid = chk.value;
 
         if (chk.checked) {
+          // 다른 체크 해제
           checks.forEach((other) => {
             if (other !== chk) other.checked = false;
           });
 
           selectedId = cid;
+          btnSave.disabled = false;
 
-          // ✅ 선택된 후보 객체 찾기
-          selectedCandidate =
-            (candidates || []).find((x) => String(x.candidate_id) === String(cid)) ||
-            null;
+          // ✅ 1) 선택된 candidate 찾기
+          const candidate = candidates.find(
+            (x) => String(x.candidate_id) === String(cid)
+          );
 
-          // ✅ 선택 후보 영양값 input에 prefill (누락은 빈칸)
-          if (selectedCandidate) {
-            if (nutrKcal) nutrKcal.value = toNumberOrEmpty(selectedCandidate.kcal);
-            if (nutrCarb) nutrCarb.value = toNumberOrEmpty(selectedCandidate.carb_g);
-            if (nutrProtein)
-              nutrProtein.value = toNumberOrEmpty(selectedCandidate.protein_g);
-            if (nutrFat) nutrFat.value = toNumberOrEmpty(selectedCandidate.fat_g);
+          // ✅ 2) 영양 input 값 채우기 (이미 하고 있다면 유지)
+          barcodeNutr.kcalEl.value = candidate.kcal ?? "";
+          barcodeNutr.carbEl.value = candidate.carb_g ?? "";
+          barcodeNutr.protEl.value = candidate.protein_g ?? "";
+          barcodeNutr.fatEl.value = candidate.fat_g ?? "";
 
-            const missing = [];
-            if (!nutrKcal?.value) missing.push("kcal");
-            if (!nutrCarb?.value) missing.push("탄수화물(g)");
-            if (!nutrProtein?.value) missing.push("단백질(g)");
-            if (!nutrFat?.value) missing.push("지방(g)");
+          // 문구 표시
+          const needManual =
+            candidate.nutr_source !== "api" &&
+            !hasAllNutrition(candidate);
 
-            if (missing.length) {
-              showNutrError(
-                `일부 영양 정보가 없습니다. 직접 입력해 주세요: ${missing.join(", ")}`
-              );
-            } else {
-              clearNutrError();
-            }
+          if (needManual) {
+            showError(
+              barcodeNutr.errEl,
+              "일부 영양 정보가 없습니다. 직접 입력해 주세요."
+            );
+          } else {
+            clearError(barcodeNutr.errEl);
           }
 
-          updateSaveEnabled();
+          // ✅ 4) 입력 활성화
+          barcodeNutr.kcalEl.disabled = false;
+          barcodeNutr.carbEl.disabled = false;
+          barcodeNutr.protEl.disabled = false;
+          barcodeNutr.fatEl.disabled = false;
+
         } else {
           selectedId = null;
-          selectedCandidate = null;
+          btnSave.disabled = true;
 
-          if (nutrKcal) nutrKcal.value = "";
-          if (nutrCarb) nutrCarb.value = "";
-          if (nutrProtein) nutrProtein.value = "";
-          if (nutrFat) nutrFat.value = "";
-          clearNutrError();
-
-          updateSaveEnabled();
+          // 체크 해제 시 문구 숨김
+          clearError(barcodeNutr.errEl);
         }
       });
     });
   }
 
   async function loadCandidates() {
+    if (!draftId) return;
+
     const res = await fetch(
       `/record/api/scan/draft/?draft_id=${encodeURIComponent(draftId)}`
     );
@@ -209,73 +279,215 @@
     }
 
     renderCandidates(data.candidates || []);
-    updateSaveEnabled();
   }
 
-  btnSave.addEventListener("click", async () => {
-    if (!selectedId) return;
-
-    const csrfToken = getCookie("csrftoken");
-    if (!csrfToken) {
-      alert("CSRF 토큰이 없습니다. 새로고침(F5) 후 다시 시도해주세요.");
+  function initBarcodeCommit() {
+    // barcode 전용: draftId 필수
+    if (!draftId) {
+      alert("후보 데이터를 불러오기 위한 정보(draft_id)가 없어요.");
+      return;
+    }
+    if (!listEl) {
+      alert("결과 페이지 UI 요소가 누락되었어요. (candidate-list)");
       return;
     }
 
-    // ✅ 최종 입력값 읽기
-    const kcal = readNum(nutrKcal);
-    const carb_g = readNum(nutrCarb);
-    const protein_g = readNum(nutrProtein);
-    const fat_g = readNum(nutrFat);
+    // barcode 영양 수정 input (있으면 사용)
+    const kcalEl = document.getElementById("barcode-nutr-kcal");
+    const carbEl = document.getElementById("barcode-nutr-carb");
+    const protEl = document.getElementById("barcode-nutr-protein");
+    const fatEl = document.getElementById("barcode-nutr-fat");
+    const errEl = document.getElementById("barcode-nutr-error");
 
-    // ✅ 프론트 1차 검증(백엔드에서도 반드시 검증 권장)
-    const missing = [];
-    if (kcal === null) missing.push("kcal");
-    if (carb_g === null) missing.push("탄수화물(g)");
-    if (protein_g === null) missing.push("단백질(g)");
-    if (fat_g === null) missing.push("지방(g)");
+    // ✅ (추가) 전역 참조로 연결 (renderCandidates의 change 이벤트에서 사용)
+    barcodeNutr = { kcalEl, carbEl, protEl, fatEl, errEl };
 
-    const invalid = [];
-    if (Number.isNaN(kcal)) invalid.push("kcal");
-    if (Number.isNaN(carb_g)) invalid.push("탄수화물(g)");
-    if (Number.isNaN(protein_g)) invalid.push("단백질(g)");
-    if (Number.isNaN(fat_g)) invalid.push("지방(g)");
+    // ✅ (추가) 최초엔 입력 잠금(후보 선택 전)
+    if (kcalEl) kcalEl.disabled = true;
+    if (carbEl) carbEl.disabled = true;
+    if (protEl) protEl.disabled = true;
+    if (fatEl)  fatEl.disabled  = true;
+    clearError(errEl);
 
-    if (missing.length) {
-      showNutrError(`필수 입력값이 비었습니다: ${missing.join(", ")}`);
-      updateSaveEnabled();
-      return;
-    }
-    if (invalid.length) {
-      showNutrError(`숫자 형식이 올바르지 않습니다: ${invalid.join(", ")}`);
-      updateSaveEnabled();
-      return;
-    }
 
-    const res = await fetch("/record/api/scan/commit/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": csrfToken,
-      },
-      body: JSON.stringify({
+    btnSave.disabled = true;
+
+    btnSave.addEventListener("click", async () => {
+      if (!selectedId) return;
+
+      const csrfToken = getCookie("csrftoken");
+      if (!csrfToken) {
+        alert("CSRF 토큰이 없습니다. 새로고침(F5) 후 다시 시도해주세요.");
+        return;
+      }
+
+      // ✅ 단건일 때만 body override 허용 (서버도 동일 정책)
+      // input이 없으면 payload에 영양값을 안 넣음 -> 서버는 candidate값 사용
+      const payload = {
         draft_id: draftId,
         candidate_id: selectedId,
-        kcal,
-        carb_g,
-        protein_g,
-        fat_g,
-      }),
-    });
+      };
 
-    const data = await res.json().catch(() => null);
+      if (kcalEl && carbEl && protEl && fatEl) {
+        // 숫자가 들어온 것만 넣기
+        const kcal = numOrEmpty(kcalEl.value);
+        const carb = numOrEmpty(carbEl.value);
+        const prot = numOrEmpty(protEl.value);
+        const fat = numOrEmpty(fatEl.value);
 
-    if (!res.ok || !data?.ok) {
-      alert(data?.error || "DB_SAVE_FAILED");
+        if (kcal !== null) payload.kcal = kcal;
+        if (carb !== null) payload.carb_g = carb;
+        if (prot !== null) payload.protein_g = prot;
+        if (fat !== null) payload.fat_g = fat;
+      }
+
+      clearError(errEl);
+
+      const res = await fetch("/record/api/scan/commit/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.ok) {
+        const msg = data?.error || "DB_SAVE_FAILED";
+        if (errEl) showError(errEl, msg);
+        else alert(msg);
+        return;
+      }
+
+      location.href = data.redirect_url || "/record/meal/";
+    }, { once: true });
+  }
+
+  // -------------------------
+  // 4) OCR flow
+  // -------------------------
+  async function initOcrCommit() {
+    // OCR 입력 요소
+    const nameEl = document.getElementById("nutrition-name-input");
+    const kcalEl = document.getElementById("nutrition-nutr-kcal");
+    const carbEl = document.getElementById("nutrition-nutr-carb");
+    const protEl = document.getElementById("nutrition-nutr-protein");
+    const fatEl  = document.getElementById("nutrition-nutr-fat");
+    const errEl  = document.getElementById("nutrition-nutr-error");
+
+    if (!nameEl || !kcalEl || !carbEl || !protEl || !fatEl) {
+      // OCR 패널인데 입력요소가 없으면 조용히 종료(템플릿 분기 가능성 고려)
       return;
     }
 
-    location.href = data.redirect_url || "/record/meal/";
-  });
+    function isValid() {
+      const nameOk = !!(nameEl.value || "").trim();
+      const kcal = numOrEmpty(kcalEl.value);
+      const carb = numOrEmpty(carbEl.value);
+      const prot = numOrEmpty(protEl.value);
+      const fat  = numOrEmpty(fatEl.value);
+      return nameOk && kcal !== null && carb !== null && prot !== null && fat !== null;
+    }
 
-  loadCandidates();
+    function refreshBtn() {
+      btnSave.disabled = !isValid();
+    }
+
+    [nameEl, kcalEl, carbEl, protEl, fatEl].forEach((el) => {
+      el.addEventListener("input", () => {
+        clearError(errEl);
+        refreshBtn();
+      });
+    });
+
+    // 1) 최신 OCR prefill
+    let latest = null;
+    try {
+      // rgs_dt/seq는 hidden이 있으면 사용, 없으면 서버가 session에서도 읽긴 하지만
+      // api_ocr_latest는 query를 쓰므로 가능한 채워주는 게 안전
+      const res = await fetch(
+        `/record/api/ocr/latest/?rgs_dt=${encodeURIComponent(ctxRgsDt)}&seq=${encodeURIComponent(ctxSeq)}`
+      );
+      latest = await res.json();
+      if (!res.ok || !latest.ok) throw new Error(latest?.error || "OCR_LOAD_FAILED");
+
+      const n = latest.nutrition || {};
+      if (n.kcal != null) kcalEl.value = String(n.kcal);
+      if (n.carb_g != null) carbEl.value = String(n.carb_g);
+      if (n.protein_g != null) protEl.value = String(n.protein_g);
+      if (n.fat_g != null) fatEl.value = String(n.fat_g);
+
+      const missing = latest.missing_fields || [];
+      if (missing.length) {
+        showError(errEl, `일부 영양 정보가 없습니다. 직접 입력해 주세요: ${missing.join(", ")}`);
+      }
+    } catch (e) {
+      showError(errEl, String(e.message || e));
+    }
+
+    refreshBtn();
+
+    // 2) 저장
+    btnSave.addEventListener("click", async () => {
+      refreshBtn();
+      if (btnSave.disabled) return;
+
+      const csrfToken = getCookie("csrftoken");
+      if (!csrfToken) {
+        alert("CSRF 토큰이 없습니다. 새로고침(F5) 후 다시 시도해주세요.");
+        return;
+      }
+
+      const payload = {
+        mode: "ocr",
+        ocr_seq: latest?.ocr_seq, // 없으면 서버가 최신 선택
+        name: (nameEl.value || "").trim(),
+        kcal: Number(kcalEl.value),
+        carb_g: Number(carbEl.value),
+        protein_g: Number(protEl.value),
+        fat_g: Number(fatEl.value),
+      };
+
+      clearError(errEl);
+
+      const res = await fetch("/record/api/scan/commit/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) {
+        showError(errEl, data?.error || "DB_SAVE_FAILED");
+        return;
+      }
+
+      location.href = data.redirect_url || "/record/meal/";
+    }, { once: true });
+  }
+
+  // -------------------------
+  // 5) Bootstrap
+  // -------------------------
+  if (useOcr) {
+    // ✅ OCR 화면: nutrition만 보이게
+  if (panelBarcode) panelBarcode.style.display = "none";
+  if (panelNutrition) panelNutrition.style.display = "block";
+
+    btnSave.disabled = true;
+    initOcrCommit();
+  } else {
+    // ✅ Barcode 화면: barcode만 보이게
+  if (panelBarcode) panelBarcode.style.display = "block";
+  if (panelNutrition) panelNutrition.style.display = "none";
+  
+    btnSave.disabled = true;
+    loadCandidates();
+    initBarcodeCommit();
+  }
 })();

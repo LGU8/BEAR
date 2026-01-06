@@ -50,39 +50,22 @@ def _require_env(name: str) -> str:
     return v
 
 
-def _http_get_json(url: str, *, timeout: float = 5.0) -> dict[str, Any]:
+def _http_get_json(url: str, timeout: float = 5.0) -> dict:
     """
-    GET → JSON
-    실패는 UpstreamAPIError로 통일해서 올림(뷰에서 502로 분리 가능)
+    외부 API 호출
+    - 성공: JSON(dict) 반환
+    - 실패: UpstreamAPIError로 명확히 실패 원인 전달
     """
-    t0 = time.time()
     try:
         resp = requests.get(url, timeout=timeout)
-        status = resp.status_code
+        resp.raise_for_status()
+        return resp.json()
 
-        if status >= 400:
-            raise UpstreamAPIError(
-                "외부 API가 오류를 반환했습니다.",
-                status_code=status,
-                detail=(resp.text or "")[:500],
-            )
-
-        try:
-            return resp.json()
-        except Exception as e:
-            raise UpstreamAPIError(
-                "외부 API 응답 JSON 파싱에 실패했습니다.",
-                status_code=status,
-                detail=str(e),
-            )
-    except requests.Timeout:
+    except requests.exceptions.ReadTimeout:
         raise UpstreamAPIError("외부 API 요청이 시간 초과되었습니다.", detail="timeout")
-    except requests.RequestException as e:
-        raise UpstreamAPIError(
-            "외부 API 요청 중 네트워크 오류가 발생했습니다.", detail=str(e)
-        )
-    finally:
-        logger.info("[mapping_code] GET %s (%.2fs)", url, time.time() - t0)
+
+    except Exception as e:
+        raise UpstreamAPIError("외부 API 요청 실패", detail=str(e))
 
 
 def make_candidate_id(

@@ -21,10 +21,13 @@ def _a(name: str):
 
     return _proxy
 
+
 def _k(name: str):
     def _proxy(request, *args, **kwargs):
         from record import views_keywords
+
         return getattr(views_keywords, name)(request, *args, **kwargs)
+
     return _proxy
 
 
@@ -41,7 +44,6 @@ urlpatterns = [
     path("api/scan/commit/", _a("api_barcode_commit"), name="api_barcode_commit"),
     path("api/foods/search/", _a("api_food_search"), name="api_food_search"),
     path("api/keywords/", _k("keyword_api"), name="keyword_api"),
-    
     path("api/meals/add/", _a("api_meal_add"), name="api_meal_add"),
     path("api/meals/recent3/", _a("api_meals_recent3"), name="api_meals_recent3"),
     path(
@@ -55,4 +57,5 @@ urlpatterns = [
         _a("api_ocr_commit_manual"),
         name="api_ocr_commit_manual",
     ),
+    path("api/ocr/latest/", _a("api_ocr_latest"), name="api_ocr_latest"),
 ]
