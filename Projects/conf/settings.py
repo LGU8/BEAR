@@ -203,7 +203,27 @@ CSRF_TRUSTED_ORIGINS = [
     "http://15.165.14.29",
     "https://15.165.14.29",
 ]
-#
-# # Reverse proxy 뒤에서 https 인식 보정
-# SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-# USE_X_FORWARDED_HOST = True
+
+# Reverse proxy 뒤에서 https 인식 보정
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
+
+# =========================
+# Email (SMTP)
+# =========================
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@bear.local")
+EMAIL_FAIL_SILENTLY = os.environ.get("EMAIL_FAIL_SILENTLY", "False").lower() in ("true", "1", "yes")
+
+# =========================
+# Password Reset
+# =========================
+# 토큰 유효시간(초). 기본값도 있지만 명시해두면 운영에서 편함.
+# 60 * 60 * 24 = 1 day
+PASSWORD_RESET_TIMEOUT = int(os.environ.get("PASSWORD_RESET_TIMEOUT", str(60 * 60 * 24)))
