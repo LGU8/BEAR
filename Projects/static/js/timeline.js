@@ -193,6 +193,31 @@ const maskTopSeamPlugin = {
     wrap.style.paddingLeft = "0px";
     wrap.style.paddingRight = "0px";
   }
+  function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+/**
+ * chartAreaWidth: chartInstance.chartArea.right - chartInstance.chartArea.left
+ * N: 막대 개수(보통 7)
+ */
+function calcBarThickness(chartAreaWidth, N) {
+  // 카테고리 1칸의 대략적인 폭
+  const slot = chartAreaWidth / Math.max(1, N);
+
+  // ✅ “겹침 방지” 핵심:
+  // - 막대는 slot보다 충분히 작아야 함
+  // - stacked bar라서 너비만 안정적이면 겹침 거의 해결됨
+  // - 모바일에서도 너무 얇아지지 않게 최소값 보장
+  const thickness = Math.floor(slot * 0.55);      // 55% 정도
+  const maxThickness = Math.floor(slot * 0.70);   // 70% 정도
+
+  return {
+    barThickness: clamp(thickness, 6, 26),        // 모바일 최소 6px, PC 최대 26px 정도
+    maxBarThickness: clamp(maxThickness, 8, 32),
+  };
+}
+
 
   function renderWeeklyChart(payload) {
     if (!canvas) return;
@@ -213,6 +238,12 @@ const maskTopSeamPlugin = {
     renderWeekDateLabels(labels);
 
     const N = labels.length || 7;
+
+    const isMobile = window.matchMedia("(max-width: 480px)").matches;
+    const initialThickness = {
+      barThickness: isMobile ? 10 : 22,
+      maxBarThickness: isMobile ? 12 : 28,
+    };
 
     // ✅ score 데이터(0~9), 비어도 0으로 채움
     const pos = normalizeToLength(payload?.pos, N, 0);
@@ -238,10 +269,11 @@ const maskTopSeamPlugin = {
             backgroundColor: "#FFD07C",
             borderSkipped: false,
 
-            barThickness: 44,
-            maxBarThickness: 56,
+            barThickness: initialThickness.barThickness,
+            maxBarThickness: initialThickness.maxBarThickness,
             categoryPercentage: 0.8,
             barPercentage: 0.9,
+
 
             borderWidth: 0,
           },
@@ -252,10 +284,11 @@ const maskTopSeamPlugin = {
             backgroundColor: "#FFE2B6",
             borderSkipped: false,
 
-            barThickness: 44,
-            maxBarThickness: 56,
+            barThickness: initialThickness.barThickness,
+            maxBarThickness: initialThickness.maxBarThickness,
             categoryPercentage: 0.8,
             barPercentage: 0.9,
+
 
             borderWidth: 0,
           },
@@ -266,10 +299,12 @@ const maskTopSeamPlugin = {
             backgroundColor: "#FFB845",
             borderSkipped: false,
 
-            barThickness: 44,
-            maxBarThickness: 56,
+            barThickness: initialThickness.barThickness,
+            maxBarThickness: initialThickness.maxBarThickness,
             categoryPercentage: 0.8,
             barPercentage: 0.9,
+
+
 
             borderWidth: 0,
           }
@@ -319,12 +354,51 @@ const maskTopSeamPlugin = {
       },
     });
     // ✅ 차트가 그려진 후 chartArea가 생기므로, 다음 프레임에 동기화
-    requestAnimationFrame(() => syncXLabelsToChartArea(chartInstance));
+    requestAnimationFrame(() => {
+      // 1) x라벨 위치 맞추기
+      syncXLabelsToChartArea(chartInstance);
+
+      // 2) chartArea 기준으로 막대 두께 정확히 계산
+      const ca = chartInstance?.chartArea;
+      if (!ca) return;
+
+      const areaWidth = ca.right - ca.left;
+      const t = calcBarThickness(areaWidth, N);
+
+      chartInstance.data.datasets.forEach((ds) => {
+        ds.barThickness = t.barThickness;
+        ds.maxBarThickness = t.maxBarThickness;
+      });
+
+      chartInstance.update("none");
+    });
+
 
     // ✅ 리사이즈 시에도 계속 맞추기
-    window.addEventListener("resize", () => {
-        if (chartInstance) syncXLabelsToChartArea(chartInstance);
-    });
+    if (!window.__weeklyEmotionResizeBound) {
+      window.__weeklyEmotionResizeBound = true;
+
+      window.addEventListener("resize", () => {
+        if (!chartInstance) return;
+
+        syncXLabelsToChartArea(chartInstance);
+
+        const ca = chartInstance.chartArea;
+        if (!ca) return;
+
+        const areaWidth = ca.right - ca.left;
+        const t = calcBarThickness(areaWidth, chartInstance.data.labels?.length ?? 7);
+
+        chartInstance.data.datasets.forEach((ds) => {
+          ds.barThickness = t.barThickness;
+          ds.maxBarThickness = t.maxBarThickness;
+        });
+
+        chartInstance.update("none");
+      });
+    }
+
+
 
 
   }

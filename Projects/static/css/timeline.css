@@ -369,3 +369,10 @@
   height: auto !important;
   display: block !important;
 }
+
+@media (max-width: 480px){
+  .timeline-chart-panel{
+    height: 280px; /* 너무 크면 스크롤 길어져서 줄이는 선택지 */
+    padding: 14px 12px 10px;
+  }
+}
