@@ -101,7 +101,8 @@
 .time-row {
   display: flex;
   justify-content: center;
-  gap: 100px;
+  gap: 150px;
+  padding: 0px 30px;
 }
 
 .time-item {
@@ -307,8 +308,7 @@
     padding: 6px 12px;
   }
 
-  .time-row,
-  .mood-row {
+  .time-row {
     gap: 32px;
   }
 
@@ -316,9 +316,10 @@
     padding: 12px;
   }
 
-  .time-item img {
-    width: 44px;
-    height: 44px;
+  .time-item img,
+  .mood-option img {
+    width: 56px;
+    height: 56px;
   }
 
   .time-label {
@@ -326,7 +327,8 @@
   }
 
   .mood-row {
-    padding: 16px 0;
+    padding: 10px 0;
+    gap: 40px;
   }
 
   .mood-option img {
