@@ -21,9 +21,16 @@ a {
    1) Layout (PC 기본)
    - 배너 폭과 맞추려면 max-width를 nav와 동일하게 설정
    ========================= */
+.bear-main {
+  max-width: 960px;
+  margin: 16px auto;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .record-wrap {
   width: 100%;
-  max-width: 980px;       /* 배너(.bear-navbar-inner/.bear-tabs-inner)와 동일 */
+  max-width: 960px;       /* 배너(.bear-navbar-inner/.bear-tabs-inner)와 동일 */
   margin: 0 auto;
   padding: 0 16px;        /* 배너와 동일 */
   box-sizing: border-box; /* 패딩 포함 폭 계산 안정화 */
@@ -35,9 +42,13 @@ a {
 .panel {
   background: #FFF;
   border-radius: 18px;
-  margin: 24px 0;
-  padding: 18px;
+  margin-top: 40px;
+  padding: 18px 24px;
 
+  display: flex;
+  flex-direction: column;
+
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
 }
 
 .panel-title {
@@ -186,14 +197,14 @@ a {
 
 .selected-summary-title{
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   color: rgba(0,0,0,0.70);
   white-space: nowrap;
 }
 
 .selected-summary-values{
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 600;
   color: rgba(0,0,0,0.85);
   text-align: right;
 }
@@ -749,4 +760,19 @@ a {
 .search-row {
   margin-top: 10px;
   margin-bottom: 12px;
+}
+
+@media (max-width: 480px){
+  .panel{
+    margin-top: 20px
+  }
+
+  .bottom-actions {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .bottom-btn {
+    width: 25%;
+  }
 }

@@ -465,6 +465,10 @@
 
 
 @media (max-width: 480px){
+  .bear-tabs-bar {
+    margin-bottom: -28px;
+  }
+
   .timeline-chart-panel{
     height: 280px; /* 너무 크면 스크롤 길어져서 줄이는 선택지 */
     padding: 14px 12px 10px;
@@ -472,6 +476,10 @@
 
   .timeline-card-inner{
     padding: 6px 12px;
+  }
+
+  .llm-box{
+    margin-top: 0px;
   }
 }
 
