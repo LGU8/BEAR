@@ -2,7 +2,7 @@
    3번째 줄과 달력 간격
    ───────────────────────────── */
 .record-datepicker {
-    margin-top: 16px;
+    margin-top: 0px;
 }
 
 /* ─────────────────────────────
@@ -20,6 +20,8 @@
 
   cursor: pointer;
   user-select: none;
+
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
 }
 
 .record-datepicker-icon{
@@ -70,7 +72,6 @@
   background-color: #FFD17C !important;
 }
 
-
 .record-mood-card {
   background: #FFFFFF;
   border-radius: 18px;
@@ -79,8 +80,10 @@
   display: flex;
   flex-direction: column;
 
-  margin-top: 40px;
-  margin-bottom: 20px;   /* 카드 간 간격 */
+  margin-top: 20px;
+  margin-bottom: 10px;   /* 카드 간 간격 */
+
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
 }
 
 /* 카드 제목 */
@@ -89,7 +92,7 @@
 }
 
 .record-mood-title span {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -275,7 +278,7 @@
 .bottom-actions {
   display: flex;
   justify-content: flex-end;
-  margin: 32px 0 40px;
+  margin: 25px 0 40px;
 }
 
 .bottom-btn {
@@ -292,7 +295,6 @@
 
   text-decoration: none;         /* a 태그 밑줄 제거 */
 }
-
 
 .bottom-btn.primary {
   background: #F47900;
