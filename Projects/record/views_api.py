@@ -310,6 +310,11 @@ def _nutr_payload(nutr_dict, source: str):
     }
 
 
+def _home_redirect_url():
+
+    return "/home/"
+
+
 # =========================
 # 2) Barcode Scan / Draft / Commit
 # =========================
@@ -974,7 +979,7 @@ def api_barcode_commit(request):
                 "seq": seq,
                 "time_slot": time_slot,
                 "food_ids": new_food_ids,
-                "redirect_url": "/record/meal/",
+                "redirect_url": _home_redirect_url(),
                 # 참고용(프론트 디버깅/로그용)
                 "reco_rgs_dt": reco_rgs_dt,
                 "reco_time_slot": reco_time_slot,
@@ -1428,6 +1433,7 @@ def api_meal_save_by_search(request):
                 "time_slot": time_slot,
                 "reco_rgs_dt": reco_rgs_dt,
                 "reco_time_slot": reco_time_slot,
+                "redirect_url": "/home/",
             },
             status=200,
         )
@@ -1841,7 +1847,7 @@ def api_ocr_commit_manual(request):
         return JsonResponse(
             {
                 "ok": True,
-                "redirect_url": "/record/meal/",
+                "redirect_url": _home_redirect_url(),
                 "food_id": int(food_id),
                 "seq": int(seq),
             }

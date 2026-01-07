@@ -299,12 +299,11 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      alert("저장 완료!");
-      resetAfterSave();
-
-      // ✅ 테이블에 남아있는 체크/강조도 초기화(안전)
-      tbody.querySelectorAll(".row-check").forEach((cb) => (cb.checked = false));
-      tbody.querySelectorAll("tr.food-row.is-selected").forEach((tr) => tr.classList.remove("is-selected"));
+      // ✅ 저장 성공 → 홈으로 이동
+      const go = data.redirect_url || "/home/";
+      console.log("[meal_save] redirect to =", go);
+      window.location.replace(go);
+      return;
     });
   }
 

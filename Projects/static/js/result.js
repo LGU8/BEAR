@@ -367,8 +367,8 @@ console.log("[result.js] loaded ✅");
         return;
       }
 
-      location.href = data.redirect_url || "/record/meal/";
-    }, { once: true });
+      location.href = data.redirect_url || "/home/";
+    });
   }
 
   // -------------------------
@@ -491,8 +491,8 @@ console.log("[result.js] loaded ✅");
         return;
       }
 
-      location.href = data.redirect_url || "/record/meal/";
-    }, { once: true });
+      location.href = data.redirect_url || "/home/";
+    });
   }
 
   // -------------------------
