@@ -37,6 +37,7 @@ function getCookie(name) {
 
 
 let scanMode = "barcode"; // 기본값
+console.log("[init] scanMode =", scanMode);
 
 
 (async function () {
@@ -101,7 +102,7 @@ const stageEl = document.getElementById("camera-stage");
 const descEl = document.getElementById("camera-desc");
 
 function setScanMode(nextMode) {
-  scanMode = nextMode;
+  scanMode = (nextMode === "nutrition") ? "nutrition" : "barcode";
 
   // 1) 토글 버튼 UI 동기화
   document.querySelectorAll(".scan-toggle-btn").forEach(b => {
@@ -124,6 +125,7 @@ function setScanMode(nextMode) {
     stageEl.classList.toggle("is-barcode", scanMode === "barcode");
     stageEl.classList.toggle("is-nutrition", scanMode === "nutrition");
   }
+  console.log("[setScanMode] scanMode =", scanMode);
 }
 
 // 초기값: HTML의 is-active 기준으로 동기화
@@ -131,8 +133,13 @@ const active = document.querySelector(".scan-toggle-btn.is-active");
 setScanMode(active?.dataset.scanMode || "barcode");
 
 // 클릭 이벤트
-document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
-  btn.addEventListener("click", () => setScanMode(btn.dataset.scanMode));
+document.querySelectorAll(".scan-toggle-btn").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    const next = btn.dataset.scanMode || "barcode";
+    setScanMode(next);
+    console.log("[toggle] changed to =", next, " / now scanMode =", scanMode);
+  });
 });
 
 
@@ -187,6 +194,8 @@ document.querySelectorAll(".scan-toggle-btn").forEach(btn => {
     (scanMode === "nutrition")
       ? "/record/api/ocr/job/create/"
       : "/record/api/scan/barcode/";
+
+    console.log("[shoot] endpoint =", endpoint);
 
     // ✅ CSRF token 읽기
     const csrftoken = getCookie("csrftoken");

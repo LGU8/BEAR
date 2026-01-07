@@ -297,3 +297,81 @@
 .bottom-btn.primary {
   background: #F47900;
 }
+
+@media (max-width: 480px) {
+  .time-row,
+  .mood-row {
+    gap: 32px;
+  }
+
+  .time-item {
+    padding: 12px;
+  }
+
+  .time-item img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .time-label {
+    font-size: 13px;
+  }
+
+  .mood-row {
+    padding: 16px 0;
+  }
+
+  .mood-option img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .mood-label {
+    font-size: 13px;
+  }
+
+  .arousal-row {
+    flex-direction: column;
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .selected-mood {
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .selected-mood img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .selected-mood-label,
+  .selected-mood-placeholder {
+    font-size: 13px;
+  }
+
+  .arousal-options {
+    gap: 40px;
+  }
+
+  .arousal-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .keyword-container {
+    gap: 10px;
+    padding: 14px 0;
+  }
+
+  .keyword-pill {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  .keyword-placeholder {
+    font-size: 13px;
+    padding-left: 10px;
+  }
+}

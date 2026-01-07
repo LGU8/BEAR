@@ -571,6 +571,16 @@
    모바일 사이즈
    =============================== */
 @media (max-width: 480px) {
+  /* 일일 / 주간 버튼 */
+  .bear-tabs-bar {
+    padding-bottom: 6px;
+  }
+
+  .report-tab-text {
+    padding: 7px 0;                  /* 위아래 여백만 */
+    font-size: 0.85rem;
+  }
+
   /* Feedback 카드: 구조 유지 */
   .feedback-card {
     grid-template-columns: 1fr 3fr;  /* 이미지 1, 텍스트 3 */
@@ -588,6 +598,10 @@
     font-size: 13px;
     line-height: 1.5;
     padding-right: 0;
+  }
+
+  .card-empty span {
+    font-size: 13px;
   }
 
   /* 영양소-자세히*/
@@ -608,7 +622,7 @@
     margin-top: 20px;
   }
 
-    .meal-toggle {
+   .meal-toggle {
     padding-left: 0;
   }
 

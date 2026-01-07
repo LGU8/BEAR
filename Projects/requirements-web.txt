@@ -33,3 +33,5 @@ typing_extensions==4.15.0
 langchain-openai==1.1.6
 numpy==2.2.6
 pandas==2.3.3
+langchain-chroma==1.1.0
+chromadb==1.4.0
