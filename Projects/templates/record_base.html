@@ -40,17 +40,65 @@
     <!-- 2줄: 리포트 / 기록 / 타임라인 / 도감 -->
     <nav class="bear-tabs-bar">
       <div class="bear-tabs-inner">
-        <div class="bear-tab-box">
-          <a class="bear-tab-text" href="{% url 'report_app:report_daily' %}">리포트</a>
+
+        <!-- 리포트 -->
+        <div class="bear-tab-box {% if active_tab == 'report' %}active{% endif %}">
+          <a class="bear-tab-text" href="{% url 'report_app:report_daily' %}">
+            <img
+              class="nav-icon"
+              src="/static/icons_img/{% if active_tab == 'report' %}report_active{% else %}report{% endif %}.png"
+              alt="리포트"
+            >
+            리포트
+          </a>
         </div>
-        <div class="bear-tab-box active">
-          <a class="bear-tab-text" href="{% url 'record_app:record_mood' %}">기록</a>
+
+        <!-- 기록 -->
+        <div class="bear-tab-box {% if active_tab == 'record' %}active{% endif %}">
+          <a class="bear-tab-text" href="{% url 'record_app:record_mood' %}">
+            <img
+              class="nav-icon"
+              src="/static/icons_img/{% if active_tab == 'record' %}edit_active{% else %}edit{% endif %}.png"
+              alt="기록"
+            >
+            기록
+          </a>
         </div>
+
+        <!-- 홈 -->
+        <div class="bear-tab-box {% if active_tab == 'home' %}active{% endif %}">
+          <a class="bear-tab-text" href="{% url 'home' %}">
+            <img
+              class="nav-icon"
+              src="/static/icons_img/home.png"
+              alt="홈"
+            >
+            홈
+          </a>
+        </div>
+
+        <!-- 타임라인 -->
         <div class="bear-tab-box {% if active_tab == 'timeline' %}active{% endif %}">
-          <a class="bear-tab-text" href="/timeline">타임라인</a>
+          <a class="bear-tab-text" href="{% url 'record_app:timeline' %}">
+            <img
+              class="nav-icon"
+              src="/static/icons_img/{% if active_tab == 'timeline' %}calendar_active{% else %}calendar{% endif %}.png"
+              alt="타임라인"
+            >
+            타임라인
+          </a>
         </div>
-        <div class="bear-tab-box">
-          <a class="bear-tab-text" href="/badges">도감</a>
+
+        <!-- 도감(뱃지) -->
+        <div class="bear-tab-box {% if active_tab == 'collection' %}active{% endif %}">
+          <a class="bear-tab-text" href="/badges">
+            <img
+              class="nav-icon"
+              src="/static/icons_img/{% if active_tab == 'collection' %}pocket_active{% else %}pocket{% endif %}.png"
+              alt="도감"
+            >
+            도감
+          </a>
         </div>
       </div>
     </nav>

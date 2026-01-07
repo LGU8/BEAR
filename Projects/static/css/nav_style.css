@@ -123,27 +123,42 @@ body {
 /* 둥근 사각형 버튼 (pill) */
 .bear-tab-text {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;                      /* 각 칸 안에서 가로를 꽉 채움 */
-    padding: 10px 0;                  /* 위아래 여백만 */
-    border-radius: 100px;             /* 모서리 반경 100 */
+    flex-direction: column;        /* 세로 정렬 */
+    align-items: center;           /* 가로 중앙 */
+    justify-content: center;       /* 세로 중앙 */
+
+    width: 100%;
+    padding: 10px 0;
+
+    border-radius: 100px;
     text-decoration: none;
     font-weight: 600;
     font-size: 0.95rem;
-    background-color: #FFE2B6;        /* 기본 버튼 색 (기록/타임라인/도감) */
-    color: #3C3C43;                   /* 기본 글자색 */
+    color: #3C3C43;
+
+    gap: 4px;
 }
 
 /* 활성 탭(리포트) 전용 스타일 */
 .bear-tab-box.active .bear-tab-text {
-    background-color: #F47900;        /* 주황색 */
-    color: #FFFFFF;                   /* 글자 흰색 */
+  color: #F47900;                   /* 글자 흰색 */
 }
 
-/* 호버 효과 (선택) */
-.bear-tab-text:hover {
-    filter: brightness(0.97);
+.bear-tab-text img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.nav-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  fill: #3C3C43;
+}
+
+.bear-tab-box.active .nav-icon {
+  fill: #F47900;
 }
 
 /* 메인 컨텐츠 영역 */
@@ -180,6 +195,13 @@ body {
 }
 
 @media (max-width: 480px) {
+    body {
+      padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+    .bear-tabs-bar {
+      position: fixed;
+      bottom: 0;
+    }
     .bear-navbar-inner,
     .bear-tabs-inner,
     .bear-main {

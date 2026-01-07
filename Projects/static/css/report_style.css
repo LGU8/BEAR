@@ -22,7 +22,7 @@
 .report-tabs-bar {
     width: 100%;
     background-color: #FFF9F0;
-    padding: 0px 0 4px;
+    padding: 4px 0 16px;
     box-sizing: border-box;
 }
 
@@ -575,11 +575,6 @@
    모바일 사이즈
    =============================== */
 @media (max-width: 480px) {
-  /* 일일 / 주간 버튼 */
-  .bear-tabs-bar {
-    padding-bottom: 6px;
-  }
-
   .report-tab-text {
     height: 35px;
   }
