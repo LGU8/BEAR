@@ -1452,7 +1452,7 @@ def api_ocr_job_result(request):
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT nutr_json
+            SELECT result_json
             FROM CUS_OCR_NUTR_TS
             WHERE cust_id=%s AND rgs_dt=%s AND seq=%s AND ocr_seq=%s
             """,
@@ -1463,7 +1463,7 @@ def api_ocr_job_result(request):
     if not row:
         return JsonResponse({"ok": False, "error": "RESULT_NOT_READY"}, status=404)
 
-    return JsonResponse({"ok": True, "nutr_json": row[0]})
+    return JsonResponse({"ok": True, "result_json": row[0]})
 
 
 @csrf_exempt
@@ -1556,13 +1556,13 @@ def api_ocr_commit_manual(request):
         )
 
 
-def _normalize_ocr_nutrition_from_nutr_json(nutr_json: dict) -> dict:
+def _normalize_ocr_nutrition_from_result_json(result_json: dict) -> dict:
     """
-    nutr_json(= 너가 준 result_json 구조와 유사)을 받아
+    result_json(= 너가 준 result_json 구조와 유사)을 받아
     parsed_nutrition에서 4대 영양소를 표준화해 반환.
     반환: {"kcal": float|None, "carb_g": float|None, "protein_g": float|None, "fat_g": float|None}
     """
-    pn = (nutr_json or {}).get("parsed_nutrition") or {}
+    pn = (result_json or {}).get("parsed_nutrition") or {}
 
     def pick(key_kor: str, expected_unit: str):
         it = pn.get(key_kor) or {}
@@ -1593,7 +1593,7 @@ def api_ocr_latest(request):
     """
     GET /record/api/ocr/latest/?rgs_dt=YYYYMMDD&seq=1
     - CUS_OCR_TH에서 최신 ocr_seq 조회
-    - CUS_OCR_NUTR_TS에서 nutr_json 조회
+    - CUS_OCR_NUTR_TS에서 result_json 조회
     - 4대 영양소만 표준화해서 반환
     """
     cust_id = getattr(request.user, "cust_id", None) or request.session.get("cust_id")
@@ -1645,11 +1645,11 @@ def api_ocr_latest(request):
 
     ocr_seq, chosen_source, roi_score, full_score, bkt, key = row
 
-    # 2) nutr_json 조회
+    # 2) result_json 조회
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT nutr_json
+            SELECT result_json
             FROM CUS_OCR_NUTR_TS
             WHERE cust_id=%s AND rgs_dt=%s AND seq=%s AND ocr_seq=%s
             """,
@@ -1660,14 +1660,14 @@ def api_ocr_latest(request):
     if not r2:
         return JsonResponse({"ok": False, "error": "RESULT_NOT_READY"}, status=404)
 
-    nutr_json = r2[0]
-    if isinstance(nutr_json, str):
+    result_json = r2[0]
+    if isinstance(result_json, str):
         try:
-            nutr_json = json.loads(nutr_json)
+            result_json = json.loads(result_json)
         except Exception:
-            return JsonResponse({"ok": False, "error": "INVALID_NUTR_JSON"}, status=500)
+            return JsonResponse({"ok": False, "error": "INVALID_result_json"}, status=500)
 
-    nutrition = _normalize_ocr_nutrition_from_nutr_json(nutr_json)
+    nutrition = _normalize_ocr_nutrition_from_result_json(result_json)
     missing = [k for k, v in nutrition.items() if v is None]
 
     return JsonResponse(
