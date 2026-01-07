@@ -1,4 +1,7 @@
 // static/js/result.js
+
+console.log("[result.js] loaded ✅");
+
 (function () {
   // -------------------------
   // 0) CSRF cookie
@@ -312,7 +315,10 @@
 
     btnSave.disabled = true;
 
-    btnSave.addEventListener("click", async () => {
+    btnSave.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
       if (!selectedId) return;
 
       const csrfToken = getCookie("csrftoken");
@@ -430,7 +436,10 @@
     refreshBtn();
 
     // 2) 저장
-    btnSave.addEventListener("click", async () => {
+    btnSave.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
       refreshBtn();
       if (btnSave.disabled) return;
 
@@ -440,9 +449,17 @@
         return;
       }
 
+      const jobId = sessionStorage.getItem("ocr_job_id");
+      console.log("[result.js] ocr_job_id =", jobId);
+
+      if (!jobId) {
+        alert("OCR 작업 정보(job_id)를 찾을 수 없습니다. 다시 스캔해주세요.");
+        return;
+      }
+
       const payload = {
         mode: "ocr",
-        ocr_seq: latest?.ocr_seq, // 없으면 서버가 최신 선택
+        job_id: jobId,
         name: (nameEl.value || "").trim(),
         kcal: Number(kcalEl.value),
         carb_g: Number(carbEl.value),
@@ -450,9 +467,16 @@
         fat_g: Number(fatEl.value),
       };
 
+      console.log("[OCR commit payload]", payload);
+      
       clearError(errEl);
 
-      const res = await fetch("/record/api/scan/commit/", {
+      const endpoint =
+        payload.mode === "ocr"
+          ? "/record/api/ocr/commit/manual/"
+          : "/record/api/scan/commit/";
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

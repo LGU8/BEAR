@@ -28,6 +28,9 @@ from .services.barcode.mapping_code import (
 
 from .models import FoodTb, CusFoodTh, CusFoodTs
 from .utils_time import now14
+import hashlib
+import numpy as np
+import cv2
 
 
 # =========================
@@ -120,6 +123,15 @@ def _get_or_create_food_id_by_name(
         existing = FoodTb.objects.filter(name=name_n).order_by("food_id").first()
         if existing:
             return existing.food_id, False
+
+        if len(name_n) >= 3:
+            sim = (
+                FoodTb.objects.filter(name__icontains=name_n)
+                .order_by("food_id")
+                .first()
+            )
+            if sim:
+                return sim.food_id, False
 
         last_id = FoodTb.objects.aggregate(mx=Max("food_id"))["mx"] or 0
         new_id = int(last_id) + 1
@@ -309,17 +321,122 @@ def api_barcode_scan(request):
     date = request.POST.get("date", "").strip()
     meal = request.POST.get("meal", "").strip()
 
+    # ---------------------------------------------------------
+    # ✅ 디버그 옵션
+    # - KEEP_SCAN_FILE=1 : /tmp에 저장한 업로드 이미지를 삭제하지 않고 남김
+    # - SCANDBG_MAX_BYTES : 로깅용으로 앞부분 바이트를 얼마나 볼지(기본 64)
+    # ---------------------------------------------------------
+    KEEP_SCAN_FILE = (os.getenv("KEEP_SCAN_FILE") or "").strip() in ("1", "true", "TRUE", "yes", "YES")
+    try:
+        SCANDBG_MAX_BYTES = int((os.getenv("SCANDBG_MAX_BYTES") or "64").strip())
+    except Exception:
+        SCANDBG_MAX_BYTES = 64
+
+    # ✅ [SCANDBG] 업로드 파일 디버그 로그 (image 받은 직후)
+    f = request.FILES.get("image")
+    print(
+        "[SCANDBG][REQ]",
+        "method=", request.method,
+        "path=", request.path,
+        "content_type=", request.content_type,
+        "mode=", mode,
+        "date=", date,
+        "meal=", meal,
+        "file=", (f.name if f else None),
+        "size=", (f.size if f else None),
+        "img_content_type=", (getattr(f, "content_type", None) if f else None),
+        "KEEP_SCAN_FILE=", KEEP_SCAN_FILE,
+        flush=True,
+    )
+
     if not image:
         return JsonResponse(
-            {"ok": False, "error": "IMAGE_REQUIRED", "message": "image is required  "},
+            {"ok": False, "error": "IMAGE_REQUIRED", "message": "image is required"},
             status=400,
         )
 
+    # ---------------------------------------------------------
+    # 1) 업로드 파일을 /tmp에 저장 (기존과 동일)
+    # ---------------------------------------------------------
     with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
         for chunk in image.chunks():
             tmp.write(chunk)
         tmp_path = tmp.name
 
+    # ---------------------------------------------------------
+    # 2) ✅ 파일 바이트/해시/디코딩(shape)까지 확인
+    #    - 여기서 "업로드는 됐지만 이미지가 깨짐/검정/너무 작음"을 바로 잡아냄
+    # ---------------------------------------------------------
+    file_bytes = b""
+    try:
+        try:
+            with open(tmp_path, "rb") as rf:
+                file_bytes = rf.read()
+        except Exception as e:
+            print("[SCANDBG][READ_FAIL]", "tmp_path=", tmp_path, "err=", repr(e), flush=True)
+            file_bytes = b""
+
+        if file_bytes:
+            sha1 = hashlib.sha1(file_bytes).hexdigest()
+            head_hex = file_bytes[:SCANDBG_MAX_BYTES].hex()
+            print(
+                "[SCANDBG][FILE]",
+                "tmp_path=", tmp_path,
+                "bytes=", len(file_bytes),
+                "sha1=", sha1,
+                "head_hex=", head_hex,
+                flush=True,
+            )
+        else:
+            print("[SCANDBG][FILE]", "tmp_path=", tmp_path, "bytes=0", flush=True)
+
+        # OpenCV decode로 이미지 유효성 검사
+        img = None
+        try:
+            arr = np.frombuffer(file_bytes, dtype=np.uint8) if file_bytes else None
+            img = cv2.imdecode(arr, cv2.IMREAD_COLOR) if arr is not None else None
+        except Exception as e:
+            print("[SCANDBG][IMDECODE_EXC]", "err=", repr(e), flush=True)
+            img = None
+
+        if img is None:
+            # ✅ 업로드는 됐지만 이미지가 디코딩 불가 => 프론트/인코딩/파일 손상 쪽 확정
+            print("[SCANDBG][IMDECODE_FAIL]", "tmp_path=", tmp_path, flush=True)
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "reason": "SCAN_FAIL",
+                    "barcode": "",
+                    "message": "바코드를 인식하지 못했어요. (이미지 디코딩 실패) 다시 촬영해 주세요.",
+                },
+                status=400,
+            )
+
+        h, w = img.shape[:2]
+        # 밝기/대략적인 정보(완전 검정 프레임 여부 감지)
+        try:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            mean_val = float(np.mean(gray))
+            std_val = float(np.std(gray))
+        except Exception:
+            mean_val, std_val = None, None
+
+        print(
+            "[SCANDBG][IMG]",
+            "shape=", img.shape,
+            "w=", w, "h=", h,
+            "gray_mean=", mean_val,
+            "gray_std=", std_val,
+            flush=True,
+        )
+
+    except Exception as e:
+        # 여기서 죽으면 서버 디버그용으로만 남기고 기존 흐름은 SCAN_FAIL로 통일
+        print("[SCANDBG][PRECHECK_EXC]", repr(e), flush=True)
+
+    # ---------------------------------------------------------
+    # 3) 기존 바코드 파이프라인 실행
+    # ---------------------------------------------------------
     try:
         barcode, raw_candidates = run_barcode_pipeline(tmp_path)
 
@@ -327,6 +444,14 @@ def api_barcode_scan(request):
         raw_candidates = raw_candidates or []
         if isinstance(raw_candidates, dict):
             raw_candidates = [raw_candidates]
+
+        print(
+            "[SCANDBG][PIPELINE]",
+            "barcode=", barcode,
+            "raw_candidates_type=", type(raw_candidates).__name__,
+            "raw_candidates_len=", (len(raw_candidates) if isinstance(raw_candidates, list) else None),
+            flush=True,
+        )
 
         if not barcode:
             return JsonResponse(
@@ -354,12 +479,22 @@ def api_barcode_scan(request):
             status=502,
         )
     except Exception as e:
+        # ✅ traceback을 찍어야 run_barcode_pipeline 내부 예외도 잡힘
+        print("[SCANDBG][PIPELINE_EXC]", repr(e), flush=True)
+        traceback.print_exc()
         return JsonResponse(
             {"ok": False, "error": "SERVER_ERROR", "detail": str(e)}, status=500
         )
     finally:
-        Path(tmp_path).unlink(missing_ok=True)
+        # ✅ 디버그용 파일 보존 옵션
+        if KEEP_SCAN_FILE:
+            print("[SCANDBG][KEEP_FILE]", "tmp_path=", tmp_path, flush=True)
+        else:
+            Path(tmp_path).unlink(missing_ok=True)
 
+    # ---------------------------------------------------------
+    # 4) 이하 기존 로직 그대로 (candidates 정규화 / 영양 merge / draft 저장)
+    # ---------------------------------------------------------
     candidates = [_normalize_candidate(x) for x in raw_candidates]
     candidates = [c for c in candidates if c.get("candidate_id")]
 
@@ -376,7 +511,6 @@ def api_barcode_scan(request):
 
     # 영양 merge
     for c in candidates:
-
         c.update(_nutr_payload(None, "no_data"))
 
         report_no = (c.get("report_no") or "").strip()
@@ -399,10 +533,7 @@ def api_barcode_scan(request):
                 c.update(_nutr_payload(None, "error"))
 
         except Exception as e:
-            # ✅ UpstreamAPIError로 감싸지지 않은 Timeout/네트워크 오류까지 여기서 흡수
-            if isinstance(
-                e, requests.exceptions.ReadTimeout
-            ) or "Read timed out" in str(e):
+            if isinstance(e, requests.exceptions.ReadTimeout) or "Read timed out" in str(e):
                 c.update(_nutr_payload(None, "timeout"))
             else:
                 c.update(_nutr_payload(None, "error"))
@@ -816,12 +947,15 @@ def api_barcode_commit(request):
                                 rgs_dt=str(reco_rgs_dt),
                                 rec_time_slot=str(reco_time_slot).strip().upper(),
                                 current_food=None,
-                                recent_foods=(recent_food_names[:10] if recent_food_names else None),
+                                recent_foods=(
+                                    recent_food_names[:10]
+                                    if recent_food_names
+                                    else None
+                                ),
                             )
                     except Exception:
                         # 저장 성공은 유지 (추천 실패는 별도로 삼킴)
                         return
-
 
                 transaction.on_commit(_run_reco_after_commit)
 
@@ -853,6 +987,7 @@ def api_barcode_commit(request):
             {"ok": False, "error": "DB_SAVE_FAILED", "detail": str(e)}, status=500
         )
 
+
 import traceback
 
 
@@ -864,11 +999,16 @@ def api_food_search(request):
     try:
         print(
             "[API_FOOD_SEARCH][ENTER]",
-            "method=", request.method,
-            "path=", request.path,
-            "q=", request.GET.get("q"),
-            "user_auth=", getattr(request.user, "is_authenticated", None),
-            "user_cust_id=", getattr(request.user, "cust_id", None),
+            "method=",
+            request.method,
+            "path=",
+            request.path,
+            "q=",
+            request.GET.get("q"),
+            "user_auth=",
+            getattr(request.user, "is_authenticated", None),
+            "user_cust_id=",
+            getattr(request.user, "cust_id", None),
             flush=True,
         )
 
@@ -902,6 +1042,7 @@ def api_food_search(request):
         print("[API_FOOD_SEARCH][EXC]", repr(e), flush=True)
         traceback.print_exc()
         return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
 
 def get_cust_id(request) -> str:
     cust_id = request.session.get("cust_id")
@@ -1130,7 +1271,10 @@ def api_meal_save_by_search(request):
                 row = cursor.fetchone()
                 if row is None:
                     return JsonResponse(
-                        {"ok": False, "error": "CUS_FEEL_TH row not found for current key"},
+                        {
+                            "ok": False,
+                            "error": "CUS_FEEL_TH row not found for current key",
+                        },
                         status=404,
                     )
 
@@ -1180,7 +1324,18 @@ def api_meal_save_by_search(request):
                         (created_time, updated_time, cust_id, rgs_dt, seq, time_slot, kcal, carb_g, protein_g, fat_g)
                         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                         """,
-                        [t, t, cust_id, rgs_dt, seq, time_slot, total_kcal, total_carb, total_prot, total_fat],
+                        [
+                            t,
+                            t,
+                            cust_id,
+                            rgs_dt,
+                            seq,
+                            time_slot,
+                            total_kcal,
+                            total_carb,
+                            total_prot,
+                            total_fat,
+                        ],
                     )
                     th_action = "insert"
                 else:
@@ -1195,7 +1350,17 @@ def api_meal_save_by_search(request):
                             fat_g=%s
                         WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
                         """,
-                        [t, time_slot, total_kcal, total_carb, total_prot, total_fat, cust_id, rgs_dt, seq],
+                        [
+                            t,
+                            time_slot,
+                            total_kcal,
+                            total_carb,
+                            total_prot,
+                            total_fat,
+                            cust_id,
+                            rgs_dt,
+                            seq,
+                        ],
                     )
                     th_action = "update"
 
@@ -1209,7 +1374,10 @@ def api_meal_save_by_search(request):
                 )
                 deleted_ts = cursor.rowcount
 
-                ts_rows = [(t, t, cust_id, rgs_dt, seq, i, fid) for i, fid in enumerate(food_ids, start=1)]
+                ts_rows = [
+                    (t, t, cust_id, rgs_dt, seq, i, fid)
+                    for i, fid in enumerate(food_ids, start=1)
+                ]
                 cursor.executemany(
                     """
                     INSERT INTO CUS_FOOD_TS
@@ -1237,7 +1405,11 @@ def api_meal_save_by_search(request):
                                 rgs_dt=str(reco_rgs_dt),
                                 rec_time_slot=str(reco_time_slot).strip().upper(),
                                 current_food=None,
-                                recent_foods=(recent_food_names[:10] if recent_food_names else None),
+                                recent_foods=(
+                                    recent_food_names[:10]
+                                    if recent_food_names
+                                    else None
+                                ),
                             )
                     except Exception:
                         return
@@ -1311,14 +1483,14 @@ def api_ocr_job_create(request):
             return JsonResponse(
                 {"ok": False, "error": "AWS_S3_BUCKET_MISSING"}, status=400
             )
-
+        filename = f"nutrition_{now14()}_{uuid.uuid4().hex[:8]}.jpg"
         env = get_env_name()
         key = build_ocr_input_key(
             env=env,
             cust_id=str(cust_id),
             rgs_dt=rgs_dt,
             seq=seq,
-            filename=image.name,
+            filename=filename,
         )
 
         # 1️⃣ S3 upload
@@ -1457,7 +1629,9 @@ def api_ocr_job_result(request):
         row = cursor.fetchone()
 
     if not row:
-        return JsonResponse({"ok": False, "error": "RESULT_NOT_READY"}, status=404)
+        return JsonResponse(
+            {"ok": False, "error": "비어있는 정보는 직접 입력해주세요."}, status=404
+        )
 
     return JsonResponse({"ok": True, "result_json": row[0]})
 
@@ -1466,12 +1640,40 @@ def api_ocr_job_result(request):
 @require_POST
 def api_ocr_commit_manual(request):
     """
-    OCR 실패/timeout 시 사용자가 직접 입력한 영양성분을 저장.
-    - job_id로 cust_id/rgs_dt/seq/ocr_seq를 특정
-    - CUS_FOOD_TH에 값 저장(기존 upsert 패턴)
-    - (선택) CUS_OCR_TH에 error_code='MANUAL' 같은 표시도 가능
+    OCR 수동 입력 저장(바코드 저장 흐름과 동일한 최종 저장):
+    - 사용자 입력 name + 영양정보(kcal/carb_g/protein_g/fat_g)
+    - FOOD_TB: 동일/유사 이름이 있으면 재사용, 없으면 MAX(food_id)+1 생성
+      - carb_g/protein_g/fat_g 소수점 버림 → 정수
+      - Macro_ratio_c/p/f 합 10 계산 저장
+    - CUS_FOOD_TH: upsert
+    - CUS_FOOD_TS: 덮어쓰기(delete → insert)로 food_id 연결
+    - CUS_OCR_TH: MANUAL 표시
     """
-    job_id = (request.POST.get("job_id") or "").strip()
+
+    # -------------------------
+    # 0) Body 파싱(JSON/FORM 모두 허용)
+    # -------------------------
+    payload = None
+    is_json = (request.content_type or "").startswith("application/json")
+    if is_json:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except Exception:
+            payload = {}
+
+        def _get(key: str) -> str:
+            v = payload.get(key)
+            return "" if v is None else str(v)
+
+    else:
+
+        def _get(key: str) -> str:
+            return request.POST.get(key) or ""
+
+    # -------------------------
+    # 1) job_id 파싱
+    # -------------------------
+    job_id = (_get("job_id") or "").strip()
     if not job_id:
         return JsonResponse({"ok": False, "error": "JOB_ID_REQUIRED"}, status=400)
 
@@ -1482,59 +1684,150 @@ def api_ocr_commit_manual(request):
     except Exception:
         return JsonResponse({"ok": False, "error": "JOB_ID_INVALID"}, status=400)
 
-    def _to_int(x):
-        try:
-            return int(float(x))
-        except Exception:
-            return 0
-
-    # 프론트에서 보내는 필드명 기준(필요하면 너 UI에 맞게 변경)
-    kcal = _to_int(request.POST.get("kcal"))
-    carb = _to_int(request.POST.get("carb_g"))
-    prot = _to_int(request.POST.get("protein_g"))
-    fat = _to_int(request.POST.get("fat_g"))
-    time_slot = (
-        request.POST.get("time_slot") or request.session.get("time_slot") or ""
-    ).strip()
-
+    # -------------------------
+    # 2) 필수 context: time_slot
+    # -------------------------
+    time_slot = (_get("time_slot") or request.session.get("time_slot") or "").strip()
     if not time_slot:
         return JsonResponse({"ok": False, "error": "TIME_SLOT_REQUIRED"}, status=400)
 
+    # -------------------------
+    # 3) 사용자 입력 name + 영양값
+    # -------------------------
+    # 프론트 키가 name/product_name/food_name 중 무엇이든 수용
+    name = (
+        (_get("name") or "").strip()
+        or (_get("product_name") or "").strip()
+        or (_get("food_name") or "").strip()
+    )
+    if not name:
+        return JsonResponse({"ok": False, "error": "NAME_REQUIRED"}, status=400)
+
+    kcal_raw = _get("kcal")
+    carb_raw = _get("carb_g")
+    prot_raw = _get("protein_g")
+    fat_raw = _get("fat_g")
+
+    missing = []
+    if str(kcal_raw).strip() == "":
+        missing.append("kcal")
+    if str(carb_raw).strip() == "":
+        missing.append("carb_g")
+    if str(prot_raw).strip() == "":
+        missing.append("protein_g")
+    if str(fat_raw).strip() == "":
+        missing.append("fat_g")
+    if missing:
+        return JsonResponse(
+            {"ok": False, "error": "NUTR_REQUIRED", "detail": {"missing": missing}},
+            status=400,
+        )
+
+    # -------------------------
+    # 4) 바코드와 동일한 정규화(소수점 버림, macro ratio 계산)
+    # -------------------------
+    name_n = _normalize_food_name(name)
+
+    kcal_i = to_int_trunc(kcal_raw, default=0)
+    carb_i = to_int_trunc(carb_raw, default=0)
+    prot_i = to_int_trunc(prot_raw, default=0)
+    fat_i = to_int_trunc(fat_raw, default=0)
+
+    # 영양값이 전부 0이면 저장 의미가 없으니 막기(바코드와 동일 정책)
+    if kcal_i == 0 and carb_i == 0 and prot_i == 0 and fat_i == 0:
+        return JsonResponse(
+            {"ok": False, "error": "INVALID_NUTRITION", "detail": {"name": name_n}},
+            status=400,
+        )
+
+    mr_c, mr_p, mr_f = macro_ratio_10(carb_i, prot_i, fat_i)
+
+    # -------------------------
+    # 5) DB: FOOD_TB → TH upsert → TS 덮어쓰기 → OCR 이력 업데이트
+    # -------------------------
     t = now14()
 
     try:
         with transaction.atomic(), connection.cursor() as cursor:
-            # 1) CUS_FOOD_TH upsert(너 프로젝트 패턴 유지)
+
+            # (A) FOOD_TB: get or create (동일/유사 이름 재사용, 없으면 MAX+1 신규)
+            food_id, _created_new = _get_or_create_food_id_by_name(
+                name=name_n,
+                kcal=kcal_i,
+                carb_g=carb_i,
+                protein_g=prot_i,
+                fat_g=fat_i,
+                mr_c=mr_c,
+                mr_p=mr_p,
+                mr_f=mr_f,
+            )
+
+            # (B) CUS_FOOD_TH upsert (바코드 저장 로직과 동일 패턴)
             cursor.execute(
                 """
-                SELECT 1 FROM CUS_FOOD_TH
+                SELECT 1
+                FROM CUS_FOOD_TH
                 WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
                 LIMIT 1
                 """,
                 [cust_id, rgs_dt, seq],
             )
-            exists = cursor.fetchone() is not None
+            exists_th = cursor.fetchone() is not None
 
-            if not exists:
+            if not exists_th:
                 cursor.execute(
                     """
                     INSERT INTO CUS_FOOD_TH
-                    (created_time, updated_time, cust_id, rgs_dt, seq, time_slot, kcal, carb_g, protein_g, fat_g)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    (created_time, updated_time, cust_id, rgs_dt, seq, time_slot,
+                     kcal, carb_g, protein_g, fat_g)
+                    VALUES
+                    (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     """,
-                    [t, t, cust_id, rgs_dt, seq, time_slot, kcal, carb, prot, fat],
+                    [
+                        t,
+                        t,
+                        cust_id,
+                        rgs_dt,
+                        seq,
+                        time_slot,
+                        kcal_i,
+                        carb_i,
+                        prot_i,
+                        fat_i,
+                    ],
                 )
             else:
                 cursor.execute(
                     """
                     UPDATE CUS_FOOD_TH
-                    SET updated_time=%s, time_slot=%s, kcal=%s, carb_g=%s, protein_g=%s, fat_g=%s
+                    SET updated_time=%s,
+                        time_slot=%s,
+                        kcal=%s, carb_g=%s, protein_g=%s, fat_g=%s
                     WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
                     """,
-                    [t, time_slot, kcal, carb, prot, fat, cust_id, rgs_dt, seq],
+                    [t, time_slot, kcal_i, carb_i, prot_i, fat_i, cust_id, rgs_dt, seq],
                 )
 
-            # 2) (선택) CUS_OCR_TH에 “수동처리됨” 표시
+            # (C) CUS_FOOD_TS 덮어쓰기(delete → insert)
+            cursor.execute(
+                """
+                DELETE FROM CUS_FOOD_TS
+                WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
+                """,
+                [cust_id, rgs_dt, seq],
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO CUS_FOOD_TS
+                (created_time, updated_time, cust_id, rgs_dt, seq, food_seq, food_id)
+                VALUES
+                (%s,%s,%s,%s,%s,%s,%s)
+                """,
+                [t, t, cust_id, rgs_dt, seq, 1, food_id],
+            )
+
+            # (D) CUS_OCR_TH: MANUAL 표시
             cursor.execute(
                 """
                 UPDATE CUS_OCR_TH
@@ -1544,11 +1837,20 @@ def api_ocr_commit_manual(request):
                 [t, cust_id, rgs_dt, seq, ocr_seq],
             )
 
-        return JsonResponse({"ok": True, "redirect_url": "/record/meal/"})
+        # 성공
+        return JsonResponse(
+            {
+                "ok": True,
+                "redirect_url": "/record/meal/",
+                "food_id": int(food_id),
+                "seq": int(seq),
+            }
+        )
 
     except Exception as e:
         return JsonResponse(
-            {"ok": False, "error": "SAVE_FAILED", "detail": str(e)}, status=500
+            {"ok": False, "error": "SAVE_FAILED", "detail": str(e)},
+            status=500,
         )
 
 
@@ -1654,14 +1956,18 @@ def api_ocr_latest(request):
         r2 = cursor.fetchone()
 
     if not r2:
-        return JsonResponse({"ok": False, "error": "RESULT_NOT_READY"}, status=404)
+        return JsonResponse(
+            {"ok": False, "error": "비어있는 정보는 직접 입력해주세요."}, status=404
+        )
 
     result_json = r2[0]
     if isinstance(result_json, str):
         try:
             result_json = json.loads(result_json)
         except Exception:
-            return JsonResponse({"ok": False, "error": "INVALID_result_json"}, status=500)
+            return JsonResponse(
+                {"ok": False, "error": "INVALID_result_json"}, status=500
+            )
 
     nutrition = _normalize_ocr_nutrition_from_result_json(result_json)
     missing = [k for k, v in nutrition.items() if v is None]
