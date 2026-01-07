@@ -1,183 +1,176 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-      /* 기본 배경 설정 */
-      body {
-        background-color: #FFFBE6;
-        margin: 0;
-        font-family: 'Noto Sans KR', sans-serif;
-      }
+{% block content %}
+<div class="main-wrapper">
+  <style>
+    /* 기본 배경 설정 */
+    html, body {
+      background-color: #FFFBE6;
+      margin: 0;
+      font-family: 'Noto Sans KR', sans-serif;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
 
-      /* ✅ 화면 높이 기반 레이아웃 컨테이너 */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    .main-wrapper {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 60px 0;
+    }
+
+    .login-container {
+      width: min(400px, 100%);
+      padding: 0 20px;
+      text-align: center;
+    }
+
+    /* 타이틀 섹션 */
+    .header-section { margin-bottom: 50px; }
+    .header-section h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin: 0 0 5px;
+      color: #1a1a1a;
+      line-height: 1.25;
+    }
+    .header-section .point-color { color: #F38218; }
+    .header-section p {
+      color: #F38218;
+      font-size: 1rem;
+      font-weight: 500;
+      margin: 10px 0 0;
+    }
+
+    /* 입력 폼 스타일 */
+    .form-group { margin-bottom: 15px; }
+
+    input[type="email"], input[type="password"] {
+      width: 100%;
+      padding: 18px 20px;
+      border: none;
+      border-radius: 12px;
+      background-color: #FFFFFF;
+      font-size: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    input::placeholder { color: #A0A0A0; }
+
+    /* 버튼 스타일 */
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 10px;
+      letter-spacing: 3px;
+    }
+    .btn-login { background-color: #F38218; color: white; }
+    .btn-signup {
+      background-color: #FFB763;
+      color: white;
+      text-decoration: none;
+      display: block;
+    }
+
+    /* ✅ 회원가입 버튼 바로 아래: 둘러보기 (컨테이너 내부) */
+    .footer-inline {
+      margin-top: 14px;
+      text-align: center;
+    }
+    .footer-inline a {
+      display: inline-block;
+      color: #F38218;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 700;
+      opacity: 0.9;
+    }
+
+    /* 에러 메시지 */
+    .error-msg {
+      color: #e74c3c;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    /* ─────────────────────────────
+       모바일 반응형 (체감 확실히)
+       ───────────────────────────── */
+
+    @media (max-width: 480px) {
       .main-wrapper {
-        min-height: 100vh;
-        min-height: 100dvh;
-        display: flex;
-        flex-direction: column;
+        justify-content: center;
+        padding: 28px 0;
       }
 
       .login-container {
-        max-width: 400px;
-        margin: 60px auto;
-        padding: 0 20px;
-        text-align: center;
-        width: 100%;
-        box-sizing: border-box;
+        padding: 0 14px;
       }
 
-      /* 타이틀 섹션 */
-      .header-section { margin-bottom: 60px; }
-      .header-section h1 {
-        font-size: 2.2rem;
-        font-weight: 800;
-        margin-bottom: 5px;
-        color: #1a1a1a;
-        line-height: 1.25;
-      }
-      .header-section .point-color { color: #F38218; }
-      .header-section p {
-        color: #F38218;
-        font-size: 1rem;
-        font-weight: 500;
-        margin-top: 10px;
-      }
+      .header-section { margin-bottom: 22px; }
+      .header-section h1 { font-size: 1.6rem; }
+      .header-section p { font-size: 0.9rem; }
 
-      /* 입력 폼 스타일 */
-      .form-group { margin-bottom: 15px; }
       input[type="email"], input[type="password"] {
-        width: 100%;
-        padding: 18px 20px;
-        border: none;
-        border-radius: 12px;
-        background-color: #FFFFFF;
-        font-size: 1rem;
-        box-sizing: border-box;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        max-width: 100%;
+        padding: 14px 16px;
+        font-size: 0.95rem;
       }
-      input::placeholder { color: #A0A0A0; }
 
-      /* 버튼 스타일 */
       .btn {
-        width: 100%;
-        padding: 16px;
-        border: none;
-        border-radius: 12px;
-        font-size: 1.05rem;
-        font-weight: 800;
-        cursor: pointer;
-        margin-top: 15px;
-        letter-spacing: 3px;
-        box-sizing: border-box;
-      }
-      .btn-login { background-color: #F38218; color: white; }
-      .btn-signup {
-        background-color: #FFB763;
-        color: white;
-        text-decoration: none;
-        display: block;
-        box-sizing: border-box;
+        padding: 14px;
+        font-size: 0.95rem;
+        letter-spacing: 1.2px;
       }
 
-      /* ✅ 회원가입 버튼 바로 아래: 둘러보기 */
-      .footer-inline {
-        margin-top: 14px;              /* 회원가입 버튼과 간격 */
-        text-align: center;            /* ✅ 가운데 정렬 */
-      }
-      .footer-inline a {
-        display: inline-block;         /* ✅ 텍스트/링크 가운데 정렬 안정 */
-        color: #F38218;
-        text-decoration: none;
-        font-size: 0.9rem;
-        font-weight: 700;
-        opacity: 0.9;
-      }
+      .footer-inline { margin-top: 12px; }
+      .footer-inline a { font-size: 0.85rem; }
+    }
 
-      /* 에러 메시지 */
-      .error-msg {
-        color: #e74c3c;
-        margin-bottom: 15px;
-        font-size: 0.9rem;
-        font-weight: 700;
-      }
+    @media (max-width: 360px) {
+      .main-wrapper { padding: 22px 0; }
+      .header-section h1 { font-size: 1.5rem; }
+      .btn { padding: 13px; font-size: 0.9rem; }
+      input[type="email"], input[type="password"] { padding: 13px 14px; font-size: 0.9rem; }
+    }
+  </style>
 
-      /* ─────────────────────────────
-         모바일/태블릿 반응형 (Login 최종 안정본)
-         ───────────────────────────── */
-
-      @media (max-width: 480px) {
-        .login-container {
-          margin: 28px auto;
-          padding: 0 14px;
-        }
-
-        .header-section { margin-bottom: 40px; }
-        .header-section h1 { font-size: 1.65rem; }
-        .header-section p { font-size: 0.9rem; }
-
-        input[type="email"], input[type="password"] {
-          padding: 14px 16px;
-          font-size: 0.95rem;
-        }
-
-        .btn {
-          padding: 14px;
-          font-size: 0.95rem;
-          letter-spacing: 1.2px;
-        }
-
-        .footer-inline {
-          margin-top: 12px;
-        }
-        .footer-inline a {
-          font-size: 0.85rem;
-        }
-      }
-
-      @media (max-width: 360px) {
-        .login-container {
-          margin: 22px auto;
-          padding: 0 12px;
-        }
-        .header-section h1 { font-size: 1.5rem; }
-        .btn { padding: 13px; font-size: 0.9rem; }
-      }
-    </style>
-
-</head>
-
-<div class="main-wrapper">
-    <div class="login-container">
-        <div class="header-section">
-            <h1><span class="point-color">짜잔</span>과 함께<br>건강 관리 시작해요!</h1>
-            <p>빠른 가입으로 시작해보세요</p>
-        </div>
-
-        {% if error_message %}
-            <div class="error-msg">{{ error_message }}</div>
-        {% endif %}
-
-        <form method="post">
-            {% csrf_token %}
-            <div class="form-group">
-                <input type="email" id="email" name="email" placeholder="아이디" required value="{{ request.POST.email }}">
-            </div>
-
-            <div class="form-group">
-                <input type="password" id="password" name="password" placeholder="비밀번호" required>
-            </div>
-
-            <button type="submit" class="btn btn-login">로그인</button>
-        </form>
-
-        <a href="{% url 'accounts_app:signup_step1' %}" class="btn btn-signup">회원가입</a>
+  <div class="login-container">
+    <div class="header-section">
+      <h1><span class="point-color">짜잔</span>과 함께<br>건강 관리 시작해요!</h1>
+      <p>빠른 가입으로 시작해보세요</p>
     </div>
+
+    {% if error_message %}
+      <div class="error-msg">{{ error_message }}</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <input type="email" id="email" name="email" placeholder="아이디" required value="{{ request.POST.email }}">
+      </div>
+
+      <div class="form-group">
+        <input type="password" id="password" name="password" placeholder="비밀번호" required>
+      </div>
+
+      <button type="submit" class="btn btn-login">로그인</button>
+    </form>
+
+    <a href="{% url 'accounts_app:signup_step1' %}" class="btn btn-signup">회원가입</a>
 
     <div class="footer-inline">
-        <a href="{% url 'accounts_app:test_login' %}">(둘러보기)</a>
+      <a href="{% url 'accounts_app:test_login' %}">(둘러보기)</a>
     </div>
+  </div>
 </div>
-
+{% endblock %}

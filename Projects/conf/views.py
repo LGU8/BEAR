@@ -41,18 +41,41 @@ def public_home(request):
 import logging
 logger = logging.getLogger(__name__)
 
+# conf/views.py (상단 또는 _safe_get_cust_id 위)
+
+def _normalize_cust_id(v) -> str:
+    """
+    DB의 cust_id가 10자리 zero-padding(예: 0000000025)인 전제에 맞춰 정규화.
+    - int/str 모두 처리
+    - 숫자면 zfill(10)
+    - 그 외는 strip만
+    """
+    if v is None:
+        return ""
+    s = str(v).strip()
+    if not s:
+        return ""
+    if s.isdigit():
+        return s.zfill(10)
+    return s
+
+
 def _safe_get_cust_id(request) -> str:
     # 1) authenticated user의 cust_id
     user = getattr(request, "user", None)
     if getattr(user, "is_authenticated", False):
         cust_id = getattr(user, "cust_id", None)
+        cust_id = _normalize_cust_id(cust_id)
         if cust_id:
-            return str(cust_id)
+            return cust_id
 
     # 2) session cust_id (보조)
-    cust_id = getattr(getattr(request, "session", {}), "get", lambda _k: None)("cust_id")
-    if cust_id:
-        return str(cust_id)
+    sess = getattr(request, "session", None)
+    if sess:
+        cust_id = sess.get("cust_id")
+        cust_id = _normalize_cust_id(cust_id)
+        if cust_id:
+            return cust_id
 
     # 3) 없으면 로그 남기고 빈 값
     logger.warning(
@@ -61,6 +84,7 @@ def _safe_get_cust_id(request) -> str:
         list(getattr(request, "session", {}).keys()) if getattr(request, "session", None) else [],
     )
     return ""
+
 
 
 
@@ -236,19 +260,6 @@ def _derive_reco_target(rgs_dt: str, recorded_slot: str):
     return "", ""
 
 def _build_menu_reco_context(cust_id: str) -> dict:
-    """
-    ✅ 기존에 잘 동작하던 표출 로직을 최대한 유지하면서,
-    ✅ MENU_RECOM_TH 조회 키(rgs_dt, rec_time_slot)만 저장 로직과 동일하게 맞춘 버전
-
-    - 기본 조회 날짜는 오늘(KST 캘린더 날짜) rgs_dt
-    - 다음 slot 판단은 CUS_FOOD_TH & CUS_FEEL_TH의 (오늘, slot) 동시 존재로 판정
-    - 단, '어제(D 완료)' 상태가 있고 지금 시간이 새벽 4시 이전이면:
-        -> "오늘 식사 기록이 모두 완료됐어요. 추천 준비 중" 유지
-        -> (새로운 하루 추천 시작 안 함)
-
-    - 추천 조회는 MENU_RECOM_TH에서 (reco_rgs_dt, reco_time_slot)로 조회
-      (⭐  시 사용한 _derive_reco_target()과 동일한 방식으로 계산)
-    """
     base = {
         "is_done": False,
         "status_text": "추천 준비 중",
@@ -256,7 +267,6 @@ def _build_menu_reco_context(cust_id: str) -> dict:
         "line": "",
         "ymd": "",
     }
-
     if not cust_id:
         return base
 
@@ -264,36 +274,44 @@ def _build_menu_reco_context(cust_id: str) -> dict:
     yesterday_ymd = (timezone.localdate() - timedelta(days=1)).strftime("%Y%m%d")
     base["ymd"] = today_ymd
 
-    # 1) 새벽 4시 이전에는 "어제 완료" 상태를 유지(오늘 추천 시작 X)
+    # 1) 새벽 4시 이전 + 어제 DONE이면 완료 문구 유지
     if _is_before_4am_kst():
         y_slot_or_done, _ = _next_slot_by_food_and_feel(cust_id, yesterday_ymd)
         if y_slot_or_done == "DONE":
             base["is_done"] = True
             base["status_text"] = "오늘 식사 기록이 모두 완료됐어요. 추천 준비 중"
-            base["title"] = ""
-            base["line"] = ""
             return base
-        # 어제가 DONE이 아니면 -> 오늘 기준으로 정상 진행
 
-    # 2) 오늘 기준으로 다음 slot 결정
+    # 2) 오늘 DONE이면 완료 문구
     slot_or_done, _ = _next_slot_by_food_and_feel(cust_id, today_ymd)
-
-    # 오늘 DONE이면: 완료 문구 출력
     if slot_or_done == "DONE":
         base["is_done"] = True
         base["status_text"] = "오늘 식사 기록이 모두 완료됐어요. 추천 준비 중"
         return base
 
-    # -------------------------------------------------------
-    # - reco_key_slot: "마지막으로 FOOD+FEEL이 동시에 존재한 슬롯"(트리거 슬롯)
-    # - display_slot: 화면에 보여줄 '다음 추천 슬롯'
-    # -------------------------------------------------------
+    # 3) 트리거 슬롯 결정
+    #    - 우선 오늘에서 마지막 done 슬롯 찾기
+    trigger_ymd = today_ymd
     reco_key_slot = _last_done_slot_by_food_and_feel(cust_id, today_ymd)
-    if not reco_key_slot:
-        base["status_text"] = "추천 준비 중"
-        return base
 
-    display_slot = _recommend_target_slot_from_trigger_slot(reco_key_slot)
+    # ✅ (핵심) 오늘 done 슬롯이 없으면:
+    #    - 어제 마지막 done 슬롯이 D인지 확인해서 "오늘 아침(M) 추천"을 보여줄 수 있게 한다.
+    if not reco_key_slot:
+        y_last = _last_done_slot_by_food_and_feel(cust_id, yesterday_ymd)
+        if y_last == "D":
+            trigger_ymd = yesterday_ymd
+            reco_key_slot = "D"
+        else:
+            base["status_text"] = "추천 준비 중"
+            return base
+
+    # 4) display_slot 계산
+    #    - 어제 D 트리거면: 오늘 아침 추천이므로 display_slot은 M
+    if trigger_ymd == yesterday_ymd and reco_key_slot == "D":
+        display_slot = "M"
+    else:
+        display_slot = _recommend_target_slot_from_trigger_slot(reco_key_slot)
+
     if display_slot == "DONE":
         base["is_done"] = True
         base["status_text"] = "오늘 식사 기록이 모두 완료됐어요. 추천 준비 중"
@@ -302,22 +320,17 @@ def _build_menu_reco_context(cust_id: str) -> dict:
     slot_label = {"M": "아침", "L": "점심", "D": "저녁"}[display_slot]
     base["title"] = f"{slot_label} 메뉴 추천"
 
-    # -------------------------------------------------------
-    # MENU_RECOM_TH 조회 키를 저장 로직과 동일하게 계산
-    # - 저장 로직: reco_rgs_dt, reco_time_slot = _derive_reco_target(rgs_dt, time_slot)
-    # - 화면 로직도 동일하게:
-    #     trigger_slot(=reco_key_slot)을 넣어 조회 키를 만든다.
-    # -------------------------------------------------------
-    reco_rgs_dt, reco_time_slot = _derive_reco_target(today_ymd, reco_key_slot)
+    # 5) MENU_RECOM_TH 조회 키 계산(저장 로직과 동일)
+    #    - trigger_ymd / reco_key_slot 기준으로 추천 대상 키 도출
+    reco_rgs_dt, reco_time_slot = _derive_reco_target(trigger_ymd, reco_key_slot)
 
-    # 방어(혹시라도 빈값이 오면 준비중 처리)
     reco_rgs_dt = (reco_rgs_dt or "").strip()
     reco_time_slot = (reco_time_slot or "").strip().upper()
     if not reco_rgs_dt or reco_time_slot not in ("M", "L", "D"):
         base["status_text"] = "추천 준비 중"
         return base
 
-    # 3) 추천 로딩 (오늘 고정이 아니라 reco_rgs_dt로 조회해야 함)
+    # 6) 추천 로딩
     name_col = _get_food_name_column()
     if not name_col:
         base["status_text"] = "추천 준비 중"
@@ -338,7 +351,6 @@ def _build_menu_reco_context(cust_id: str) -> dict:
         ORDER BY FIELD(r.rec_type, 'P','H','E');
     """
     with connection.cursor() as cursor:
-        # ✅ today_ymd -> reco_rgs_dt, reco_key_slot -> reco_time_slot
         cursor.execute(sql_reco, [cust_id, reco_rgs_dt, reco_time_slot])
         rows = cursor.fetchall()
 
@@ -352,17 +364,19 @@ def _build_menu_reco_context(cust_id: str) -> dict:
     for rec_type, food_id, food_name in rows:
         t = str(rec_type).strip().upper()
         nm = str(food_name).strip() if food_name is not None else ""
-        if not nm:
-            continue
-        parts.append(f"{type_label.get(t, t)}: {nm}")
+        if nm:
+            parts.append(f"{type_label.get(t, t)}: {nm}")
 
     if not parts:
         base["status_text"] = "추천 준비 중"
         return base
 
+    # ✅ 디버그 로그(문제 해결 후 logger.debug로 낮추는 것 권장)
     print(
-        "[menu_reco] cust_id=", cust_id,
+        "[menu_reco]",
+        "cust_id=", cust_id,
         "today_ymd=", today_ymd,
+        "trigger_ymd=", trigger_ymd,
         "reco_key_slot=", reco_key_slot,
         "display_slot=", display_slot,
         "reco_rgs_dt=", reco_rgs_dt,
@@ -373,6 +387,7 @@ def _build_menu_reco_context(cust_id: str) -> dict:
     base["status_text"] = ""
     base["line"] = " / ".join(parts)
     return base
+
 
 
 def _build_today_donut(cust_id: str, yyyymmdd: str):
