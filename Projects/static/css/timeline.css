@@ -439,6 +439,7 @@
   max-width: 980px;          /* ✅ 네비바 기준 폭과 동일 값으로 맞추기 */
   margin-left: auto;
   margin-right: auto;
+  margin-top: 0 !important;
 }
 
 /* (2) 섹션이 자체 max-width/padding으로 다시 좁히지 못하게 차단 */
@@ -474,6 +475,46 @@
   .llm-box{
     margin-top: 0px;
   }
+}
+
+/* =========================================
+   TIMELINE: navbar(2줄) ↔ main 사이 공백 제거 (page-scope)
+   ========================================= */
+
+/* main 자체 여백 제거 */
+.timeline-page{
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* main(bear-main)이 padding-top을 갖고 있으면 제거 */
+.bear-main:has(.timeline-page){
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* tabs bar 아래 여백 제거(혹시 nav_style.css에서 margin-bottom 주는 경우) */
+.bear-tabs-bar{
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* main 위쪽 여백 제거(혹시 nav_style.css에서) */
+.bear-main{
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* 첫 섹션/카드의 margin collapse 방지 + 0으로 고정 */
+.bear-main:has(.timeline-page) > .settings-page.timeline-page{
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* timeline 내부 첫 section이 위로 밀어올리는 것 방지 */
+.settings-page.timeline-page .timeline-section:first-child{
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 
