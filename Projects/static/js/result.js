@@ -1,4 +1,7 @@
 // static/js/result.js
+
+console.log("[result.js] loaded ✅");
+
 (function () {
   // -------------------------
   // 0) CSRF cookie
@@ -312,7 +315,10 @@
 
     btnSave.disabled = true;
 
-    btnSave.addEventListener("click", async () => {
+    btnSave.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
       if (!selectedId) return;
 
       const csrfToken = getCookie("csrftoken");
@@ -430,7 +436,10 @@
     refreshBtn();
 
     // 2) 저장
-    btnSave.addEventListener("click", async () => {
+    btnSave.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
       refreshBtn();
       if (btnSave.disabled) return;
 
@@ -442,7 +451,7 @@
 
       const payload = {
         mode: "ocr",
-        ocr_seq: latest?.ocr_seq, // 없으면 서버가 최신 선택
+        job_id: latest?.job_id,
         name: (nameEl.value || "").trim(),
         kcal: Number(kcalEl.value),
         carb_g: Number(carbEl.value),
@@ -450,9 +459,16 @@
         fat_g: Number(fatEl.value),
       };
 
+      console.log("[OCR commit payload]", payload);
+      
       clearError(errEl);
 
-      const res = await fetch("/record/api/scan/commit/", {
+      const endpoint =
+        payload.mode === "ocr"
+          ? "/record/api/ocr/commit/manual/"
+          : "/record/api/scan/commit/";
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -53,7 +53,7 @@ urlpatterns = [
     path("api/ocr/job/status/", _a("api_ocr_job_status"), name="api_ocr_job_status"),
     path("api/ocr/job/result/", _a("api_ocr_job_result"), name="api_ocr_job_result"),
     path(
-        "api/ocr/job/commit-manual/",
+        "api/ocr/commit/manual/",
         _a("api_ocr_commit_manual"),
         name="api_ocr_commit_manual",
     ),
