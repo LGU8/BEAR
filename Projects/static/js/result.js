@@ -449,9 +449,17 @@ console.log("[result.js] loaded ✅");
         return;
       }
 
+      const jobId = sessionStorage.getItem("ocr_job_id");
+      console.log("[result.js] ocr_job_id =", jobId);
+
+      if (!jobId) {
+        alert("OCR 작업 정보(job_id)를 찾을 수 없습니다. 다시 스캔해주세요.");
+        return;
+      }
+
       const payload = {
         mode: "ocr",
-        job_id: latest?.job_id,
+        job_id: jobId,
         name: (nameEl.value || "").trim(),
         kcal: Number(kcalEl.value),
         carb_g: Number(carbEl.value),
