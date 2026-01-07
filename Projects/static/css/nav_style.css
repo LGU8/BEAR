@@ -94,6 +94,8 @@ body {
     background-color: #FFF9F0;
     padding: 4px 0 16px;
     box-sizing: border-box;
+    position: fixed;
+    bottom: 0;
 }
 
 /* 1줄과 같은 폭/좌우 여백을 갖는 내부 컨테이너 */
