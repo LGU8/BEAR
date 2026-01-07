@@ -75,7 +75,6 @@
     filter: brightness(0.97);
 }
 
-
 /* ─────────────────────────────
    Datepicker Input
    ───────────────────────────── */
@@ -102,6 +101,7 @@
 }
 
 .report-datepicker-text{
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -118,12 +118,12 @@
 }
 
 .report-datepicker input.form-control {
-  width: 190px;
+  width: 150px;
   background-color: #FFFFFF;
   border: none;
   border-radius: 12px;
   padding: 12px 14px;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   color: #3C3C43;
 }
 
@@ -240,7 +240,7 @@
 
 /* 영양소 제목 */
 .nutrition-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -581,8 +581,16 @@
   }
 
   .report-tab-text {
+    height: 35px;
+  }
+
+  .report-tab-text {
     padding: 7px 0;                  /* 위아래 여백만 */
     font-size: 0.85rem;
+  }
+
+  .summary-card {
+    padding: 6px 12px;
   }
 
   /* Feedback 카드: 구조 유지 */

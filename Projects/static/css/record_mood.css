@@ -29,6 +29,7 @@
 }
 
 .record-datepicker-text{
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -301,6 +302,10 @@
 }
 
 @media (max-width: 480px) {
+  .record-mood-card {
+    padding: 6px 12px;
+  }
+
   .time-row,
   .mood-row {
     gap: 32px;
