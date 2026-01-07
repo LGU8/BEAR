@@ -28,6 +28,9 @@ from .services.barcode.mapping_code import (
 
 from .models import FoodTb, CusFoodTh, CusFoodTs
 from .utils_time import now14
+import hashlib
+import numpy as np
+import cv2
 
 
 # =========================
@@ -318,36 +321,122 @@ def api_barcode_scan(request):
     date = request.POST.get("date", "").strip()
     meal = request.POST.get("meal", "").strip()
 
+    # ---------------------------------------------------------
+    # ✅ 디버그 옵션
+    # - KEEP_SCAN_FILE=1 : /tmp에 저장한 업로드 이미지를 삭제하지 않고 남김
+    # - SCANDBG_MAX_BYTES : 로깅용으로 앞부분 바이트를 얼마나 볼지(기본 64)
+    # ---------------------------------------------------------
+    KEEP_SCAN_FILE = (os.getenv("KEEP_SCAN_FILE") or "").strip() in ("1", "true", "TRUE", "yes", "YES")
+    try:
+        SCANDBG_MAX_BYTES = int((os.getenv("SCANDBG_MAX_BYTES") or "64").strip())
+    except Exception:
+        SCANDBG_MAX_BYTES = 64
+
     # ✅ [SCANDBG] 업로드 파일 디버그 로그 (image 받은 직후)
     f = request.FILES.get("image")
     print(
-        "[SCANDBG] method=",
-        request.method,
-        "path=",
-        request.path,
-        "content_type=",
-        request.content_type,
-        "file=",
-        (f.name if f else None),
-        "size=",
-        (f.size if f else None),
-        "img_content_type=",
-        (getattr(f, "content_type", None) if f else None),
+        "[SCANDBG][REQ]",
+        "method=", request.method,
+        "path=", request.path,
+        "content_type=", request.content_type,
+        "mode=", mode,
+        "date=", date,
+        "meal=", meal,
+        "file=", (f.name if f else None),
+        "size=", (f.size if f else None),
+        "img_content_type=", (getattr(f, "content_type", None) if f else None),
+        "KEEP_SCAN_FILE=", KEEP_SCAN_FILE,
         flush=True,
     )
 
-
     if not image:
         return JsonResponse(
-            {"ok": False, "error": "IMAGE_REQUIRED", "message": "image is required  "},
+            {"ok": False, "error": "IMAGE_REQUIRED", "message": "image is required"},
             status=400,
         )
 
+    # ---------------------------------------------------------
+    # 1) 업로드 파일을 /tmp에 저장 (기존과 동일)
+    # ---------------------------------------------------------
     with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
         for chunk in image.chunks():
             tmp.write(chunk)
         tmp_path = tmp.name
 
+    # ---------------------------------------------------------
+    # 2) ✅ 파일 바이트/해시/디코딩(shape)까지 확인
+    #    - 여기서 "업로드는 됐지만 이미지가 깨짐/검정/너무 작음"을 바로 잡아냄
+    # ---------------------------------------------------------
+    file_bytes = b""
+    try:
+        try:
+            with open(tmp_path, "rb") as rf:
+                file_bytes = rf.read()
+        except Exception as e:
+            print("[SCANDBG][READ_FAIL]", "tmp_path=", tmp_path, "err=", repr(e), flush=True)
+            file_bytes = b""
+
+        if file_bytes:
+            sha1 = hashlib.sha1(file_bytes).hexdigest()
+            head_hex = file_bytes[:SCANDBG_MAX_BYTES].hex()
+            print(
+                "[SCANDBG][FILE]",
+                "tmp_path=", tmp_path,
+                "bytes=", len(file_bytes),
+                "sha1=", sha1,
+                "head_hex=", head_hex,
+                flush=True,
+            )
+        else:
+            print("[SCANDBG][FILE]", "tmp_path=", tmp_path, "bytes=0", flush=True)
+
+        # OpenCV decode로 이미지 유효성 검사
+        img = None
+        try:
+            arr = np.frombuffer(file_bytes, dtype=np.uint8) if file_bytes else None
+            img = cv2.imdecode(arr, cv2.IMREAD_COLOR) if arr is not None else None
+        except Exception as e:
+            print("[SCANDBG][IMDECODE_EXC]", "err=", repr(e), flush=True)
+            img = None
+
+        if img is None:
+            # ✅ 업로드는 됐지만 이미지가 디코딩 불가 => 프론트/인코딩/파일 손상 쪽 확정
+            print("[SCANDBG][IMDECODE_FAIL]", "tmp_path=", tmp_path, flush=True)
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "reason": "SCAN_FAIL",
+                    "barcode": "",
+                    "message": "바코드를 인식하지 못했어요. (이미지 디코딩 실패) 다시 촬영해 주세요.",
+                },
+                status=400,
+            )
+
+        h, w = img.shape[:2]
+        # 밝기/대략적인 정보(완전 검정 프레임 여부 감지)
+        try:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            mean_val = float(np.mean(gray))
+            std_val = float(np.std(gray))
+        except Exception:
+            mean_val, std_val = None, None
+
+        print(
+            "[SCANDBG][IMG]",
+            "shape=", img.shape,
+            "w=", w, "h=", h,
+            "gray_mean=", mean_val,
+            "gray_std=", std_val,
+            flush=True,
+        )
+
+    except Exception as e:
+        # 여기서 죽으면 서버 디버그용으로만 남기고 기존 흐름은 SCAN_FAIL로 통일
+        print("[SCANDBG][PRECHECK_EXC]", repr(e), flush=True)
+
+    # ---------------------------------------------------------
+    # 3) 기존 바코드 파이프라인 실행
+    # ---------------------------------------------------------
     try:
         barcode, raw_candidates = run_barcode_pipeline(tmp_path)
 
@@ -355,6 +444,14 @@ def api_barcode_scan(request):
         raw_candidates = raw_candidates or []
         if isinstance(raw_candidates, dict):
             raw_candidates = [raw_candidates]
+
+        print(
+            "[SCANDBG][PIPELINE]",
+            "barcode=", barcode,
+            "raw_candidates_type=", type(raw_candidates).__name__,
+            "raw_candidates_len=", (len(raw_candidates) if isinstance(raw_candidates, list) else None),
+            flush=True,
+        )
 
         if not barcode:
             return JsonResponse(
@@ -382,12 +479,22 @@ def api_barcode_scan(request):
             status=502,
         )
     except Exception as e:
+        # ✅ traceback을 찍어야 run_barcode_pipeline 내부 예외도 잡힘
+        print("[SCANDBG][PIPELINE_EXC]", repr(e), flush=True)
+        traceback.print_exc()
         return JsonResponse(
             {"ok": False, "error": "SERVER_ERROR", "detail": str(e)}, status=500
         )
     finally:
-        Path(tmp_path).unlink(missing_ok=True)
+        # ✅ 디버그용 파일 보존 옵션
+        if KEEP_SCAN_FILE:
+            print("[SCANDBG][KEEP_FILE]", "tmp_path=", tmp_path, flush=True)
+        else:
+            Path(tmp_path).unlink(missing_ok=True)
 
+    # ---------------------------------------------------------
+    # 4) 이하 기존 로직 그대로 (candidates 정규화 / 영양 merge / draft 저장)
+    # ---------------------------------------------------------
     candidates = [_normalize_candidate(x) for x in raw_candidates]
     candidates = [c for c in candidates if c.get("candidate_id")]
 
@@ -404,7 +511,6 @@ def api_barcode_scan(request):
 
     # 영양 merge
     for c in candidates:
-
         c.update(_nutr_payload(None, "no_data"))
 
         report_no = (c.get("report_no") or "").strip()
@@ -427,10 +533,7 @@ def api_barcode_scan(request):
                 c.update(_nutr_payload(None, "error"))
 
         except Exception as e:
-            # ✅ UpstreamAPIError로 감싸지지 않은 Timeout/네트워크 오류까지 여기서 흡수
-            if isinstance(
-                e, requests.exceptions.ReadTimeout
-            ) or "Read timed out" in str(e):
+            if isinstance(e, requests.exceptions.ReadTimeout) or "Read timed out" in str(e):
                 c.update(_nutr_payload(None, "timeout"))
             else:
                 c.update(_nutr_payload(None, "error"))
