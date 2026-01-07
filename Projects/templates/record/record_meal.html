@@ -24,32 +24,60 @@
       </a>
     </div>
 
-    <!-- 최근 3개 끼니 카드 -->
-    <div id="recent-cards" class="cards-3">
-      <article class="meal-card empty">
-        <div class="meal-card-img"></div>
-        <div class="meal-card-text">아직 기록 전입니다.<br>기록을 남겨보세요!</div>
-      </article>
-      <article class="meal-card empty">
-        <div class="meal-card-img"></div>
-        <div class="meal-card-text">아직 기록 전입니다.<br>기록을 남겨보세요!</div>
-      </article>
-      <article class="meal-card empty">
-        <div class="meal-card-img"></div>
-        <div class="meal-card-text">아직 기록 전입니다.<br>기록을 남겨보세요!</div>
-      </article>
-    </div>
+<!--    &lt;!&ndash; 최근 3개 끼니 카드 &ndash;&gt;-->
+<!--    <div id="recent-cards" class="cards-3">-->
+<!--      <article class="meal-card empty">-->
+<!--        <div class="meal-card-img"></div>-->
+<!--        <div class="meal-card-text">아직 기록 전입니다.<br>기록을 남겨보세요!</div>-->
+<!--      </article>-->
+<!--      <article class="meal-card empty">-->
+<!--        <div class="meal-card-img"></div>-->
+<!--        <div class="meal-card-text">아직 기록 전입니다.<br>기록을 남겨보세요!</div>-->
+<!--      </article>-->
+<!--      <article class="meal-card empty">-->
+<!--        <div class="meal-card-img"></div>-->
+<!--        <div class="meal-card-text">아직 기록 전입니다.<br>기록을 남겨보세요!</div>-->
+<!--      </article>-->
+<!--    </div>-->
 
-    <div class="recipe-row">
-      <a id="btn-my-recipe" class="recipe-pill" href="#">나의 레시피 가져오기</a>
-    </div>
+<!--    <div class="recipe-row">-->
+<!--      <a id="btn-my-recipe" class="recipe-pill" href="#">나의 레시피 가져오기</a>-->
+<!--    </div>-->
 
     <div class="search-row">
       <input id="food-search-input" class="search-input" type="text" placeholder="검색 내용을 입력하세요.">
       <button id="food-search-btn" class="search-btn" type="button">Search</button>
     </div>
 
-    <div id="selected-bar" class="selected-bar" aria-live="polite"></div>
+    <div id="selected-bar" class="selected-bar" aria-live="polite">
+        <span class="selected-bar-empty">선택된 메뉴가 없습니다.</span>
+    </div>
+
+    <div id="selected-summary" class="selected-summary" aria-live="polite">
+      <div class="selected-summary-title">선택 합계</div>
+      <div class="selected-summary-values">
+        <span id="sum-kcal">0</span> kcal ·
+        C <span id="sum-carb">0</span>g ·
+        P <span id="sum-protein">0</span>g ·
+        F <span id="sum-fat">0</span>g
+      </div>
+    </div>
+
+<!--    <input type="hidden" id="ctx-reco-kcal" value="{{ recommended_kcal|default:0 }}">-->
+
+    <div id="kcal-progress" class="kcal-progress" aria-live="polite">
+      <div class="kcal-progress-top">
+        <div class="kcal-progress-title">권장 칼로리 대비</div>
+        <div class="kcal-progress-text">
+          <span id="kcal-percent">0</span>% ·
+          <span id="kcal-now">0</span>/<span id="kcal-reco">0</span> kcal
+        </div>
+      </div>
+      <div class="kcal-progress-bar" role="progressbar"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="kcal-progress-fill" class="kcal-progress-fill"></div>
+      </div>
+    </div>
 
     <div class="table-wrap">
       <table class="food-table">

@@ -1,8 +1,7 @@
 // static/js/record_food/food_search.js
-console.log("[food_search] FILE EXECUTED v=20251222-3");
+console.log("[food_search] FILE EXECUTED v=20260107-1");
 
 document.addEventListener("DOMContentLoaded", () => {
-
   function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -11,28 +10,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ✅ HTML escape (제품명 안전 처리)
-  const safeText = (s) => String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-  const inputEl = document.getElementById("food-search-input");
-  const btnEl = document.getElementById("food-search-btn");
-  const tbody = document.getElementById("record-items-tbody");
-  const selectedBar = document.getElementById("selected-bar");
-  const saveBtn = document.getElementById("btn-save-meal");
-
-  
-  console.log("[food_search] DOMContentLoaded href=", location.href);
-  console.log("[food_search] elems", { inputEl, btnEl, tbody, selectedBar });
-  console.log("[meal_save] saveBtn", saveBtn);
-
-  if (!inputEl || !btnEl || !tbody) {
-    console.warn("[food_search] required elements not found");
-    return;
-  }
+  const safeText = (s) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 
   const safeNum = (v) => {
     if (v === null || v === undefined) return "0";
@@ -40,6 +24,34 @@ document.addEventListener("DOMContentLoaded", () => {
     if (Number.isNaN(n)) return "0";
     return String(n);
   };
+
+  const inputEl = document.getElementById("food-search-input");
+  const btnEl = document.getElementById("food-search-btn");
+  const tbody = document.getElementById("record-items-tbody");
+  const selectedBar = document.getElementById("selected-bar");
+  const saveBtn = document.getElementById("btn-save-meal");
+
+  const sumKcalEl = document.getElementById("sum-kcal");
+  const sumCarbEl = document.getElementById("sum-carb");
+  const sumProteinEl = document.getElementById("sum-protein");
+  const sumFatEl = document.getElementById("sum-fat");
+
+  // ✅ 권장 칼로리 대비 progress (있으면 사용, 없으면 자동 스킵)
+  const recoKcalEl = document.getElementById("ctx-reco-kcal");
+  const kcalProgressWrap = document.getElementById("kcal-progress");
+  const kcalPercentEl = document.getElementById("kcal-percent");
+  const kcalNowEl = document.getElementById("kcal-now");
+  const kcalRecoEl = document.getElementById("kcal-reco");
+  const kcalFillEl = document.getElementById("kcal-progress-fill");
+  const kcalBarEl = document.querySelector(".kcal-progress-bar");
+
+  console.log("[food_search] DOMContentLoaded href=", location.href);
+  console.log("[food_search] elems", { inputEl, btnEl, tbody, selectedBar, saveBtn });
+
+  if (!inputEl || !btnEl || !tbody) {
+    console.warn("[food_search] required elements not found");
+    return;
+  }
 
   const selectedMap = new Map(); // foodId -> item
 
@@ -53,25 +65,78 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   }
 
-  function resetAfterSave() {
-    // 1) 선택 상태 초기화
-    selectedMap.clear();
-    renderSelectedBar();
-
-    // 2) 입력창 초기화(원하면)
-    if (inputEl) inputEl.value = "";
-
-    // 3) 테이블을 "첫 화면"처럼 비우기
-    renderEmptyState(); // ✅ 이게 제일 자연스러움 (tbody.innerHTML="" 대신)
-
-    // 4) 스크롤 위치도 위로
-    const tableWrap = document.querySelector(".table-wrap");
-    if (tableWrap) tableWrap.scrollTop = 0;
-  }
-
   function syncCheckbox(foodId, checked) {
     const cb = document.querySelector(`.row-check[data-food-id="${foodId}"]`);
     if (cb) cb.checked = checked;
+  }
+
+  function getRecoKcal() {
+    const raw = (recoKcalEl?.value || "").trim();
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  function renderKcalProgress(sumKcalRounded) {
+    // progress UI가 없으면 그냥 스킵
+    if (!kcalProgressWrap || !kcalFillEl || !kcalPercentEl || !kcalNowEl || !kcalRecoEl) return;
+
+    const reco = getRecoKcal();
+    if (!reco) {
+      // 권장 칼로리가 없으면 숨김
+      kcalProgressWrap.style.display = "none";
+      return;
+    }
+
+    kcalProgressWrap.style.display = "";
+
+    const now = Number(sumKcalRounded || 0);
+    const pct = Math.round((now / reco) * 100);
+    const clamped = Math.max(0, Math.min(pct, 100)); // bar는 0~100까지만
+
+    kcalPercentEl.textContent = String(pct);
+    kcalNowEl.textContent = String(now);
+    kcalRecoEl.textContent = String(reco);
+
+    kcalFillEl.style.width = `${clamped}%`;
+
+    if (kcalBarEl) {
+      kcalBarEl.setAttribute("aria-valuenow", String(clamped));
+      kcalBarEl.setAttribute("aria-valuemin", "0");
+      kcalBarEl.setAttribute("aria-valuemax", "100");
+    }
+  }
+
+  function renderSelectedSummary() {
+    if (!sumKcalEl || !sumCarbEl || !sumProteinEl || !sumFatEl) {
+      // 합계 영역이 없더라도 progress는 계산 가능하니 아래는 진행
+      // (하지만 지금은 sum DOM이 있어야 의미 있으므로 그대로 종료)
+      return;
+    }
+
+    let kcal = 0,
+      carb = 0,
+      protein = 0,
+      fat = 0;
+
+    selectedMap.forEach((it) => {
+      kcal += Number(it.kcal || 0);
+      carb += Number(it.carb_g || 0);
+      protein += Number(it.protein_g || 0);
+      fat += Number(it.fat_g || 0);
+    });
+
+    const kcalR = Math.round(kcal);
+    const carbR = Math.round(carb);
+    const proteinR = Math.round(protein);
+    const fatR = Math.round(fat);
+
+    sumKcalEl.textContent = String(kcalR);
+    sumCarbEl.textContent = String(carbR);
+    sumProteinEl.textContent = String(proteinR);
+    sumFatEl.textContent = String(fatR);
+
+    // ✅ progress 동기화
+    renderKcalProgress(kcalR);
   }
 
   function renderSelectedBar() {
@@ -79,17 +144,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (selectedMap.size === 0) {
       selectedBar.innerHTML = `<span class="selected-bar-empty">선택된 메뉴가 없습니다.</span>`;
+      renderSelectedSummary();
       return;
     }
 
-    const chips = Array.from(selectedMap.values()).map(item => `
-      <span class="selected-chip" data-food-id="${item.food_id}">
-        ${item.name}
-        <button type="button" class="chip-remove" aria-label="삭제">✕</button>
-      </span>
-    `).join("");
+    const chips = Array.from(selectedMap.values())
+      .map(
+        (item) => `
+        <span class="selected-chip" data-food-id="${item.food_id}">
+          ${item.name}
+          <button type="button" class="chip-remove" aria-label="삭제">✕</button>
+        </span>
+      `
+      )
+      .join("");
 
     selectedBar.innerHTML = chips;
+    renderSelectedSummary();
   }
 
   function addFromRow(tr, checked) {
@@ -97,6 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!foodId) return;
 
     if (checked) {
+      // ✅ 핵심: dataset에서 kcal/carb/protein/fat 읽기 (runSearch에서 data-*를 심어줘야 함)
       selectedMap.set(foodId, {
         food_id: foodId,
         name: tr.dataset.name || "",
@@ -122,8 +194,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function getSelectedFoodIds() {
-    return Array.from(selectedMap.keys());
+  function resetAfterSave() {
+    // 1) 선택 상태 초기화
+    selectedMap.clear();
+    renderSelectedBar(); // 내부에서 summary+progress도 같이 갱신됨
+
+    // 2) 입력창 초기화(원하면)
+    inputEl.value = "";
+
+    // 3) 테이블을 "첫 화면"처럼 비우기
+    renderEmptyState();
+
+    // 4) 스크롤 위치도 위로
+    const tableWrap = document.querySelector(".table-wrap");
+    if (tableWrap) tableWrap.scrollTop = 0;
   }
 
   async function runSearch() {
@@ -150,31 +234,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const items = data.items || [];
 
-    // ✅ 렌더링
-    tbody.innerHTML = items.map((it) => `
-      <tr class="food-row"
-        data-food-id="${it.food_id}"
-        data-name="${safeText(it.name)}">
-      <td class="col-check-cell">
-        <input class="row-check" type="checkbox" data-food-id="${it.food_id}">
-      </td>
-      <td>${safeText(it.name)}</td>
-      <td>${it.kcal ?? 0}</td>
-      <td>${it.carb_g ?? 0}</td>
-      <td>${it.protein_g ?? 0}</td>
-      <td>${it.fat_g ?? 0}</td>
-    </tr>
-  `).join("");
+    // ✅ 렌더링 (핵심 수정: data-kcal/data-carb/data-protein/data-fat 주입)
+    tbody.innerHTML = items
+      .map(
+        (it) => `
+        <tr class="food-row"
+          data-food-id="${it.food_id}"
+          data-name="${safeText(it.name)}"
+          data-kcal="${safeNum(it.kcal)}"
+          data-carb="${safeNum(it.carb_g)}"
+          data-protein="${safeNum(it.protein_g)}"
+          data-fat="${safeNum(it.fat_g)}"
+        >
+          <td class="col-check-cell">
+            <input class="row-check" type="checkbox" data-food-id="${it.food_id}">
+          </td>
+          <td>${safeText(it.name)}</td>
+          <td>${it.kcal ?? 0}</td>
+          <td>${it.carb_g ?? 0}</td>
+          <td>${it.protein_g ?? 0}</td>
+          <td>${it.fat_g ?? 0}</td>
+        </tr>
+      `
+      )
+      .join("");
 
-  restoreChecksAfterRender();
-
+    restoreChecksAfterRender();
   }
 
+  // ===== 저장 버튼 =====
   if (saveBtn) {
     saveBtn.addEventListener("click", async () => {
       const foodIds = Array.from(selectedMap.keys());
       console.log("[meal_save] selected foodIds =", foodIds);
-
 
       if (foodIds.length === 0) {
         alert("음식을 선택해주세요.");
@@ -185,10 +277,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!csrfToken) {
         alert("CSRF 토큰이 없습니다. 페이지를 새로고침(F5) 후 다시 시도해주세요.");
         console.warn("[meal_save] csrftoken cookie missing. document.cookie=", document.cookie);
-      return;
-    }
-      
-    console.log("[meal_save] csrfToken(cookie) =", csrfToken);
+        return;
+      }
+
+      console.log("[meal_save] csrfToken(cookie) =", csrfToken);
 
       const res = await fetch("/record/api/meal/save/", {
         method: "POST",
@@ -206,21 +298,21 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("저장 실패");
         return;
       }
-      resetAfterSave();
+
       alert("저장 완료!");
+      resetAfterSave();
 
-      // ✅ 저장 성공 후 선택 초기화
-      selectedMap.clear();
-      renderSelectedBar();
-
-      // 테이블에 남아있는 체크/강조도 초기화
-      tbody.querySelectorAll(".row-check").forEach(cb => (cb.checked = false));
-      tbody.querySelectorAll("tr.food-row.is-selected").forEach(tr => tr.classList.remove("is-selected"));
+      // ✅ 테이블에 남아있는 체크/강조도 초기화(안전)
+      tbody.querySelectorAll(".row-check").forEach((cb) => (cb.checked = false));
+      tbody.querySelectorAll("tr.food-row.is-selected").forEach((tr) => tr.classList.remove("is-selected"));
     });
   }
 
+  // ===== 초기 화면 =====
   renderEmptyState();
+  renderSelectedBar(); // 내부에서 summary/progress 포함
 
+  // ===== 검색 버튼/엔터 =====
   btnEl.addEventListener("click", (e) => {
     e.preventDefault();
     console.log("[food_search] click fired");
@@ -235,6 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // ===== 체크 변경 =====
   tbody.addEventListener("change", (e) => {
     const cb = e.target.closest(".row-check");
     if (!cb) return;
@@ -242,31 +335,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const tr = cb.closest("tr.food-row");
     if (!tr) return;
 
-    // ✔ 체크 상태에 따라 행 강조
     tr.classList.toggle("is-selected", cb.checked);
-
-    // ✔ 선택 상태 갱신
     addFromRow(tr, cb.checked);
   });
 
+  // ===== row 클릭 토글 =====
   tbody.addEventListener("click", (e) => {
     const tr = e.target.closest("tr.food-row");
     if (!tr) return;
 
-    // checkbox 자체를 클릭한 경우는 change에서 처리
     if (e.target.classList.contains("row-check")) return;
 
     const cb = tr.querySelector(".row-check");
     if (!cb) return;
 
     cb.checked = !cb.checked;
-
-    // ✅ 핵심: row 클릭으로 토글했을 때도 change 로직이 돌도록
     cb.dispatchEvent(new Event("change", { bubbles: true }));
   });
 
-  // 선택 바에서 X 누르면 해제
-  if(selectedBar) {
+  // ===== 선택 바에서 X 누르면 해제 =====
+  if (selectedBar) {
     selectedBar.addEventListener("click", (e) => {
       if (!e.target.classList.contains("chip-remove")) return;
 
@@ -283,8 +371,4 @@ document.addEventListener("DOMContentLoaded", () => {
       renderSelectedBar();
     });
   }
-
-  // 초기 상태
-  renderSelectedBar();
-
 });

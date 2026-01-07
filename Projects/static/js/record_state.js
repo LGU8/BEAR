@@ -172,6 +172,20 @@ function bindMealButtons() {
 
 // ---------- (6) 초기 실행 ----------
 document.addEventListener("DOMContentLoaded", () => {
+  // 이전 버튼 동작
+    const prevBtn = document.getElementById("btn-prev");
+    if (prevBtn) {
+      prevBtn.addEventListener("click", () => {
+        // 1) 히스토리가 있으면 그대로 뒤로가기
+        if (window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+        // 2) 히스토리가 없으면(직접 진입 등) fallback
+        location.href = "/record/feel/";
+      });
+    }
+
   // ✅ 1) meal 버튼 클릭 이벤트 연결
   bindMealButtons();
 

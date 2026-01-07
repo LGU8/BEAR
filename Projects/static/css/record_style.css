@@ -33,22 +33,26 @@ a {
    2) Panel
    ========================= */
 .panel {
-  background: #FFECCF;
+  background: #FFF;
   border-radius: 18px;
   /* padding: 18px; */
   margin: 24px 0;
 }
 
 .panel-title {
-  margin: 0 0 12px 0;
+  margin: 0;
   font-size: 22px;
   font-weight: 800;
+  line-height: 1.2;
 }
 
 .panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  gap: 12px;
+  padding: 4px 2px 10px;
 }
 
 .camera-btn {
@@ -60,6 +64,9 @@ a {
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+  flex: 0 0 auto;
 }
 
 .camera-ico {
@@ -158,6 +165,91 @@ a {
   font-size: 12px;
 }
 
+/* ✅ 선택 합계 박스 */
+.selected-summary{
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+
+  background: rgba(255, 236, 207, 0.8);
+  border: 1px solid rgba(0,0,0,0.08);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.selected-summary-title{
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.70);
+  white-space: nowrap;
+}
+
+.selected-summary-values{
+  font-size: 13px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.85);
+  text-align: right;
+}
+
+/* 모바일에서 줄바꿈 자연스럽게 */
+@media (max-width: 768px){
+  .selected-summary{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .selected-summary-values{
+    text-align: left;
+  }
+}
+
+.kcal-progress{
+  margin: 8px 0 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 236, 207, 0.8);
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.kcal-progress-top{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.kcal-progress-title{
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.70);
+  white-space: nowrap;
+}
+
+.kcal-progress-text{
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.85);
+  text-align: right;
+}
+
+.kcal-progress-bar{
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+.kcal-progress-fill{
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: #F47900; /* 기존 primary 톤 */
+  transition: width 160ms ease;
+}
+
 /* =========================
    6) Search row
    ========================= */
@@ -185,15 +277,20 @@ a {
 }
 
 /* =========================
-   7) Table
-   - 모바일에서 찌그러지지 않게 스크롤
+   7) Table (FINAL)
+   - 가로 스크롤 + 세로 스크롤을 wrapper에서 처리
+   - thead sticky로 UX 개선
    ========================= */
+
 .table-wrap {
   background: rgba(255, 255, 255, 0.35);
   border-radius: 12px;
   padding: 8px;
 
-  overflow-x: auto; /* ✅ 항상 스크롤 가능 */
+  /* ✅ 스크롤은 여기서 통합 처리 */
+  max-height: 420px;
+  overflow: auto;         /* 가로+세로 모두 허용 */
+  -webkit-overflow-scrolling: touch;
 }
 
 .food-table {
@@ -201,16 +298,38 @@ a {
   border-collapse: collapse;
   font-size: 12px;
 
-  min-width: 600px; /* ✅ 모바일에서 글자 뭉개짐 방지 */
+  min-width: 640px;
 }
 
 .food-table th,
 .food-table td {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 6px 4px;
+  padding: 8px 6px;
   text-align: center;
   white-space: nowrap;
 }
+
+.food-table .col-check {
+  width: 70px;
+}
+.food-table td.col-check-cell {
+  width: 70px;
+  text-align: center;
+}
+
+.food-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #FFF;
+}
+
+/* 선택 row 강조는 그대로 유지 */
+.food-row.is-selected {
+  outline: 2px solid #ff8a00;
+  background: rgba(255, 138, 0, 0.12);
+}
+
 
 /* =========================
    8) Add button
