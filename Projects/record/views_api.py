@@ -854,39 +854,55 @@ def api_barcode_commit(request):
             {"ok": False, "error": "DB_SAVE_FAILED", "detail": str(e)}, status=500
         )
 
+import traceback
+
 
 # =========================
 # 3) Food Search API
 # =========================
 @require_GET
 def api_food_search(request):
-    q = (request.GET.get("q") or "").strip()
-    if not q:
-        return JsonResponse({"q": q, "count": 0, "items": []}, status=200)
-
-    qs = (
-        FoodTb.objects.filter(name__icontains=q)
-        .order_by("name")
-        .values("food_id", "name", "kcal", "carb_g", "protein_g", "fat_g")[:200]
-    )
-
-    items = []
-    for row in qs:
-        items.append(
-            {
-                "food_id": row["food_id"],
-                "name": row["name"],
-                "kcal": 0.0 if row["kcal"] is None else float(row["kcal"]),
-                "carb_g": 0.0 if row["carb_g"] is None else float(row["carb_g"]),
-                "protein_g": (
-                    0.0 if row["protein_g"] is None else float(row["protein_g"])
-                ),
-                "fat_g": 0.0 if row["fat_g"] is None else float(row["fat_g"]),
-            }
+    try:
+        print(
+            "[API_FOOD_SEARCH][ENTER]",
+            "method=", request.method,
+            "path=", request.path,
+            "q=", request.GET.get("q"),
+            "user_auth=", getattr(request.user, "is_authenticated", None),
+            "user_cust_id=", getattr(request.user, "cust_id", None),
+            flush=True,
         )
 
-    return JsonResponse({"q": q, "count": len(items), "items": items}, status=200)
+        q = (request.GET.get("q") or "").strip()
+        if not q:
+            return JsonResponse({"q": q, "count": 0, "items": []}, status=200)
 
+        qs = (
+            FoodTb.objects.filter(name__icontains=q)
+            .order_by("name")
+            .values("food_id", "name", "kcal", "carb_g", "protein_g", "fat_g")[:200]
+        )
+
+        items = []
+        for row in qs:
+            items.append(
+                {
+                    "food_id": row["food_id"],
+                    "name": row["name"],
+                    "kcal": 0.0 if row["kcal"] is None else float(row["kcal"]),
+                    "carb_g": 0.0 if row["carb_g"] is None else float(row["carb_g"]),
+                    "protein_g": (
+                        0.0 if row["protein_g"] is None else float(row["protein_g"])
+                    ),
+                    "fat_g": 0.0 if row["fat_g"] is None else float(row["fat_g"]),
+                }
+            )
+
+        return JsonResponse({"q": q, "count": len(items), "items": items}, status=200)
+    except Exception as e:
+        print("[API_FOOD_SEARCH][EXC]", repr(e), flush=True)
+        traceback.print_exc()
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
 
 def get_cust_id(request) -> str:
     cust_id = request.session.get("cust_id")
