@@ -374,4 +374,26 @@
     font-size: 13px;
     padding-left: 10px;
   }
+
+  button,
+  button:focus,
+  button:active,
+  button:visited {
+    color: inherit;
+    background: none;
+    outline: none;
+  }
+
+  button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .keyword-pill {
+    color: inherit;
+  }
 }
