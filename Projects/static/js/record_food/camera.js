@@ -316,6 +316,13 @@ console.log("[init] scanMode =", scanMode);
           return;
         }
 
+        if (data && data.ok && data.job_id) {
+          sessionStorage.setItem("ocr_job_id", data.job_id);
+          console.log("[camera.js] saved ocr_job_id =", data.job_id);
+        } else {
+          console.warn("[camera.js] job_id missing / response not ok:", data);
+        }
+
         console.log("[scan] json", data);
 
         // ✅ nutrition 모드: job_id 받고 result로 이동
