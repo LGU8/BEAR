@@ -318,6 +318,25 @@ def api_barcode_scan(request):
     date = request.POST.get("date", "").strip()
     meal = request.POST.get("meal", "").strip()
 
+    # ✅ [SCANDBG] 업로드 파일 디버그 로그 (image 받은 직후)
+    f = request.FILES.get("image")
+    print(
+        "[SCANDBG] method=",
+        request.method,
+        "path=",
+        request.path,
+        "content_type=",
+        request.content_type,
+        "file=",
+        (f.name if f else None),
+        "size=",
+        (f.size if f else None),
+        "img_content_type=",
+        (getattr(f, "content_type", None) if f else None),
+        flush=True,
+    )
+
+
     if not image:
         return JsonResponse(
             {"ok": False, "error": "IMAGE_REQUIRED", "message": "image is required  "},
