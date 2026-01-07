@@ -18,7 +18,6 @@ from django.db.models.functions import Coalesce
 from .services.storage.s3_client import upload_fileobj
 from .services.storage.s3_paths import build_ocr_input_key, get_env_name
 
-from ml.menu_reco.service import recommend_and_commit
 
 from .services.barcode.total import run_barcode_pipeline
 from .services.barcode.mapping_code import (
@@ -807,6 +806,9 @@ def api_barcode_commit(request):
                 def _run_reco_after_commit():
                     try:
                         if reco_time_slot and feel_mood and feel_energy:
+                            # ✅ lazy import: 추천이 필요한 순간에만 import
+                            from ml.menu_reco.service import recommend_and_commit
+
                             recommend_and_commit(
                                 cust_id=str(cust_id),
                                 mood=str(feel_mood).strip().lower(),
@@ -814,15 +816,12 @@ def api_barcode_commit(request):
                                 rgs_dt=str(reco_rgs_dt),
                                 rec_time_slot=str(reco_time_slot).strip().upper(),
                                 current_food=None,
-                                recent_foods=(
-                                    recent_food_names[:10]
-                                    if recent_food_names
-                                    else None
-                                ),
+                                recent_foods=(recent_food_names[:10] if recent_food_names else None),
                             )
                     except Exception:
                         # 저장 성공은 유지 (추천 실패는 별도로 삼킴)
                         return
+
 
                 transaction.on_commit(_run_reco_after_commit)
 
@@ -1085,9 +1084,8 @@ def api_meal_save_by_search(request):
     try:
         cust_id = request.user.cust_id
 
-        # 1) session 키
-        rgs_dt = request.session.get("rgs_dt")  # "YYYYMMDD"
-        seq = request.session.get("seq")  # int or str
+        rgs_dt = request.session.get("rgs_dt")
+        seq = request.session.get("seq")
         time_slot = request.session.get("time_slot")
 
         time_slot = _normalize_time_slot(time_slot)
@@ -1102,42 +1100,44 @@ def api_meal_save_by_search(request):
         seq = int(seq)
         t = now14()
 
-        # 2) body food_ids
         payload = json.loads(request.body.decode("utf-8"))
         food_ids = payload.get("food_ids") or []
         if not isinstance(food_ids, list) or len(food_ids) == 0:
             return JsonResponse({"ok": False, "error": "food_ids required"}, status=400)
 
-        food_ids = list(dict.fromkeys([int(x) for x in food_ids]))  # 중복 제거
+        food_ids = list(dict.fromkeys([int(x) for x in food_ids]))
 
-        # --- 추천에 쓸 변수(트랜잭션 내부에서 확보 → 트랜잭션 밖에서 실행)
-        feel_mood = None
-        feel_energy = None
+        # 추천에 쓸 변수들
+        feel_mood = ""
+        feel_energy = ""
+        reco_rgs_dt = ""
+        reco_time_slot = ""
         recent_food_names = []
 
         with transaction.atomic():
             with connection.cursor() as cursor:
 
-                # (선택) 3) CUS_FEEL_TH 존재 검증
+                # ✅ 1) CUS_FEEL_TH에서 mood/energy 확보 (추천 입력)
                 cursor.execute(
                     """
-                    SELECT 1
+                    SELECT mood, energy
                     FROM CUS_FEEL_TH
                     WHERE cust_id=%s AND rgs_dt=%s AND seq=%s AND time_slot=%s
                     LIMIT 1
                     """,
                     [cust_id, rgs_dt, seq, time_slot],
                 )
-                if cursor.fetchone() is None:
+                row = cursor.fetchone()
+                if row is None:
                     return JsonResponse(
-                        {
-                            "ok": False,
-                            "error": "CUS_FEEL_TH row not found for current key",
-                        },
+                        {"ok": False, "error": "CUS_FEEL_TH row not found for current key"},
                         status=404,
                     )
 
-                # 4) FOOD_TB 영양 조회
+                feel_mood = (row[0] or "").strip().lower()
+                feel_energy = (row[1] or "").strip().lower()
+
+                # 2) FOOD_TB 영양 조회
                 in_ph = ",".join(["%s"] * len(food_ids))
                 cursor.execute(
                     f"""
@@ -1157,13 +1157,12 @@ def api_meal_save_by_search(request):
                         status=400,
                     )
 
-                # 5) totals 계산
                 total_kcal = sum(int(r[1] or 0) for r in foods)
                 total_carb = sum(int(r[2] or 0) for r in foods)
                 total_prot = sum(int(r[3] or 0) for r in foods)
                 total_fat = sum(int(r[4] or 0) for r in foods)
 
-                # 6) TH upsert
+                # 3) TH upsert
                 cursor.execute(
                     """
                     SELECT 1 FROM CUS_FOOD_TH
@@ -1181,18 +1180,7 @@ def api_meal_save_by_search(request):
                         (created_time, updated_time, cust_id, rgs_dt, seq, time_slot, kcal, carb_g, protein_g, fat_g)
                         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                         """,
-                        [
-                            t,
-                            t,
-                            cust_id,
-                            rgs_dt,
-                            seq,
-                            time_slot,
-                            total_kcal,
-                            total_carb,
-                            total_prot,
-                            total_fat,
-                        ],
+                        [t, t, cust_id, rgs_dt, seq, time_slot, total_kcal, total_carb, total_prot, total_fat],
                     )
                     th_action = "insert"
                 else:
@@ -1207,21 +1195,11 @@ def api_meal_save_by_search(request):
                             fat_g=%s
                         WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
                         """,
-                        [
-                            t,
-                            time_slot,
-                            total_kcal,
-                            total_carb,
-                            total_prot,
-                            total_fat,
-                            cust_id,
-                            rgs_dt,
-                            seq,
-                        ],
+                        [t, time_slot, total_kcal, total_carb, total_prot, total_fat, cust_id, rgs_dt, seq],
                     )
                     th_action = "update"
 
-                # 7) TS 덮어쓰기: delete 후 insert
+                # 4) TS 덮어쓰기
                 cursor.execute(
                     """
                     DELETE FROM CUS_FOOD_TS
@@ -1231,10 +1209,7 @@ def api_meal_save_by_search(request):
                 )
                 deleted_ts = cursor.rowcount
 
-                ts_rows = []
-                for i, fid in enumerate(food_ids, start=1):
-                    ts_rows.append((t, t, cust_id, rgs_dt, seq, i, fid))
-
+                ts_rows = [(t, t, cust_id, rgs_dt, seq, i, fid) for i, fid in enumerate(food_ids, start=1)]
                 cursor.executemany(
                     """
                     INSERT INTO CUS_FOOD_TS
@@ -1244,27 +1219,30 @@ def api_meal_save_by_search(request):
                     ts_rows,
                 )
 
-            # ============================
-            # 추천 실행 + MENU_RECOM_TH 저장
-            # ============================
-            recom_ok = False
-            recom_error = None
-            try:
-                # feel_mood/feel_energy가 이미 DB에 pos/neu/neg, low/med/hig로 저장돼 있다고 가정
-                # time_slot은 세션에서 "M/L/D"로 이미 들어오므로 rec_time_slot으로 그대로 사용
-                recommend_and_commit(
-                    cust_id=str(cust_id),
-                    mood=str(feel_mood).strip().lower(),
-                    energy=str(feel_energy).strip().lower(),
-                    rgs_dt=str(rgs_dt),
-                    rec_time_slot=str(time_slot).strip().upper(),
-                    current_food=None,  # 여러 개 선택이므로 단일 exclude는 비워두는 게 안전
-                    recent_foods=recent_food_names[:10] if recent_food_names else None,
-                )
-                recom_ok = True
-            except Exception as e:
-                # 저장은 성공 유지, 추천만 실패
-                recom_error = f"{type(e).__name__}: {e}"
+                # ✅ 5) 추천 대상 slot/rgs_dt + recent foods
+                reco_rgs_dt, reco_time_slot = _derive_reco_target(rgs_dt, time_slot)
+                recent_food_names = _fetch_recent_food_names(cursor, cust_id, limit=10)
+
+                # ✅ 6) commit 이후 추천 실행 (추천 실패해도 저장 성공 유지)
+                def _run_reco_after_commit():
+                    try:
+                        if reco_time_slot and feel_mood and feel_energy:
+                            # ✅ lazy import
+                            from ml.menu_reco.service import recommend_and_commit
+
+                            recommend_and_commit(
+                                cust_id=str(cust_id),
+                                mood=str(feel_mood).strip().lower(),
+                                energy=str(feel_energy).strip().lower(),
+                                rgs_dt=str(reco_rgs_dt),
+                                rec_time_slot=str(reco_time_slot).strip().upper(),
+                                current_food=None,
+                                recent_foods=(recent_food_names[:10] if recent_food_names else None),
+                            )
+                    except Exception:
+                        return
+
+                transaction.on_commit(_run_reco_after_commit)
 
         return JsonResponse(
             {
@@ -1276,6 +1254,8 @@ def api_meal_save_by_search(request):
                 "rgs_dt": rgs_dt,
                 "seq": seq,
                 "time_slot": time_slot,
+                "reco_rgs_dt": reco_rgs_dt,
+                "reco_time_slot": reco_time_slot,
             },
             status=200,
         )
