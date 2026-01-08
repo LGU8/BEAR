@@ -5,6 +5,7 @@ import io
 import json
 import traceback
 from typing import Optional, Tuple
+from PIL import Image, UnidentifiedImageError
 
 from django.core.management.base import BaseCommand
 from django.db import connection, transaction
@@ -112,34 +113,31 @@ def _download_from_s3(bucket: str, key: str) -> bytes:
     s3.download_fileobj(bucket, key, bio)
     return bio.getvalue()
 
-
 def _run_vendor_ocr(image_bytes: bytes) -> Tuple[dict, dict]:
     """
     vendor OCR pipeline 실행.
     - result: 최종 영양정보 JSON (저장용)
     - debug: chosen_source/roi_score/full_score 등 상태 정보
     """
-    # vendor 코드 경로: record/_vendor_ocr/src/main.py -> run_ocr_pipeline(image)
-    # main.py가 이미 run_ocr_pipeline을 import하고 있으니 그걸 직접 호출해도 되고,
-    # pipeline을 직접 import해도 됨.
     from record._vendor_ocr.src.ocr.pipeline import run_ocr_pipeline
 
-    # pipeline이 "image"를 어떤 타입으로 받는지에 따라 조정 필요:
-    # 보통 bytes -> PIL.Image로 변환하거나 numpy로 읽음.
-    # 여기서는 PIL로 변환해서 넣는 방식을 택함.
-    from PIL import Image
+    # ✅ 1) 이미지 유효성 먼저 검사(PIL로 열 수 있어야 함)
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        img.verify()  # 여기서 깨진 이미지면 바로 예외
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")  # verify 이후 다시 open 필요
+    except UnidentifiedImageError:
+        return {}, {"error_code": "E_BAD_IMAGE", "detail": "PIL_UNIDENTIFIED"}
+    except Exception as e:
+        return {}, {"error_code": "E_BAD_IMAGE", "detail": f"PIL_FAIL:{e}"}
 
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    # ✅ 2) vendor 실행
     out = run_ocr_pipeline(img)
 
-    # out 구조가 예: {"ok": True, "result": {...}, "debug": {...}} 또는 비슷할 수 있음
-    # 현재 vendor artifacts 결과를 보면 debug에 roi_score/full_score 등이 있는 형태가 흔함.
     result = out.get("result") or out.get("result_json") or {}
     debug = out.get("debug") or {}
 
-    # 혹시 pipeline이 바로 최종 dict만 반환한다면:
     if not isinstance(out, dict) or ("result" not in out and "debug" not in out):
-        # out이 그냥 최종 JSON일 수 있음
         result = out if isinstance(out, dict) else {}
         debug = {}
 
@@ -166,17 +164,32 @@ class Command(BaseCommand):
 
             if not jobs:
                 self.stdout.write("[OCR_WORKER] no pending jobs")
-                # cron 기반이면 여기서 종료(다음 분에 다시 실행됨)
-                return
+                return  # cron 기반이면 종료
 
             for (cust_id, rgs_dt, seq, ocr_seq, bucket, key) in jobs:
-                self.stdout.write(
-                    f"[OCR_WORKER] start job={cust_id}:{rgs_dt}:{seq}:{ocr_seq} s3={bucket}/{key}"
-                )
+                job_str = f"{cust_id}:{rgs_dt}:{seq}:{ocr_seq}"
+                self.stdout.write(f"[OCR_WORKER] start job={job_str} s3={bucket}/{key}")
+
                 try:
                     image_bytes = _download_from_s3(bucket, key)
-                    result_json, debug = _run_vendor_ocr(image_bytes)
 
+                    result_json, debug = _run_vendor_ocr(image_bytes)
+                    debug = debug or {}
+
+                    # ✅ 1) PIL/vendor 단계에서 "이미지 깨짐" 판정
+                    dbg_code = debug.get("error_code")
+                    if dbg_code == "E_BAD_IMAGE":
+                        _mark_error(cust_id, rgs_dt, int(seq), int(ocr_seq), "E_BAD_IMAGE")
+                        self.stdout.write("[OCR_WORKER] bad image -> E_BAD_IMAGE")
+                        continue
+
+                    # ✅ 2) vendor 결과 비었음
+                    if not result_json:
+                        _mark_error(cust_id, rgs_dt, int(seq), int(ocr_seq), "E_EMPTY")
+                        self.stdout.write("[OCR_WORKER] empty result -> E_EMPTY")
+                        continue
+
+                    # ✅ 3) 성공 처리에 필요한 메타 추출(없으면 fallback)
                     chosen_source = (
                         debug.get("final_source")
                         or debug.get("chosen_source")
@@ -185,15 +198,8 @@ class Command(BaseCommand):
                     roi_score = debug.get("roi_score")
                     full_score = debug.get("full_score")
 
-                    if not result_json:
-                        _mark_error(cust_id, rgs_dt, int(seq), int(ocr_seq), "E_EMPTY")
-                        self.stdout.write("[OCR_WORKER] empty result -> E_EMPTY")
-                        continue
-
                     with transaction.atomic():
-                        _upsert_result_json(
-                            cust_id, rgs_dt, int(seq), int(ocr_seq), result_json
-                        )
+                        _upsert_result_json(cust_id, rgs_dt, int(seq), int(ocr_seq), result_json)
                         _mark_success(
                             cust_id,
                             rgs_dt,
@@ -207,14 +213,14 @@ class Command(BaseCommand):
                     self.stdout.write("[OCR_WORKER] success -> success_yn=Y")
                     processed += 1
 
-                except Exception:
+                except Exception as e:
                     _mark_error(cust_id, rgs_dt, int(seq), int(ocr_seq), "E_OCR")
-                    self.stdout.write("[OCR_WORKER] exception -> E_OCR")
+                    self.stdout.write(f"[OCR_WORKER] exception -> E_OCR job={job_str} err={repr(e)}")
                     self.stdout.write(traceback.format_exc())
 
                 if once:
                     self.stdout.write(f"[OCR_WORKER] done once. processed={processed}")
                     return
 
-            # once가 아니더라도, cron이 다시 실행하므로 1회 배치 후 종료하는 게 안전
+            # cron이면 1회 배치 후 종료
             return
