@@ -12,6 +12,50 @@ from django.db import connection, transaction
 
 from django.conf import settings
 
+def _json_sanitize(obj):
+    """
+    json.dumps가 가능한 형태로 obj를 재귀 변환한다.
+    - numpy.ndarray -> list
+    - numpy scalar(np.float32 등) -> python scalar
+    - bytes -> utf-8 string(실패 시 base64)
+    - set/tuple -> list
+    """
+    import numpy as np
+    import base64
+
+    # dict
+    if isinstance(obj, dict):
+        return {str(k): _json_sanitize(v) for k, v in obj.items()}
+
+    # list/tuple/set
+    if isinstance(obj, (list, tuple, set)):
+        return [_json_sanitize(x) for x in obj]
+
+    # numpy ndarray
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+
+    # numpy scalar
+    if isinstance(obj, np.generic):
+        return obj.item()
+
+    # bytes
+    if isinstance(obj, (bytes, bytearray)):
+        try:
+            return obj.decode("utf-8")
+        except Exception:
+            return {"_b64": base64.b64encode(bytes(obj)).decode("ascii")}
+
+    # PIL 같은 건 여기서 string으로 안전하게
+    try:
+        from PIL import Image
+        if isinstance(obj, Image.Image):
+            return {"_pil": str(obj)}
+    except Exception:
+        pass
+
+    # 기본 타입(str,int,float,bool,None)은 그대로
+    return obj
 
 def _now14() -> str:
     # yyyymmddHHMMSS
@@ -88,7 +132,8 @@ def _upsert_result_json(
     테이블 PK/UK 제약에 맞춰 INSERT ... ON DUPLICATE KEY UPDATE 형태로 저장.
     """
     t = _now14()
-    payload = json.dumps(result_json, ensure_ascii=False)
+    safe = _json_sanitize(result_json)
+    payload = json.dumps(safe, ensure_ascii=False)
 
     with connection.cursor() as cursor:
         cursor.execute(
