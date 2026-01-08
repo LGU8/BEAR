@@ -5,7 +5,7 @@ from langchain_chroma import Chroma
 from dotenv import load_dotenv
 import os
 
-rag_path = "../RAG"
+rag_path = "./RAG"
 all_splits = []
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
@@ -49,7 +49,7 @@ for url in urls:
 print(f"총 청크 수: {len(all_splits)}")
 
 # Embedding
-load_dotenv("../Chain/.env")
+load_dotenv("./Chain/.env")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 embeddings = OpenAIEmbeddings(model="text-embedding-3-large", api_key=OPENAI_API_KEY)
@@ -58,7 +58,7 @@ embeddings = OpenAIEmbeddings(model="text-embedding-3-large", api_key=OPENAI_API
 # print(f"임베딩 벡터 차원 수: {len(test_vector_result)}")
 
 # VectorDB
-persist_directory = "../Chain/chroma_store"
+persist_directory = "./Chain/chroma_store"
 if not os.path.exists(persist_directory):
     vectorstore = Chroma.from_documents(
         documents=all_splits, embedding=embeddings, persist_directory=persist_directory
