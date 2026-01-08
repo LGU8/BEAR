@@ -19,7 +19,7 @@
           "is_done": True/False,
           "status_text": "추천 준비 중" or "오늘 식사 기록이 모두 완료됐어요. 내일의 메뉴 추천 준비 중",
           "title": "아침/점심/저녁 메뉴 추천",
-          "line": "취향 기반: A / 균형(5:3:2): B / 새로운 메뉴: C / AI 추천 : D"
+          "line": "취향 기반: A / 건강 기반: B / 새로운 메뉴: C / AI 추천 : D"
         }
       {% endcomment %}
 
@@ -27,16 +27,29 @@
         <div class="empty-state">
           <p class="empty-text">{{ menu_reco.status_text }}</p>
         </div>
+
       {% else %}
-        {% if menu_reco and menu_reco.line %}
+
+        {% if menu_reco and menu_reco.items %}
           <div style="padding: 10px 14px;">
-            <div style="font-weight: 700; margin-bottom: 6px;">
+            <div style="font-weight: 700; margin-bottom: 10px;">
               {{ menu_reco.title }}
             </div>
-            <div style="line-height: 1.5;">
-              {{ menu_reco.line }}
+
+            <div class="menu-reco-grid">
+              {% for it in menu_reco.items %}
+                <div class="menu-reco-item">
+                  <div class="menu-reco-badge menu-reco-{{ it.key|lower }}">
+                    {{ it.label }}
+                  </div>
+                  <div class="menu-reco-name">
+                    {{ it.name }}
+                  </div>
+                </div>
+              {% endfor %}
             </div>
           </div>
+
         {% else %}
           <div class="empty-state">
             <p class="empty-text">
@@ -48,7 +61,9 @@
             </p>
           </div>
         {% endif %}
+
       {% endif %}
+
     </div>
   </section>
 

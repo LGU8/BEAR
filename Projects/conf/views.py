@@ -270,6 +270,7 @@ def _build_menu_reco_context(cust_id: str) -> dict:
         "status_text": "추천 준비 중",
         "title": "",
         "line": "",
+        "items": [],
         "ymd": "",
     }
     if not cust_id:
@@ -345,16 +346,17 @@ def _build_menu_reco_context(cust_id: str) -> dict:
         SELECT
             r.rec_type,
             r.food_id,
-            f.`{name_col}` AS food_name
+            COALESCE(r.food_name, f.`{name_col}`) AS food_name
         FROM MENU_RECOM_TH r
-        JOIN FOOD_TB f
-          ON f.food_id = r.food_id
+        LEFT JOIN FOOD_TB f
+        ON f.food_id = r.food_id
         WHERE r.cust_id = %s
-          AND r.rgs_dt = %s
-          AND r.rec_time_slot = %s
-          AND r.rec_type IN ('P','H','E','R')
+        AND r.rgs_dt = %s
+        AND r.rec_time_slot = %s
+        AND r.rec_type IN ('P','H','E','R')
         ORDER BY FIELD(r.rec_type, 'P','H','E','R');
     """
+
     with connection.cursor() as cursor:
         cursor.execute(sql_reco, [cust_id, reco_rgs_dt, reco_time_slot])
         rows = cursor.fetchall()
@@ -365,21 +367,32 @@ def _build_menu_reco_context(cust_id: str) -> dict:
 
     type_label = {
         "P": "취향 기반",
-        "H": "균형(5:3:2)",
+        "H": "건강 기반",
         "E": "새로운 메뉴",
         "R": "AI 추천",
     }
 
+    items = []
     parts = []
+
     for rec_type, food_id, food_name in rows:
         t = str(rec_type).strip().upper()
-        nm = str(food_name).strip() if food_name is not None else ""
-        if nm:
-            parts.append(f"{type_label.get(t, t)}: {nm}")
+        label = type_label.get(t, t)
 
-    if not parts:
+        nm = str(food_name).strip() if food_name else ""
+
+        if nm:
+            items.append({"key": t, "label": label, "name": nm})
+            parts.append(f"{label}: {nm}")
+
+    if not items:
         base["status_text"] = "추천 준비 중"
         return base
+
+    base["status_text"] = ""
+    base["items"] = items  # ✅ 추가
+    base["line"] = " / ".join(parts)  # ✅ 기존도 유지(안전)
+    return base
 
     # ✅ 디버그 로그(문제 해결 후 logger.debug로 낮추는 것 권장)
     print(
@@ -503,6 +516,7 @@ def index(request):
             "status_text": "추천 준비 중",
             "title": "",
             "line": "",
+            "items": [],
             "ymd": today_ymd,
             "is_done": False,
         }
