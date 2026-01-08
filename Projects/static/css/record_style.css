@@ -954,3 +954,87 @@ a {
   padding: 0 16px;    /* ✅ record-wrap과 동일 */
   box-sizing: border-box;
 }
+
+/* =========================
+   ✅ Mobile: Fit table into screen (no big min-width)
+   ========================= */
+
+@media (max-width: 480px) {
+  .table-wrap{
+    padding: 6px;          /* 모바일에서 여백 줄이기 */
+    max-height: 320px;     /* 버튼 영역 확보 */
+    overflow-x: auto;
+    overflow-y: auto;
+    min-width: 0;          /* ✅ flex/grid 안에서 스크롤 막힘 방지 */
+  }
+
+  .food-table{
+    width: 100%;
+    min-width: 0 !important;     /* ✅ 기존 min-width 640px/520px 강제 무력화 */
+    table-layout: fixed;         /* ✅ 컬럼 폭 압축의 핵심 */
+    font-size: 10.5px;
+  }
+
+  .food-table th,
+  .food-table td{
+    padding: 6px 4px;
+    overflow: hidden;            /* ✅ fixed 레이아웃에서 넘침 방지 */
+    text-overflow: ellipsis;     /* ✅ 너무 긴 값은 ... */
+  }
+
+  /* ✅ 1열(선택) 폭 더 줄이기 */
+  .food-table th:nth-child(1),
+  .food-table td:nth-child(1){
+    width: 46px;
+  }
+
+  /* ✅ 2열(제품명)만 줄바꿈 허용(가로폭 줄이는 핵심) */
+  .food-table th:nth-child(2),
+  .food-table td:nth-child(2){
+    width: 44%;
+    white-space: normal;         /* ✅ 줄바꿈 */
+    overflow-wrap: anywhere;     /* 긴 영문/숫자도 줄바꿈 */
+    word-break: keep-all;        /* 한국어 자연스럽게 */
+    text-align: left;
+  }
+
+  /* ✅ 3열(칼로리) */
+  .food-table th:nth-child(3),
+  .food-table td:nth-child(3){
+    width: 18%;
+    white-space: nowrap;
+  }
+
+  /* ✅ 4열(탄수화물) */
+  .food-table th:nth-child(4),
+  .food-table td:nth-child(4){
+    width: 18%;
+    white-space: nowrap;
+  }
+
+  /* ✅ 나머지 열이 더 있다면, 기본적으로는 줄이지 말고(폭 부족하면 ... 처리) */
+  .food-table th:nth-child(n+5),
+  .food-table td:nth-child(n+5){
+    width: 20%;
+    white-space: nowrap;
+  }
+
+  /* 체크박스/라디오 자체가 너무 커서 폭을 먹는 경우 대비(있으면 적용됨) */
+  .food-table input[type="checkbox"],
+  .food-table input[type="radio"]{
+    transform: scale(0.9);
+  }
+}
+
+/* 더 작은 폰(예: 360px 이하)에서 추가로 압축 */
+@media (max-width: 360px) {
+  .food-table{ font-size: 10px; }
+  .food-table th, .food-table td{ padding: 5px 3px; }
+
+  .food-table th:nth-child(1),
+  .food-table td:nth-child(1){ width: 42px; }
+
+  .food-table th:nth-child(2),
+  .food-table td:nth-child(2){ width: 46%; }
+}
+

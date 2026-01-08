@@ -1111,7 +1111,7 @@ def api_food_search(request):
         qs = (
             FoodTb.objects.filter(name__icontains=q)
             .order_by("name")
-            .values("food_id", "name", "kcal", "carb_g", "protein_g", "fat_g")[:200]
+            .values("food_id", "name", "kcal", "carb_g", "protein_g", "fat_g")[:50]
         )
 
         items = []
