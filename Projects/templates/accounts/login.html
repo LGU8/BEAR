@@ -17,6 +17,7 @@
     .main-wrapper {
       min-height: 100vh;
       min-height: 100dvh;
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -25,32 +26,35 @@
     }
 
     .login-container {
-      width: min(400px, 100%);
-      padding: 0 20px;
+      width: 100%;
       text-align: center;
+      padding: 0 100px;
     }
 
     /* 타이틀 섹션 */
     .header-section { margin-bottom: 50px; }
     .header-section h1 {
-      font-size: 2.2rem;
+      font-size: 40px;
       font-weight: 800;
-      margin: 0 0 5px;
+      margin: 0 0 30px;
       color: #1a1a1a;
       line-height: 1.25;
     }
     .header-section .point-color { color: #F38218; }
     .header-section p {
       color: #F38218;
-      font-size: 1rem;
+      font-size: 16px;
       font-weight: 500;
       margin: 10px 0 0;
     }
 
     /* 입력 폼 스타일 */
-    .form-group { margin-bottom: 15px; }
+    .form-group {
+      margin-bottom: 15px;
+    }
 
     input[type="email"], input[type="password"] {
+      max-width: 680px;
       width: 100%;
       padding: 18px 20px;
       border: none;
@@ -63,6 +67,7 @@
 
     /* 버튼 스타일 */
     .btn {
+      max-width: 680px;
       width: 100%;
       padding: 16px;
       border: none;
@@ -70,7 +75,7 @@
       font-size: 1.05rem;
       font-weight: 800;
       cursor: pointer;
-      margin-top: 10px;
+      margin: 20px auto 0;
       letter-spacing: 3px;
     }
     .btn-login { background-color: #F38218; color: white; }
@@ -93,6 +98,7 @@
       font-size: 0.9rem;
       font-weight: 700;
       opacity: 0.9;
+      margin-top: 20px;
     }
 
     /* 에러 메시지 */
@@ -110,6 +116,7 @@
     @media (max-width: 480px) {
       .main-wrapper {
         justify-content: center;
+        width: 100%;
         padding: 28px 0;
       }
 
@@ -122,11 +129,13 @@
       .header-section p { font-size: 0.9rem; }
 
       input[type="email"], input[type="password"] {
+        max-width: none;
         padding: 14px 16px;
         font-size: 0.95rem;
       }
 
       .btn {
+        max-width: none;
         padding: 14px;
         font-size: 0.95rem;
         letter-spacing: 1.2px;
@@ -134,13 +143,6 @@
 
       .footer-inline { margin-top: 12px; }
       .footer-inline a { font-size: 0.85rem; }
-    }
-
-    @media (max-width: 360px) {
-      .main-wrapper { padding: 22px 0; }
-      .header-section h1 { font-size: 1.5rem; }
-      .btn { padding: 13px; font-size: 0.9rem; }
-      input[type="email"], input[type="password"] { padding: 13px 14px; font-size: 0.9rem; }
     }
   </style>
 
