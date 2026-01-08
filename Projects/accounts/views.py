@@ -24,8 +24,8 @@ from django.urls import reverse
 from .models import Cust, CusProfile, LoginHistory
 from django.http import HttpResponse
 
-from django.shortcuts import redirect
 from django.contrib import messages
+from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 
 from django.urls import NoReverseMatch
@@ -55,6 +55,17 @@ def _safe_int(v, default=0) -> int:
         return int(v)
     except (TypeError, ValueError):
         return default
+
+
+DEMO_PASSWORD = "11111111"
+
+# 가능한 조합만 노출(남: 유지/벌크업, 여: 유지/다이어트)
+DEMO_EMAIL_MAP = {
+    ("M", "keep"): "demo_m_keep_01@demo.local",   # cust_id 1000000000
+    ("M", "bulk"): "demo_m_bulk_01@demo.local",   # cust_id 3000000000
+    ("F", "keep"): "demo_f_keep_01@demo.local",   # cust_id 2000000000
+    ("F", "diet"): "demo_f_cut_01@demo.local",    # cust_id 4000000000
+}
 
 
 # =========================
@@ -605,35 +616,82 @@ def signup_step4(request):
         ctx["error"] = f"가입 처리 중 오류 발생: {e}"
         return render(request, "accounts/signup_step4.html", ctx)
 
-def demo_start_view(request):
-    """
-    둘러보기(Demo): demo 계정으로 자동 로그인 + demo 플래그 세션 저장
-    """
-    demo_email = "test@test"
-    demo_password = "11111111"
+def demo_choose(request):
+    if request.method == "GET":
+        # 기본값(UX용)
+        ctx = {
+            "gender": "M",
+            "goal": "keep",
+            "active_yn": "Y",     # 운동량(예: 있다/없다 OX)
+            "pref_yn": "Y",       # 선호도(예: 편식/선호 있다 OX)
+        }
+        return render(request, "accounts/demo_choose.html", ctx)
 
-    user = authenticate(request, username=demo_email, password=demo_password)
+    # POST
+    gender = (request.POST.get("gender") or "M").strip()
+    goal = (request.POST.get("goal") or "keep").strip()
+    active_yn = (request.POST.get("active_yn") or "Y").strip()
+    pref_yn = (request.POST.get("pref_yn") or "Y").strip()
+
+    demo_email = DEMO_EMAIL_MAP.get((gender, goal))
+    if not demo_email:
+        messages.error(request, "선택 조합이 올바르지 않습니다. 다시 선택해주세요.")
+        return redirect("accounts_app:demo_choose")
+
+    user = authenticate(request, username=demo_email, password=DEMO_PASSWORD)
     if user is None:
-        messages.error(request, "둘러보기 계정이 준비되지 않았습니다. 관리자에게 문의하세요.")
+        messages.error(request, "둘러보기 로그인에 실패했습니다. Demo 계정/비밀번호를 확인해주세요.")
         return redirect("accounts_app:user_login")
 
     login(request, user)
 
+    # ✅ Demo 플래그(차단 middleware에서 사용)
     request.session["is_demo"] = True
-    request.session["cust_id"] = str(user.cust_id)  # 너 프로젝트에서 세션 fallback 쓰는 패턴과 일치
+    request.session["cust_id"] = str(user.cust_id)
 
-    # Demo는 데이터가 바로 보이도록 report로 보내는 걸 추천
+    # ✅ 선택값은 ‘체험 개인화 표시’ 용도로만 저장(매핑 로직과 분리)
+    request.session["demo_choice"] = {
+        "gender": gender,
+        "goal": goal,
+        "active_yn": active_yn,
+        "pref_yn": pref_yn,
+    }
+
     return redirect("report_app:report_daily")
 
 
-def test_login_view(request):
-    test_email = "test@test"
-    test_password = "11111111"
 
-    user = authenticate(request, username=test_email, password=test_password)
-    if user is not None:
-        login(request, user)
-        return redirect("home")
 
-    messages.error(request, "테스트 계정이 존재하지 않습니다. 관리자에게 문의하세요.")
-    return redirect("accounts_app:user_login")
+
+# def demo_start_view(request):
+#     """
+#     둘러보기(Demo): demo 계정으로 자동 로그인 + demo 플래그 세션 저장
+#     """
+#     demo_email = "test@test"
+#     demo_password = "11111111"
+#
+#     user = authenticate(request, username=demo_email, password=demo_password)
+#     if user is None:
+#         messages.error(request, "둘러보기 계정이 준비되지 않았습니다. 관리자에게 문의하세요.")
+#         return redirect("accounts_app:user_login")
+#
+#     login(request, user)
+#
+#     request.session["is_demo"] = True
+#     request.session["cust_id"] = str(user.cust_id)  # 너 프로젝트에서 세션 fallback 쓰는 패턴과 일치
+#
+#     # Demo는 데이터가 바로 보이도록 report로 보내는 걸 추천
+#     return redirect("report_app:report_daily")
+#
+#
+# def test_login_view(request):
+#     test_email = "test@test"
+#     test_password = "11111111"
+#
+#     user = authenticate(request, username=test_email, password=test_password)
+#     if user is not None:
+#         login(request, user)
+#         return redirect("home")
+#
+#     messages.error(request, "테스트 계정이 존재하지 않습니다. 관리자에게 문의하세요.")
+#     return redirect("accounts_app:user_login")

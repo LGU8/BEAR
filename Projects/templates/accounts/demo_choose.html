@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>둘러보기 설정</title>
+  {% load static %}
+  <style>
+    body{
+      background:#FFF9F0; margin:0;
+      font-family:'Noto Sans KR', sans-serif;
+      display:flex; flex-direction:column; align-items:center;
+      min-height:100vh; min-height:100dvh;
+    }
+    .wrap{ width:min(420px, 92%); padding:28px 0 40px; }
+    .logo{ width:110px; display:block; margin:0 auto 10px; }
+    .title{ text-align:center; font-weight:900; font-size:1.35rem; margin:6px 0 4px; }
+    .sub{ text-align:center; color:#F38218; font-weight:800; font-size:0.92rem; margin:0 0 18px; }
+
+    .card{
+      background:#fff; border-radius:16px;
+      padding:18px 16px; box-shadow:0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .sec{ margin-bottom:14px; }
+    .sec h4{ margin:0 0 10px; font-size:0.95rem; font-weight:900; color:#222; }
+    .row{ display:flex; gap:10px; }
+
+    .btn{
+      flex:1; border:2px solid rgba(243,130,24,0.55);
+      border-radius:14px; padding:12px 10px; cursor:pointer;
+      background:#fff; font-weight:900; color:#333;
+      opacity:0.65; transition:all .12s;
+    }
+    .btn.is-on{ background:#F38218; border-color:#F38218; color:#fff; opacity:1; }
+
+    .submit{
+      width:100%; margin-top:12px;
+      background:#F38218; border:none; color:#fff;
+      border-radius:14px; padding:14px 12px;
+      font-weight:900; font-size:1.05rem; cursor:pointer;
+      letter-spacing:1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="/"><img class="logo" src="{% static 'nav_img/logo.png' %}" alt="BEAR"></a>
+    <div class="title">둘러보기 설정</div>
+    <div class="sub">O/X로 빠르게 선택하고 바로 체험해요</div>
+
+    <div class="card">
+      <form method="post" action="{% url 'accounts_app:demo_choose' %}" id="demoForm">
+        {% csrf_token %}
+
+        <input type="hidden" name="gender" id="gender" value="{{ gender|default:'M' }}">
+        <input type="hidden" name="goal" id="goal" value="{{ goal|default:'keep' }}">
+        <input type="hidden" name="active_yn" id="active_yn" value="{{ active_yn|default:'Y' }}">
+        <input type="hidden" name="pref_yn" id="pref_yn" value="{{ pref_yn|default:'Y' }}">
+
+        <div class="sec">
+          <h4>성별</h4>
+          <div class="row">
+            <button type="button" class="btn" data-g="M">남</button>
+            <button type="button" class="btn" data-g="F">여</button>
+          </div>
+        </div>
+
+        <div class="sec">
+          <h4>목표</h4>
+          <div class="row" id="goalRow">
+            <button type="button" class="btn" data-goal="diet">다이어트</button>
+            <button type="button" class="btn" data-goal="keep">유지</button>
+            <button type="button" class="btn" data-goal="bulk">벌크업</button>
+          </div>
+        </div>
+
+        <div class="sec">
+          <h4>운동량이 있는 편인가요?</h4>
+          <div class="row">
+            <button type="button" class="btn" data-ox="active" data-v="Y">O</button>
+            <button type="button" class="btn" data-ox="active" data-v="N">X</button>
+          </div>
+        </div>
+
+        <div class="sec" style="margin-bottom:0;">
+          <h4>식단 선호(편식/취향)가 뚜렷한가요?</h4>
+          <div class="row">
+            <button type="button" class="btn" data-ox="pref" data-v="Y">O</button>
+            <button type="button" class="btn" data-ox="pref" data-v="N">X</button>
+          </div>
+        </div>
+
+        <button type="submit" class="submit">둘러보기 시작</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const genderEl = document.getElementById("gender");
+      const goalEl = document.getElementById("goal");
+      const activeEl = document.getElementById("active_yn");
+      const prefEl = document.getElementById("pref_yn");
+
+      const genderBtns = document.querySelectorAll("[data-g]");
+      const goalBtns = document.querySelectorAll("[data-goal]");
+      const oxBtns = document.querySelectorAll("[data-ox]");
+
+      function setOn(btns, predicate){
+        btns.forEach(b => b.classList.toggle("is-on", predicate(b)));
+      }
+
+      function applyGoalAvailability(gender){
+        // A안 정책:
+        // 남: keep/bulk만, 여: keep/diet만
+        goalBtns.forEach(b=>{
+          const g = b.dataset.goal;
+          let ok = true;
+          if(gender === "M") ok = (g === "keep" || g === "bulk");
+          if(gender === "F") ok = (g === "keep" || g === "diet");
+          b.style.display = ok ? "" : "none";
+        });
+
+        // 현재 goal이 불가능하면 keep로 강제
+        const cur = goalEl.value;
+        if(gender === "M" && !(cur === "keep" || cur === "bulk")) goalEl.value = "keep";
+        if(gender === "F" && !(cur === "keep" || cur === "diet")) goalEl.value = "keep";
+
+        setOn(goalBtns, b => b.dataset.goal === goalEl.value);
+      }
+
+      // init
+      setOn(genderBtns, b => b.dataset.g === genderEl.value);
+      setOn(goalBtns, b => b.dataset.goal === goalEl.value);
+      setOn(oxBtns, b => {
+        const key = b.dataset.ox;
+        const v = b.dataset.v;
+        if(key === "active") return v === activeEl.value;
+        if(key === "pref") return v === prefEl.value;
+        return false;
+      });
+      applyGoalAvailability(genderEl.value);
+
+      genderBtns.forEach(b=>{
+        b.addEventListener("click", ()=>{
+          genderEl.value = b.dataset.g;
+          setOn(genderBtns, x => x === b);
+          applyGoalAvailability(genderEl.value);
+        });
+      });
+
+      goalBtns.forEach(b=>{
+        b.addEventListener("click", ()=>{
+          // display none인 버튼은 클릭 불가하게 안전 처리
+          if(b.style.display === "none") return;
+          goalEl.value = b.dataset.goal;
+          setOn(goalBtns, x => x.dataset.goal === goalEl.value);
+        });
+      });
+
+      oxBtns.forEach(b=>{
+        b.addEventListener("click", ()=>{
+          const key = b.dataset.ox;
+          const v = b.dataset.v;
+          if(key === "active") activeEl.value = v;
+          if(key === "pref") prefEl.value = v;
+
+          setOn(oxBtns, x => {
+            if(x.dataset.ox !== key) return x.classList.contains("is-on");
+            return x.dataset.v === v;
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
