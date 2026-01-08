@@ -331,7 +331,13 @@ def api_barcode_scan(request):
     # - KEEP_SCAN_FILE=1 : /tmp에 저장한 업로드 이미지를 삭제하지 않고 남김
     # - SCANDBG_MAX_BYTES : 로깅용으로 앞부분 바이트를 얼마나 볼지(기본 64)
     # ---------------------------------------------------------
-    KEEP_SCAN_FILE = (os.getenv("KEEP_SCAN_FILE") or "").strip() in ("1", "true", "TRUE", "yes", "YES")
+    KEEP_SCAN_FILE = (os.getenv("KEEP_SCAN_FILE") or "").strip() in (
+        "1",
+        "true",
+        "TRUE",
+        "yes",
+        "YES",
+    )
     try:
         SCANDBG_MAX_BYTES = int((os.getenv("SCANDBG_MAX_BYTES") or "64").strip())
     except Exception:
@@ -341,16 +347,26 @@ def api_barcode_scan(request):
     f = request.FILES.get("image")
     print(
         "[SCANDBG][REQ]",
-        "method=", request.method,
-        "path=", request.path,
-        "content_type=", request.content_type,
-        "mode=", mode,
-        "date=", date,
-        "meal=", meal,
-        "file=", (f.name if f else None),
-        "size=", (f.size if f else None),
-        "img_content_type=", (getattr(f, "content_type", None) if f else None),
-        "KEEP_SCAN_FILE=", KEEP_SCAN_FILE,
+        "method=",
+        request.method,
+        "path=",
+        request.path,
+        "content_type=",
+        request.content_type,
+        "mode=",
+        mode,
+        "date=",
+        date,
+        "meal=",
+        meal,
+        "file=",
+        (f.name if f else None),
+        "size=",
+        (f.size if f else None),
+        "img_content_type=",
+        (getattr(f, "content_type", None) if f else None),
+        "KEEP_SCAN_FILE=",
+        KEEP_SCAN_FILE,
         flush=True,
     )
 
@@ -378,7 +394,14 @@ def api_barcode_scan(request):
             with open(tmp_path, "rb") as rf:
                 file_bytes = rf.read()
         except Exception as e:
-            print("[SCANDBG][READ_FAIL]", "tmp_path=", tmp_path, "err=", repr(e), flush=True)
+            print(
+                "[SCANDBG][READ_FAIL]",
+                "tmp_path=",
+                tmp_path,
+                "err=",
+                repr(e),
+                flush=True,
+            )
             file_bytes = b""
 
         if file_bytes:
@@ -386,10 +409,14 @@ def api_barcode_scan(request):
             head_hex = file_bytes[:SCANDBG_MAX_BYTES].hex()
             print(
                 "[SCANDBG][FILE]",
-                "tmp_path=", tmp_path,
-                "bytes=", len(file_bytes),
-                "sha1=", sha1,
-                "head_hex=", head_hex,
+                "tmp_path=",
+                tmp_path,
+                "bytes=",
+                len(file_bytes),
+                "sha1=",
+                sha1,
+                "head_hex=",
+                head_hex,
                 flush=True,
             )
         else:
@@ -428,10 +455,16 @@ def api_barcode_scan(request):
 
         print(
             "[SCANDBG][IMG]",
-            "shape=", img.shape,
-            "w=", w, "h=", h,
-            "gray_mean=", mean_val,
-            "gray_std=", std_val,
+            "shape=",
+            img.shape,
+            "w=",
+            w,
+            "h=",
+            h,
+            "gray_mean=",
+            mean_val,
+            "gray_std=",
+            std_val,
             flush=True,
         )
 
@@ -452,9 +485,12 @@ def api_barcode_scan(request):
 
         print(
             "[SCANDBG][PIPELINE]",
-            "barcode=", barcode,
-            "raw_candidates_type=", type(raw_candidates).__name__,
-            "raw_candidates_len=", (len(raw_candidates) if isinstance(raw_candidates, list) else None),
+            "barcode=",
+            barcode,
+            "raw_candidates_type=",
+            type(raw_candidates).__name__,
+            "raw_candidates_len=",
+            (len(raw_candidates) if isinstance(raw_candidates, list) else None),
             flush=True,
         )
 
@@ -538,7 +574,9 @@ def api_barcode_scan(request):
                 c.update(_nutr_payload(None, "error"))
 
         except Exception as e:
-            if isinstance(e, requests.exceptions.ReadTimeout) or "Read timed out" in str(e):
+            if isinstance(
+                e, requests.exceptions.ReadTimeout
+            ) or "Read timed out" in str(e):
                 c.update(_nutr_payload(None, "timeout"))
             else:
                 c.update(_nutr_payload(None, "error"))
@@ -1654,6 +1692,7 @@ def api_ocr_commit_manual(request):
     - CUS_FOOD_TH: upsert
     - CUS_FOOD_TS: 덮어쓰기(delete → insert)로 food_id 연결
     - CUS_OCR_TH: MANUAL 표시
+    - ✅ 저장 성공(commit) 이후 메뉴 추천 실행(transaction.on_commit)
     """
 
     # -------------------------
@@ -1750,13 +1789,42 @@ def api_ocr_commit_manual(request):
 
     # -------------------------
     # 5) DB: FOOD_TB → TH upsert → TS 덮어쓰기 → OCR 이력 업데이트
+    #    + ✅ 추천에 필요한 값(저장 성공 후 실행)
     # -------------------------
     t = now14()
+
+    feel_mood = ""
+    feel_energy = ""
+    reco_rgs_dt = ""
+    reco_time_slot = ""
+    recent_food_names = []
+
+    th_action = ""
+    deleted_ts = 0
 
     try:
         with transaction.atomic(), connection.cursor() as cursor:
 
-            # (A) FOOD_TB: get or create (동일/유사 이름 재사용, 없으면 MAX+1 신규)
+            # ✅ (A) CUS_FEEL_TH 존재 + mood/energy 확보(추천 입력)  [바코드와 동일]
+            cursor.execute(
+                """
+                SELECT mood, energy
+                FROM CUS_FEEL_TH
+                WHERE cust_id=%s AND rgs_dt=%s AND seq=%s AND time_slot=%s
+                LIMIT 1
+                """,
+                [cust_id, rgs_dt, seq, time_slot],
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return JsonResponse(
+                    {"ok": False, "error": "CUS_FEEL_TH_NOT_FOUND"}, status=404
+                )
+
+            feel_mood = (row[0] or "").strip().lower()
+            feel_energy = (row[1] or "").strip().lower()
+
+            # (B) FOOD_TB: get or create (동일/유사 이름 재사용, 없으면 MAX+1 신규)
             food_id, _created_new = _get_or_create_food_id_by_name(
                 name=name_n,
                 kcal=kcal_i,
@@ -1768,7 +1836,7 @@ def api_ocr_commit_manual(request):
                 mr_f=mr_f,
             )
 
-            # (B) CUS_FOOD_TH upsert (바코드 저장 로직과 동일 패턴)
+            # (C) CUS_FOOD_TH upsert (바코드 저장 로직과 동일 패턴)
             cursor.execute(
                 """
                 SELECT 1
@@ -1802,6 +1870,7 @@ def api_ocr_commit_manual(request):
                         fat_i,
                     ],
                 )
+                th_action = "insert"
             else:
                 cursor.execute(
                     """
@@ -1813,8 +1882,9 @@ def api_ocr_commit_manual(request):
                     """,
                     [t, time_slot, kcal_i, carb_i, prot_i, fat_i, cust_id, rgs_dt, seq],
                 )
+                th_action = "update"
 
-            # (C) CUS_FOOD_TS 덮어쓰기(delete → insert)
+            # (D) CUS_FOOD_TS 덮어쓰기(delete → insert)  [바코드와 동일: delete 후 insert]
             cursor.execute(
                 """
                 DELETE FROM CUS_FOOD_TS
@@ -1822,6 +1892,7 @@ def api_ocr_commit_manual(request):
                 """,
                 [cust_id, rgs_dt, seq],
             )
+            deleted_ts = cursor.rowcount
 
             cursor.execute(
                 """
@@ -1833,7 +1904,7 @@ def api_ocr_commit_manual(request):
                 [t, t, cust_id, rgs_dt, seq, 1, food_id],
             )
 
-            # (D) CUS_OCR_TH: MANUAL 표시
+            # (E) CUS_OCR_TH: MANUAL 표시
             cursor.execute(
                 """
                 UPDATE CUS_OCR_TH
@@ -1843,14 +1914,52 @@ def api_ocr_commit_manual(request):
                 [t, cust_id, rgs_dt, seq, ocr_seq],
             )
 
+            # ✅ (F) 추천 대상 slot/rgs_dt + recent foods  [바코드와 동일]
+            reco_rgs_dt, reco_time_slot = _derive_reco_target(rgs_dt, time_slot)
+            recent_food_names = _fetch_recent_food_names(cursor, cust_id, limit=10)
+
+            # ✅ (G) “commit 이후 추천 실행” 등록  [바코드와 동일]
+            def _run_reco_after_commit():
+                try:
+                    if reco_time_slot and feel_mood and feel_energy:
+                        # ✅ lazy import: 추천이 필요한 순간에만 import
+                        from ml.menu_reco.service import recommend_and_commit
+
+                        recommend_and_commit(
+                            cust_id=str(cust_id),
+                            mood=str(feel_mood).strip().lower(),
+                            energy=str(feel_energy).strip().lower(),
+                            rgs_dt=str(reco_rgs_dt),
+                            rec_time_slot=str(reco_time_slot).strip().upper(),
+                            current_food=None,
+                            recent_foods=(
+                                recent_food_names[:10] if recent_food_names else None
+                            ),
+                        )
+                except Exception:
+                    # 저장 성공은 유지 (추천 실패는 별도로 삼킴)
+                    return
+
+            transaction.on_commit(_run_reco_after_commit)
+
         # 성공
         return JsonResponse(
             {
                 "ok": True,
                 "redirect_url": _home_redirect_url(),
                 "food_id": int(food_id),
+                "cust_id": str(cust_id),
+                "rgs_dt": str(rgs_dt),
                 "seq": int(seq),
-            }
+                "time_slot": str(time_slot),
+                "th_action": str(th_action),
+                "deleted_ts": int(deleted_ts),
+                "inserted_ts": 1,
+                # 참고용(프론트 디버깅/로그용)
+                "reco_rgs_dt": str(reco_rgs_dt),
+                "reco_time_slot": str(reco_time_slot),
+            },
+            status=200,
         )
 
     except Exception as e:
