@@ -88,15 +88,37 @@ body {
     color: #FFFFFF;
 }
 
-/* 전체 바 (배경만 담당) */
+/* =========================
+   Bottom Nav: Always-on-top, never transparent
+   ========================= */
 .bear-tabs-bar {
-    width: 100%;
-    background-color: #FFF9F0;
-    padding: 4px 0 16px;
-    box-sizing: border-box;
-    position: fixed;
-    bottom: 0;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  width: 100%;
+  background-color: #FFF9F0 !important; /* ✅ 투명/덮어쓰기 방지 */
+  opacity: 1 !important;               /* ✅ 혹시라도 opacity 상속/덮임 방지 */
+  filter: none !important;             /* ✅ blur/brightness 등 방지 */
+  backdrop-filter: none !important;    /* ✅ 반투명 효과 방지 */
+  -webkit-backdrop-filter: none !important;
+
+  z-index: 9999; /* ✅ 무조건 최상단으로 */
+
+  box-sizing: border-box;
+  padding: 4px 0 16px;
+
+  /* iOS/Safari fixed 안정화 (스크롤 중 깜빡임/투명처럼 보임 방지) */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  /* 위 콘텐츠와 시각 분리 */
+  border-top: 1px solid rgba(0,0,0,0.06);
 }
+
 
 body {
   padding-bottom: calc(80px + env(safe-area-inset-bottom));
