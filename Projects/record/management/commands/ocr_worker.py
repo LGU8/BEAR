@@ -113,35 +113,72 @@ def _download_from_s3(bucket: str, key: str) -> bytes:
     s3.download_fileobj(bucket, key, bio)
     return bio.getvalue()
 
-def _run_vendor_ocr(image_bytes: bytes) -> Tuple[dict, dict]:
-    """
-    vendor OCR pipeline 실행.
-    - result: 최종 영양정보 JSON (저장용)
-    - debug: chosen_source/roi_score/full_score 등 상태 정보
-    """
-    from record._vendor_ocr.src.ocr.pipeline import run_ocr_pipeline
+# record/management/commands/ocr_worker.py
+def _run_vendor_ocr(image_bytes: bytes):
+    import os
+    import sys
+    import traceback
+    from PIL import Image, UnidentifiedImageError
 
-    # ✅ 1) 이미지 유효성 먼저 검사(PIL로 열 수 있어야 함)
+    debug = {}
+
+    # ✅ Django BASE_DIR (/var/app/current/Projects)
+    try:
+        from django.conf import settings
+        base_dir = str(settings.BASE_DIR)
+    except Exception:
+        base_dir = os.getcwd()
+
+    # ✅ vendor root: .../Projects/record/_vendor_ocr
+    vendor_root = os.path.join(base_dir, "record", "_vendor_ocr")
+    debug["vendor_root"] = vendor_root
+
+    # ✅ sys.path에 vendor_root를 올려서 `import src...`가 가능하게
+    if vendor_root not in sys.path:
+        sys.path.insert(0, vendor_root)
+    debug["sys_path_head"] = sys.path[:5]
+
+    # ✅ 1) bytes → PIL Image 디코드 (깨진 이미지면 여기서 잡아 E_BAD_IMAGE로 분기)
     try:
         img = Image.open(io.BytesIO(image_bytes))
-        img.verify()  # 여기서 깨진 이미지면 바로 예외
-        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")  # verify 이후 다시 open 필요
+        img.load()  # 실제 디코딩 강제
+        debug["pil_format"] = img.format
+        debug["pil_size"] = img.size
+        debug["pil_mode"] = img.mode
     except UnidentifiedImageError:
-        return {}, {"error_code": "E_BAD_IMAGE", "detail": "PIL_UNIDENTIFIED"}
+        debug["error_code"] = "E_BAD_IMAGE"
+        debug["exc"] = "UnidentifiedImageError"
+        debug["traceback"] = traceback.format_exc()
+        return None, debug
+    except Exception:
+        debug["error_code"] = "E_BAD_IMAGE"
+        debug["exc"] = "PIL_DECODE_FAIL"
+        debug["traceback"] = traceback.format_exc()
+        return None, debug
+
+    # ✅ 2) vendor import & 실행
+    try:
+        from src.ocr.pipeline import run_ocr_pipeline
+
+        # ⚠️ 여기서 vendor가 받는 입력 타입이 무엇인지에 따라 3가지 중 하나로 맞춰야 함
+        # (A) PIL Image를 받는 경우 (가장 흔함)
+        result_json = run_ocr_pipeline(img)
+
+        # (B) bytes를 받는 경우라면 위 줄 대신:
+        # result_json = run_ocr_pipeline(image_bytes)
+
+        # (C) numpy array를 받는 경우라면:
+        # import numpy as np
+        # result_json = run_ocr_pipeline(np.array(img))
+
+        return result_json, debug
+
     except Exception as e:
-        return {}, {"error_code": "E_BAD_IMAGE", "detail": f"PIL_FAIL:{e}"}
+        debug["error_code"] = "E_OCR"
+        debug["exc"] = repr(e)
+        debug["traceback"] = traceback.format_exc()
+        raise
 
-    # ✅ 2) vendor 실행
-    out = run_ocr_pipeline(img)
-
-    result = out.get("result") or out.get("result_json") or {}
-    debug = out.get("debug") or {}
-
-    if not isinstance(out, dict) or ("result" not in out and "debug" not in out):
-        result = out if isinstance(out, dict) else {}
-        debug = {}
-
-    return result, debug
 
 
 class Command(BaseCommand):
