@@ -78,27 +78,46 @@ console.log("[result.js] loaded ✅");
   // -------------------------
   // 2) Context & mode
   // -------------------------
+  const panelBarcode = document.getElementById("result-barcode");
+  const panelNutrition = document.getElementById("result-nutrition");
+  const listEl = document.getElementById("candidate-list");
+  const btnSave = document.getElementById("btn-save");
+
+  if (!panelBarcode || !panelNutrition) {
+    console.error("[result] panel dom missing", { panelBarcode, panelNutrition });
+  }
+  if (!btnSave) {
+    alert("결과 페이지 UI 요소가 누락되었어요. (btn-save)");
+    throw new Error("BTN_SAVE_MISSING");
+}
+
   const params = new URLSearchParams(location.search);
   const draftId = params.get("draft_id");
   const modeParam = (params.get("mode") || "").toLowerCase(); // "ocr" / "nutrition" 같은 값 추천
 
-  const panelBarcode = document.getElementById("result-barcode");
-  const panelNutrition = document.getElementById("result-nutrition");
+  function showPanel(mode) {
+    if (!panelBarcode || !panelNutrition) return;
+
+    if (mode === "nutrition" || mode === "ocr") {
+      panelNutrition.style.display = "block";
+      panelBarcode.style.display = "none";
+    } else {
+      panelBarcode.style.display = "block";
+      panelNutrition.style.display = "none";
+    }
+  }
+
 
   // ✅ mode 판별: URL param 우선, 없으면 panel visibility로 fallback
   const useOcr =
-    modeParam === "ocr" ||
-    modeParam === "nutrition" ||
-    (isVisible(panelNutrition) && !isVisible(panelBarcode));
+  modeParam === "ocr" ||
+  modeParam === "nutrition" ||
+  (panelNutrition && panelBarcode && isVisible(panelNutrition) && !isVisible(panelBarcode));
 
-  const btnSave = document.getElementById("btn-save");
   if (!btnSave) {
     alert("결과 페이지 UI 요소가 누락되었어요. (btn-save)");
     return;
   }
-
-  // barcode에서만 필요한 요소
-  const listEl = document.getElementById("candidate-list");
 
   // 공통 hidden ctx (있으면 사용, 없어도 세션 기반이라 큰 문제 없음)
   const ctxRgsDt = document.getElementById("ctx-rgs-dt")?.value || "";
@@ -215,6 +234,9 @@ console.log("[result.js] loaded ✅");
 
     checks.forEach((chk) => {
       chk.addEventListener("change", () => {
+        const rowEl = chk.closest(".cand-row");
+        if (rowEl) rowEl.classList.toggle("is-selected", chk.checked);
+        
         const cid = chk.value;
 
         if (chk.checked) {
@@ -508,19 +530,14 @@ console.log("[result.js] loaded ✅");
   // 5) Bootstrap
   // -------------------------
   if (useOcr) {
-    // ✅ OCR 화면: nutrition만 보이게
-  if (panelBarcode) panelBarcode.style.display = "none";
-  if (panelNutrition) panelNutrition.style.display = "block";
-
+    showPanel("nutrition");
     btnSave.disabled = true;
     initOcrCommit();
   } else {
-    // ✅ Barcode 화면: barcode만 보이게
-  if (panelBarcode) panelBarcode.style.display = "block";
-  if (panelNutrition) panelNutrition.style.display = "none";
-  
+    showPanel("barcode");
     btnSave.disabled = true;
     loadCandidates();
     initBarcodeCommit();
   }
+
 })();

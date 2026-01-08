@@ -593,100 +593,115 @@ a {
   }
 }
 
-/* ===== Result Page ===== */
-.result-page{
-  width: min(720px, 92vw);
-  margin: 0 auto;
-  padding: 22px 0 28px;
-}
-
-.result-preview{
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  background: #fff;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.08);
-}
-
-.result-preview img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.result-panel{
-  margin-top: 18px;
-  background: rgba(255, 236, 207, 0.9);
-  border-radius: 16px;
-  padding: 16px;
-}
-
-.result-title{
-  margin: 0 0 12px;
-  font-size: 16px;
-  font-weight: 900;
-}
-
-.field{
+/* ===== OCR/Barcode Nutr Edit (Aligned & Modern) ===== */
+.nutr-edit{
   display: grid;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 10px;
+  
+  padding: 12px;
+  box-sizing: border-box;
 }
 
-.field label{
-  font-size: 12px;
+.nutr-row{
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.nutr-row label{
+  width: 120px;
+  font-size: 13px;
   font-weight: 800;
-  color: rgba(0,0,0,0.7);
+  color: rgba(0,0,0,0.75);
+  white-space: nowrap;
 }
 
-.input{
-  height: 38px;
+.nutr-row input{
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
   border-radius: 12px;
   border: 1px solid rgba(0,0,0,0.12);
-  padding: 0 12px;
-  background: rgba(255,255,255,0.6);
-  font-weight: 700;
+  background: rgba(255,255,255,0.70);
+  font-weight: 800;
+  outline: none;
+  transition: box-shadow .15s ease, border-color .15s ease, background .15s ease;
+  min-width: 0;
 }
 
-.field-grid{
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+.nutr-row input:focus{
+  border-color: rgba(244, 121, 0, 0.7);
+  box-shadow: 0 0 0 4px rgba(244, 121, 0, 0.18);
+  background: #fff;
 }
 
-.result-actions{
-  margin-top: 18px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.btn-save{
-  width: 110px;
-  height: 44px;
+/* 에러 문구를 카드 안에서 더 자연스럽게 */
+.nutr-error{
+  margin: 8px 0 0;
+  padding: 12px;
   border-radius: 12px;
-  background: #F47900;
-  color: #fff;
-  font-weight: 900;
+  box-sizing: border-box;
+  background: rgba(255, 89, 89, 0.10);
+  border: 1px solid rgba(255, 89, 89, 0.25);
+  color: rgba(140, 0, 0, 0.9);
+  font-weight: 800;
+  font-size: 13px;
 }
 
-.cand-row{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  padding:12px;
-  border:1px solid #ddd;
-  border-radius:12px;
-  margin:10px 0;
+/* 선택된 제품 영역(바코드)도 조금 더 카드답게 */
+.selected-product{
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.40);
+  border: 1px solid rgba(0,0,0,0.06);
 }
-.cand-meta{ opacity:0.8; font-size: 0.95rem; }
-.btn-save:disabled{ opacity:0.5; cursor:not-allowed; }
 
-.food-row.is-selected {
-  outline: 2px solid #ff8a00;
-  background: rgba(255, 138, 0, 0.12);
+.product-name{
+  font-size: 16px;
+  font-weight: 1000;
+  letter-spacing: -0.2px;
 }
+
+.company-name{
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(0,0,0,0.55);
+}
+
+/* 저장 버튼: 기존 색 유지 + 인터랙션 보강 */
+.btn-save{
+  border: 0;
+  box-shadow: 0 10px 18px rgba(244, 121, 0, 0.22);
+  transition: transform .08s ease, filter .15s ease, box-shadow .15s ease;
+}
+
+.btn-save:hover{
+  filter: brightness(1.02);
+  box-shadow: 0 12px 22px rgba(244, 121, 0, 0.26);
+}
+
+.btn-save:active{
+  transform: translateY(1px);
+}
+
+/* 모바일에서는 라벨/인풋 1열로 */
+@media (max-width: 520px){
+  .nutr-row{
+    grid-template-columns: 1fr;
+    row-gap: 6px;
+    align-items: start;
+  }
+  .nutr-row label{
+    font-size: 12px;
+  }
+}
+
 
 /* 테이블 스크롤 영역 만들기 */
 .table-wrap {
@@ -775,4 +790,167 @@ a {
   .bottom-btn {
     width: 25%;
   }
+}
+
+/* ===== Candidate list polish ===== */
+.cand-row{
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(0,0,0,0.10);
+  transition: transform .08s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.cand-row:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(0,0,0,0.06);
+}
+
+.cand-title strong{
+  font-weight: 1000;
+}
+
+.cand-nutri{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(0,0,0,0.65);
+}
+
+/* ✅ 체크된 후보 강조(Chrome 최신 OK) */
+.cand-row:has(.cand-check:checked){
+  border-color: rgba(244, 121, 0, 0.55);
+  background: rgba(255, 138, 0, 0.10);
+  box-shadow: 0 12px 22px rgba(244,121,0,0.14);
+}
+
+.cand-row.is-selected{
+  border-color: rgba(244, 121, 0, 0.55);
+  background: rgba(255, 138, 0, 0.10);
+  box-shadow: 0 12px 22px rgba(244,121,0,0.14);
+}
+
+/* ===== Save button: revert to original look (2nd screenshot) ===== */
+.result-actions{
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.result-actions .btn-save{
+  width: 110px;
+  height: 44px;
+  border-radius: 12px;
+  border: 0;
+  background: #F47900;       /* ✅ 2번째 사진 느낌(연한 오렌지) */
+  color: #fff;
+  font-weight: 900;
+  box-shadow: none;          /* ✅ 그림자 제거(원래처럼) */
+  transition: none;          /* ✅ hover/active 효과 제거 */
+}
+
+.result-actions .btn-save:active{
+  transform: none;           /* ✅ 눌림 이동 제거 */
+}
+
+.result-actions .btn-save:hover{
+  filter: none;
+}
+
+/* ===== Candidate checkbox: custom & aligned ===== */
+.cand-row{
+  display: grid;
+  grid-template-columns: 26px 1fr; /* ✅ 왼쪽 체크 / 오른쪽 내용 */
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid rgba(0,0,0,0.10);
+  border-radius: 14px;
+  margin: 10px 0;
+  background: rgba(255,255,255,0.55);
+}
+
+.cand-check{
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  border-radius: 6px;
+  border: 2px solid rgba(0,0,0,0.20);
+  background: rgba(255,255,255,0.75);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .08s ease;
+}
+
+.cand-check:hover{
+  box-shadow: 0 0 0 4px rgba(244, 121, 0, 0.12);
+}
+
+.cand-check:checked{
+  border-color: rgba(244, 121, 0, 0.75);
+  background: rgba(244, 121, 0, 0.95);
+}
+
+.cand-check:checked::after{
+  content: "";
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg);
+  margin-top: -1px;
+}
+
+.cand-body{
+  min-width: 0;
+}
+
+.cand-title strong{
+  font-weight: 1000;
+}
+
+.cand-meta{
+  opacity: 0.75;
+  font-size: 0.95rem;
+}
+
+/* 선택 강조(이미 JS로 is-selected 토글 넣어둔 상태) */
+.cand-row.is-selected{
+  border-color: rgba(244, 121, 0, 0.55);
+  background: rgba(255, 138, 0, 0.10);
+  box-shadow: 0 12px 22px rgba(244,121,0,0.14);
+}
+
+/* ===== Remove empty white oval (preview) ===== */
+.result-preview{
+  min-height: 0;
+}
+
+.result-preview:empty{
+  display: none;
+}
+
+/* 이미지 없는 preview도 숨김(자식 img가 없을 때) */
+.result-preview:not(:has(img)){
+  display: none !important;
+}
+/* barcode 패널 안에 nutrition input이 섞여 나오면 숨김 */
+
+#result-barcode #nutrition-name-input{
+  display: none !important;
+}
+
+/* ===== Result page width = navbar/record-wrap width ===== */
+.result-page{
+  width: 100%;
+  max-width: 960px;   /* ✅ record-wrap과 동일 */
+  margin: 16px auto;
+  padding: 0 16px;    /* ✅ record-wrap과 동일 */
+  box-sizing: border-box;
 }
