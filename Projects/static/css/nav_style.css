@@ -98,6 +98,10 @@ body {
     bottom: 0;
 }
 
+body {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
 /* 1줄과 같은 폭/좌우 여백을 갖는 내부 컨테이너 */
 .bear-tabs-inner {
     max-width: 960px;      /* 1줄과 동일 */
