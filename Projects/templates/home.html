@@ -32,7 +32,7 @@
 
         {% if menu_reco and menu_reco.items %}
           <div style="padding: 10px 14px;">
-            <div style="font-weight: 700; margin-bottom: 10px;">
+            <div style="font-size: 13px;font-weight: 600; margin-bottom: 10px;">
               {{ menu_reco.title }}
             </div>
 
@@ -40,10 +40,14 @@
               {% for it in menu_reco.items %}
                 <div class="menu-reco-item">
                   <div class="menu-reco-badge menu-reco-{{ it.key|lower }}">
-                    {{ it.label }}
+                    <div style="font-size: 11px; font-weight: 700; ">
+                      {{ it.label }}
+                    </div>
                   </div>
                   <div class="menu-reco-name">
-                    {{ it.name }}
+                    <div style="font-size: 11px; font-weight: 700; padding: 0 0 0 5px">
+                      {{ it.name }}
+                    </div>
                   </div>
                 </div>
               {% endfor %}
