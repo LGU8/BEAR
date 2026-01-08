@@ -409,15 +409,22 @@ console.log("[result.js] loaded ✅");
     });
 
     // 1) 최신 OCR prefill
-    let latest = null;
+   
     try {
-      // rgs_dt/seq는 hidden이 있으면 사용, 없으면 서버가 session에서도 읽긴 하지만
-      // api_ocr_latest는 query를 쓰므로 가능한 채워주는 게 안전
-      const res = await fetch(
-        `/record/api/ocr/latest/?rgs_dt=${encodeURIComponent(ctxRgsDt)}&seq=${encodeURIComponent(ctxSeq)}`
-      );
-      latest = await res.json();
-      if (!res.ok || !latest.ok) throw new Error(latest?.error || "OCR_LOAD_FAILED");
+      const url = `/record/api/ocr/latest/?rgs_dt=${encodeURIComponent(ctxRgsDt)}&seq=${encodeURIComponent(ctxSeq)}`;
+      const res = await fetch(url);
+
+      // ✅ 404는 "OCR 실패"가 아니라 "API 없음"으로 구분
+      if (res.status === 404) {
+        showError(errEl, "서버에 OCR 결과 조회 API(/record/api/ocr/latest/)가 없습니다. (배포/URL 설정 확인 필요)");
+        refreshBtn();
+        return;
+      }
+
+      const latest = await res.json().catch(() => null);
+      if (!res.ok || !latest?.ok) {
+        throw new Error(latest?.error || `OCR_LOAD_FAILED (${res.status})`);
+      }
 
       const n = latest.nutrition || {};
       if (n.kcal != null) kcalEl.value = String(n.kcal);
@@ -428,6 +435,8 @@ console.log("[result.js] loaded ✅");
       const missing = latest.missing_fields || [];
       if (missing.length) {
         showError(errEl, `일부 영양 정보가 없습니다. 직접 입력해 주세요: ${missing.join(", ")}`);
+      } else {
+        clearError(errEl);
       }
     } catch (e) {
       showError(errEl, String(e.message || e));
