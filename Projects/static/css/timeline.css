@@ -494,10 +494,7 @@
 }
 
 /* tabs bar 아래 여백 제거(혹시 nav_style.css에서 margin-bottom 주는 경우) */
-.bear-tabs-bar{
-  margin-bottom: 0 !important;
-  padding-bottom: 0 !important;
-}
+
 
 /* main 위쪽 여백 제거(혹시 nav_style.css에서) */
 .bear-main{
