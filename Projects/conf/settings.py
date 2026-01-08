@@ -201,7 +201,7 @@ CSRF_TRUSTED_ORIGINS = [
     f"http://{EB_DOMAIN}",
     f"https://{EB_DOMAIN}",
     
-
+]
 
 # Reverse proxy 뒤에서 https 인식 보정
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
