@@ -74,6 +74,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "conf.middleware.DemoModeBlockMiddleware",
 ]
 
 ROOT_URLCONF = "conf.urls"
@@ -200,8 +201,6 @@ SESSION_SAVE_EVERY_REQUEST = True
 CSRF_TRUSTED_ORIGINS = [
     f"http://{EB_DOMAIN}",
     f"https://{EB_DOMAIN}",
-    "http://15.165.14.29",
-    "https://15.165.14.29",
 ]
 
 # Reverse proxy 뒤에서 https 인식 보정
