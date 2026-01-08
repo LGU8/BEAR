@@ -163,35 +163,46 @@ class Command(BaseCommand):
 
         while True:
             jobs = _fetch_pending_job(limit=limit)
+
             if not jobs:
                 self.stdout.write("[OCR_WORKER] no pending jobs")
-                break if once else None
-                if once:
-                    return
-                # not-once: idle exit (cron이 다시 실행하므로 여기서 종료해도 됨)
+                # cron 기반이면 여기서 종료(다음 분에 다시 실행됨)
                 return
 
             for (cust_id, rgs_dt, seq, ocr_seq, bucket, key) in jobs:
-                self.stdout.write(f"[OCR_WORKER] start job={cust_id}:{rgs_dt}:{seq}:{ocr_seq} s3={bucket}/{key}")
+                self.stdout.write(
+                    f"[OCR_WORKER] start job={cust_id}:{rgs_dt}:{seq}:{ocr_seq} s3={bucket}/{key}"
+                )
                 try:
                     image_bytes = _download_from_s3(bucket, key)
-
                     result_json, debug = _run_vendor_ocr(image_bytes)
 
-                    # debug에서 상태 값 뽑기
-                    chosen_source = (debug.get("final_source") or debug.get("chosen_source") or "R")  # R/F
+                    chosen_source = (
+                        debug.get("final_source")
+                        or debug.get("chosen_source")
+                        or "R"
+                    )
                     roi_score = debug.get("roi_score")
                     full_score = debug.get("full_score")
 
-                    # 결과가 비었으면 error 처리
                     if not result_json:
                         _mark_error(cust_id, rgs_dt, int(seq), int(ocr_seq), "E_EMPTY")
                         self.stdout.write("[OCR_WORKER] empty result -> E_EMPTY")
                         continue
 
                     with transaction.atomic():
-                        _upsert_result_json(cust_id, rgs_dt, int(seq), int(ocr_seq), result_json)
-                        _mark_success(cust_id, rgs_dt, int(seq), int(ocr_seq), str(chosen_source), roi_score, full_score)
+                        _upsert_result_json(
+                            cust_id, rgs_dt, int(seq), int(ocr_seq), result_json
+                        )
+                        _mark_success(
+                            cust_id,
+                            rgs_dt,
+                            int(seq),
+                            int(ocr_seq),
+                            str(chosen_source),
+                            roi_score,
+                            full_score,
+                        )
 
                     self.stdout.write("[OCR_WORKER] success -> success_yn=Y")
                     processed += 1
@@ -205,6 +216,5 @@ class Command(BaseCommand):
                     self.stdout.write(f"[OCR_WORKER] done once. processed={processed}")
                     return
 
-            # cron 주기 실행이면 여기서 끝내도 되지만,
-            # --once 안 쓰는 경우에도 무한루프는 피하는 게 안전해서 종료 권장.
+            # once가 아니더라도, cron이 다시 실행하므로 1회 배치 후 종료하는 게 안전
             return
