@@ -607,10 +607,36 @@
 .menu-reco-e { background: #EAF6FF; }
 .menu-reco-r { background: #F1ECFF; }
 
+.menu-reco-name{
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+
+  /* ✅ 핵심: 긴 문자열 강제 줄바꿈 */
+  overflow-wrap: anywhere;   /* 최신 브라우저 */
+  word-break: break-word;    /* fallback */
+  
+  /* ✅ 혹시라도 레이아웃이 밀리는 걸 방지 */
+  max-width: 100%;
+}
+.menu-reco-name{
+  /* 위에 적은 것 유지하면서 아래 추가 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;      /* ✅ 2줄 제한 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;           /* ✅ 말줄임을 위해 필요 */
+}
+
+.menu-reco-item{
+  min-width: 0;  /* ✅ grid/flex에서 overflow 방지 핵심 */
+}
+
 /* 모바일: 1열로 */
-@media (max-width: 560px) {
-  .menu-reco-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 420px){
+  .menu-reco-item{
+    padding: 10px 10px;
+    border-radius: 12px;
   }
 }
+
 
