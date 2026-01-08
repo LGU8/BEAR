@@ -93,76 +93,7 @@ ORDER BY rgs_dt
 LIMIT 6;
 """
 
-# data = {
-#   "user_id": "002",
-#   "recommend_info": {"kcal": 1522.39,	"carbohydrate":114,	"protein": 152,	"fat": 114},
-#   "meal_for_3days": [
-#       {"rgs_dt": "20260102",
-#         "time_slot": "D",
-#         "foods": ["The미식 떡만둣국"],
-#         "nutrition": {
-#             "kcal": 440,
-#             "carb_g": 48,
-#             "protein_g": 40,
-#             "fat_g": 30
-#             },
-#         "mood": "pos",
-#         "energy": "low"
-#         },
-#       {
-#         "rgs_dt": "20260102",
-#         "time_slot": "L",
-#         "foods": ["육회비빔밥"],
-#         "nutrition": {
-#             "kcal": 115,
-#             "carb_g": 17,
-#             "protein_g": 3,
-#             "fat_g": 2
-#             },
-#         "mood": "pos",
-#         "energy": "low"
-#         },
-#       {
-#         "rgs_dt": "20260103",
-#         "time_slot": "D",
-#         "foods": ["BIG 김치볶음밥"],
-#         "nutrition": {
-#             "kcal": 483,
-#             "carb_g": 74,
-#             "protein_g": 7,
-#             "fat_g": 9
-#             },
-#         "mood": "pos",
-#         "energy": "med"
-#         },
-#       {
-#         "rgs_dt": "20260103",
-#         "time_slot": "L",
-#         "foods": ["햇반", "1인부대찌개 의정부찌"],
-#         "nutrition": {
-#             "kcal": 330,
-#             "carb_g": 49,
-#             "protein_g": 13,
-#             "fat_g": 8
-#             },
-#         "mood": "pos",
-#         "energy": "med"
-#         },
-#       {
-#         "rgs_dt": "20260104",
-#         "time_slot": "L",
-#         "foods": ["녹차라떼", "리얼딸기케이크"],
-#         "nutrition": {
-#             "kcal": 695,
-#             "carb_g": 97,
-#             "protein_g": 7,
-#             "fat_g": 29
-#           },
-#         "mood": "pos",
-#         "energy": "low"
-#       }
-#   ]
-# }
+
 
 data = {
   "user_id": "0000000011",	

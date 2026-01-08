@@ -17,6 +17,7 @@ import logging
 
 logger = logging.getLogger("django.security.csrf")
 
+
 def csrf_failure(request, reason=""):
     logger.error(
         "[CSRF_FAIL] path=%s method=%s reason=%s referer=%s origin=%s host=%s",
@@ -37,11 +38,12 @@ def public_home(request):
     return render(request, "public_home.html")
 
 
-
 import logging
+
 logger = logging.getLogger(__name__)
 
 # conf/views.py (상단 또는 _safe_get_cust_id 위)
+
 
 def _normalize_cust_id(v) -> str:
     """
@@ -81,12 +83,13 @@ def _safe_get_cust_id(request) -> str:
     logger.warning(
         "[AUTH] cust_id not found (user_email=%s, session_keys=%s)",
         getattr(user, "email", None),
-        list(getattr(request, "session", {}).keys()) if getattr(request, "session", None) else [],
+        (
+            list(getattr(request, "session", {}).keys())
+            if getattr(request, "session", None)
+            else []
+        ),
     )
     return ""
-
-
-
 
 
 def _build_daily_report_chart(cust_id: str, today_ymd: str) -> dict:
@@ -227,6 +230,7 @@ def _recommend_target_slot_from_trigger_slot(trigger_slot: str) -> str:
     s = (trigger_slot or "").strip().upper()
     return {"M": "L", "L": "D", "D": "DONE"}.get(s, "M")
 
+
 def _derive_reco_target(rgs_dt: str, recorded_slot: str):
     """
     ✅ 추천 저장/표출 공통 키 생성 로직
@@ -258,6 +262,7 @@ def _derive_reco_target(rgs_dt: str, recorded_slot: str):
             return "", ""
 
     return "", ""
+
 
 def _build_menu_reco_context(cust_id: str) -> dict:
     base = {
@@ -347,8 +352,8 @@ def _build_menu_reco_context(cust_id: str) -> dict:
         WHERE r.cust_id = %s
           AND r.rgs_dt = %s
           AND r.rec_time_slot = %s
-          AND r.rec_type IN ('P','H','E')
-        ORDER BY FIELD(r.rec_type, 'P','H','E');
+          AND r.rec_type IN ('P','H','E','R')
+        ORDER BY FIELD(r.rec_type, 'P','H','E','R');
     """
     with connection.cursor() as cursor:
         cursor.execute(sql_reco, [cust_id, reco_rgs_dt, reco_time_slot])
@@ -358,7 +363,12 @@ def _build_menu_reco_context(cust_id: str) -> dict:
         base["status_text"] = "추천 준비 중"
         return base
 
-    type_label = {"P": "취향 기반", "H": "균형(5:3:2)", "E": "새로운 메뉴"}
+    type_label = {
+        "P": "취향 기반",
+        "H": "균형(5:3:2)",
+        "E": "새로운 메뉴",
+        "R": "AI 추천",
+    }
 
     parts = []
     for rec_type, food_id, food_name in rows:
@@ -374,20 +384,27 @@ def _build_menu_reco_context(cust_id: str) -> dict:
     # ✅ 디버그 로그(문제 해결 후 logger.debug로 낮추는 것 권장)
     print(
         "[menu_reco]",
-        "cust_id=", cust_id,
-        "today_ymd=", today_ymd,
-        "trigger_ymd=", trigger_ymd,
-        "reco_key_slot=", reco_key_slot,
-        "display_slot=", display_slot,
-        "reco_rgs_dt=", reco_rgs_dt,
-        "reco_time_slot=", reco_time_slot,
-        "rows=", rows,
+        "cust_id=",
+        cust_id,
+        "today_ymd=",
+        today_ymd,
+        "trigger_ymd=",
+        trigger_ymd,
+        "reco_key_slot=",
+        reco_key_slot,
+        "display_slot=",
+        display_slot,
+        "reco_rgs_dt=",
+        reco_rgs_dt,
+        "reco_time_slot=",
+        reco_time_slot,
+        "rows=",
+        rows,
     )
 
     base["status_text"] = ""
     base["line"] = " / ".join(parts)
     return base
-
 
 
 def _build_today_donut(cust_id: str, yyyymmdd: str):
@@ -427,6 +444,7 @@ def _build_today_donut(cust_id: str, yyyymmdd: str):
         "pos_pct": pos_pct,
     }
 
+
 @login_required(login_url="accounts_app:user_login")
 def index(request):
     try:
@@ -436,20 +454,34 @@ def index(request):
         return HttpResponse(f"[HOME] _safe_get_cust_id failed: {repr(e)}", status=500)
     print(
         "[HOMEDBG]",
-        "path=", getattr(request, "path", None),
-        "method=", getattr(request, "method", None),
-        "pid=", __import__("os").getpid(),
-        "remote_addr=", request.META.get("REMOTE_ADDR"),
-        "xff=", request.META.get("HTTP_X_FORWARDED_FOR"),
-        "ua=", request.META.get("HTTP_USER_AGENT"),
-        "host=", request.get_host() if hasattr(request, "get_host") else None,
-        "session_key=", getattr(getattr(request, "session", None), "session_key", None),
-        "_auth_user_id=", request.session.get("_auth_user_id") if hasattr(request, "session") else None,
-        "session_cust_id=", request.session.get("cust_id") if hasattr(request, "session") else None,
-        "user_auth=", getattr(getattr(request, "user", None), "is_authenticated", None),
-        "user_email=", getattr(getattr(request, "user", None), "email", None),
-        "user_cust_id=", getattr(getattr(request, "user", None), "cust_id", None),
-        "cust_id_var=", cust_id,
+        "path=",
+        getattr(request, "path", None),
+        "method=",
+        getattr(request, "method", None),
+        "pid=",
+        __import__("os").getpid(),
+        "remote_addr=",
+        request.META.get("REMOTE_ADDR"),
+        "xff=",
+        request.META.get("HTTP_X_FORWARDED_FOR"),
+        "ua=",
+        request.META.get("HTTP_USER_AGENT"),
+        "host=",
+        request.get_host() if hasattr(request, "get_host") else None,
+        "session_key=",
+        getattr(getattr(request, "session", None), "session_key", None),
+        "_auth_user_id=",
+        request.session.get("_auth_user_id") if hasattr(request, "session") else None,
+        "session_cust_id=",
+        request.session.get("cust_id") if hasattr(request, "session") else None,
+        "user_auth=",
+        getattr(getattr(request, "user", None), "is_authenticated", None),
+        "user_email=",
+        getattr(getattr(request, "user", None), "email", None),
+        "user_cust_id=",
+        getattr(getattr(request, "user", None), "cust_id", None),
+        "cust_id_var=",
+        cust_id,
     )
 
     try:
@@ -480,7 +512,10 @@ def index(request):
         food_payload_json = json.dumps(food_payload, ensure_ascii=False)
         today_meals_json = json.dumps(food_payload, ensure_ascii=False)
     except Exception as e:
-        return HttpResponse(f"[HOME] json.dumps failed: {repr(e)} | food_payload={type(food_payload)}", status=500)
+        return HttpResponse(
+            f"[HOME] json.dumps failed: {repr(e)} | food_payload={type(food_payload)}",
+            status=500,
+        )
 
     context = {
         "menu_reco": menu_reco,
@@ -491,8 +526,8 @@ def index(request):
         "donut": donut,
     }
     return render(request, "home.html", context)
-    
-    
+
+
 @login_required
 def badges_redirect(request):
     # canonical: /settings/badges/

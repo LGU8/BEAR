@@ -977,11 +977,12 @@ def api_barcode_commit(request):
                 recent_food_names = _fetch_recent_food_names(cursor, cust_id, limit=10)
 
                 # (E) ✅ “commit 이후 추천 실행” 등록
-                def _run_reco_after_commit():
+                def _run_ph_e_reco_after_commit():
                     try:
                         if reco_time_slot and feel_mood and feel_energy:
-                            # ✅ lazy import: 추천이 필요한 순간에만 import
-                            from ml.menu_reco.service import recommend_and_commit
+                            from ml.menu_reco.service import (
+                                recommend_and_commit,
+                            )  # ✅ 기존 유지
 
                             recommend_and_commit(
                                 cust_id=str(cust_id),
@@ -997,10 +998,58 @@ def api_barcode_commit(request):
                                 ),
                             )
                     except Exception:
-                        # 저장 성공은 유지 (추천 실패는 별도로 삼킴)
                         return
 
-                transaction.on_commit(_run_reco_after_commit)
+                def _run_rag_reco_after_commit():
+                    try:
+                        print(
+                            "[RAGRECO][ENTER]",
+                            "cust_id=",
+                            cust_id,
+                            "rgs_dt=",
+                            reco_rgs_dt,
+                            "slot=",
+                            reco_time_slot,
+                            "mood=",
+                            feel_mood,
+                            "energy=",
+                            feel_energy,
+                            flush=True,
+                        )
+
+                        if reco_time_slot and feel_mood and feel_energy:
+                            from ml.menu_rec_llm.menu_service import (
+                                generate_and_save_menu_rag,
+                            )
+
+                            res = generate_and_save_menu_rag(
+                                cust_id=str(cust_id),
+                                rgs_dt=str(reco_rgs_dt),
+                                rec_time_slot=str(reco_time_slot).strip().upper(),
+                                mood=str(feel_mood).strip().lower(),
+                                energy=str(feel_energy).strip().lower(),
+                                recent_foods=(
+                                    recent_food_names[:10]
+                                    if recent_food_names
+                                    else None
+                                ),
+                            )
+                            print("[RAGRECO][DONE]", res, flush=True)
+                        else:
+                            print(
+                                "[RAGRECO][SKIP]",
+                                "reason=missing_condition",
+                                flush=True,
+                            )
+
+                    except Exception as e:
+                        import traceback
+
+                        print("[RAGRECO][EXC]", repr(e), flush=True)
+                        traceback.print_exc()
+
+                transaction.on_commit(_run_ph_e_reco_after_commit)  # ✅ 기존 유지
+                transaction.on_commit(_run_rag_reco_after_commit)  # ✅ 신규 추가
 
         # 저장 성공 시 draft 제거
         request.session.pop(session_key, None)
@@ -1434,12 +1483,13 @@ def api_meal_save_by_search(request):
                 reco_rgs_dt, reco_time_slot = _derive_reco_target(rgs_dt, time_slot)
                 recent_food_names = _fetch_recent_food_names(cursor, cust_id, limit=10)
 
-                # ✅ 6) commit 이후 추천 실행 (추천 실패해도 저장 성공 유지)
-                def _run_reco_after_commit():
+                # (E) ✅ “commit 이후 추천 실행” 등록
+                def _run_ph_e_reco_after_commit():
                     try:
                         if reco_time_slot and feel_mood and feel_energy:
-                            # ✅ lazy import
-                            from ml.menu_reco.service import recommend_and_commit
+                            from ml.menu_reco.service import (
+                                recommend_and_commit,
+                            )  # ✅ 기존 유지
 
                             recommend_and_commit(
                                 cust_id=str(cust_id),
@@ -1457,7 +1507,56 @@ def api_meal_save_by_search(request):
                     except Exception:
                         return
 
-                transaction.on_commit(_run_reco_after_commit)
+                def _run_rag_reco_after_commit():
+                    try:
+                        print(
+                            "[RAGRECO][ENTER]",
+                            "cust_id=",
+                            cust_id,
+                            "rgs_dt=",
+                            reco_rgs_dt,
+                            "slot=",
+                            reco_time_slot,
+                            "mood=",
+                            feel_mood,
+                            "energy=",
+                            feel_energy,
+                            flush=True,
+                        )
+
+                        if reco_time_slot and feel_mood and feel_energy:
+                            from ml.menu_rec_llm.menu_service import (
+                                generate_and_save_menu_rag,
+                            )
+
+                            res = generate_and_save_menu_rag(
+                                cust_id=str(cust_id),
+                                rgs_dt=str(reco_rgs_dt),
+                                rec_time_slot=str(reco_time_slot).strip().upper(),
+                                mood=str(feel_mood).strip().lower(),
+                                energy=str(feel_energy).strip().lower(),
+                                recent_foods=(
+                                    recent_food_names[:10]
+                                    if recent_food_names
+                                    else None
+                                ),
+                            )
+                            print("[RAGRECO][DONE]", res, flush=True)
+                        else:
+                            print(
+                                "[RAGRECO][SKIP]",
+                                "reason=missing_condition",
+                                flush=True,
+                            )
+
+                    except Exception as e:
+                        import traceback
+
+                        print("[RAGRECO][EXC]", repr(e), flush=True)
+                        traceback.print_exc()
+
+                transaction.on_commit(_run_ph_e_reco_after_commit)  # ✅ 기존 유지
+                transaction.on_commit(_run_rag_reco_after_commit)  # ✅ 신규 추가
 
         return JsonResponse(
             {
@@ -1919,11 +2018,12 @@ def api_ocr_commit_manual(request):
             recent_food_names = _fetch_recent_food_names(cursor, cust_id, limit=10)
 
             # ✅ (G) “commit 이후 추천 실행” 등록  [바코드와 동일]
-            def _run_reco_after_commit():
+            def _run_ph_e_reco_after_commit():
                 try:
                     if reco_time_slot and feel_mood and feel_energy:
-                        # ✅ lazy import: 추천이 필요한 순간에만 import
-                        from ml.menu_reco.service import recommend_and_commit
+                        from ml.menu_reco.service import (
+                            recommend_and_commit,
+                        )  # ✅ 기존 유지
 
                         recommend_and_commit(
                             cust_id=str(cust_id),
@@ -1937,10 +2037,52 @@ def api_ocr_commit_manual(request):
                             ),
                         )
                 except Exception:
-                    # 저장 성공은 유지 (추천 실패는 별도로 삼킴)
                     return
 
-            transaction.on_commit(_run_reco_after_commit)
+            def _run_rag_reco_after_commit():
+                try:
+                    print(
+                        "[RAGRECO][ENTER]",
+                        "cust_id=",
+                        cust_id,
+                        "rgs_dt=",
+                        reco_rgs_dt,
+                        "slot=",
+                        reco_time_slot,
+                        "mood=",
+                        feel_mood,
+                        "energy=",
+                        feel_energy,
+                        flush=True,
+                    )
+
+                    if reco_time_slot and feel_mood and feel_energy:
+                        from ml.menu_rec_llm.menu_service import (
+                            generate_and_save_menu_rag,
+                        )
+
+                        res = generate_and_save_menu_rag(
+                            cust_id=str(cust_id),
+                            rgs_dt=str(reco_rgs_dt),
+                            rec_time_slot=str(reco_time_slot).strip().upper(),
+                            mood=str(feel_mood).strip().lower(),
+                            energy=str(feel_energy).strip().lower(),
+                            recent_foods=(
+                                recent_food_names[:10] if recent_food_names else None
+                            ),
+                        )
+                        print("[RAGRECO][DONE]", res, flush=True)
+                    else:
+                        print("[RAGRECO][SKIP]", "reason=missing_condition", flush=True)
+
+                except Exception as e:
+                    import traceback
+
+                    print("[RAGRECO][EXC]", repr(e), flush=True)
+                    traceback.print_exc()
+
+            transaction.on_commit(_run_ph_e_reco_after_commit)  # ✅ 기존 유지
+            transaction.on_commit(_run_rag_reco_after_commit)  # ✅ 신규 추가
 
         # 성공
         return JsonResponse(
