@@ -16,6 +16,7 @@ from django.conf import settings
 def _now14() -> str:
     # yyyymmddHHMMSS
     from datetime import datetime
+
     return datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
 
@@ -79,7 +80,9 @@ def _mark_success(
         )
 
 
-def _upsert_result_json(cust_id: str, rgs_dt: str, seq: int, ocr_seq: int, result_json: dict):
+def _upsert_result_json(
+    cust_id: str, rgs_dt: str, seq: int, ocr_seq: int, result_json: dict
+):
     """
     CUS_OCR_NUTR_TS에 최종 JSON 저장.
     테이블 PK/UK 제약에 맞춰 INSERT ... ON DUPLICATE KEY UPDATE 형태로 저장.
@@ -113,81 +116,77 @@ def _download_from_s3(bucket: str, key: str) -> bytes:
     s3.download_fileobj(bucket, key, bio)
     return bio.getvalue()
 
+
 # record/management/commands/ocr_worker.py
 def _run_vendor_ocr(image_bytes: bytes):
     import os
     import sys
     import traceback
+    import numpy as np
     from PIL import Image, UnidentifiedImageError
-
-    debug = {}
+    import io
 
     # ✅ Django BASE_DIR (/var/app/current/Projects)
     try:
         from django.conf import settings
-        base_dir = str(settings.BASE_DIR)
+
+        base_dir = settings.BASE_DIR
     except Exception:
         base_dir = os.getcwd()
 
     # ✅ vendor root: .../Projects/record/_vendor_ocr
     vendor_root = os.path.join(base_dir, "record", "_vendor_ocr")
-    debug["vendor_root"] = vendor_root
 
-    # ✅ sys.path에 vendor_root를 올려서 `import src...`가 가능하게
+    # vendor_root 아래에 "src" 폴더가 있고 vendor 코드가 "import src..."를 기대함
     if vendor_root not in sys.path:
         sys.path.insert(0, vendor_root)
-    debug["sys_path_head"] = sys.path[:5]
 
-    # ✅ 1) bytes → PIL Image 디코드 (깨진 이미지면 여기서 잡아 E_BAD_IMAGE로 분기)
-    try:
-        img = Image.open(io.BytesIO(image_bytes))
-        img.load()  # 실제 디코딩 강제
-        debug["pil_format"] = img.format
-        debug["pil_size"] = img.size
-        debug["pil_mode"] = img.mode
-    except UnidentifiedImageError:
-        debug["error_code"] = "E_BAD_IMAGE"
-        debug["exc"] = "UnidentifiedImageError"
-        debug["traceback"] = traceback.format_exc()
-        return None, debug
-    except Exception:
-        debug["error_code"] = "E_BAD_IMAGE"
-        debug["exc"] = "PIL_DECODE_FAIL"
-        debug["traceback"] = traceback.format_exc()
-        return None, debug
+    debug = {
+        "vendor_root": vendor_root,
+        "sys_path_head": sys.path[:5],
+    }
 
-    # ✅ 2) vendor import & 실행
     try:
+        # ✅ vendor 기대 형태대로 import
         from src.ocr.pipeline import run_ocr_pipeline
 
-        # ⚠️ 여기서 vendor가 받는 입력 타입이 무엇인지에 따라 3가지 중 하나로 맞춰야 함
-        # (A) PIL Image를 받는 경우 (가장 흔함)
-        result_json = run_ocr_pipeline(img)
+        # ✅ bytes -> PIL 로드
+        try:
+            pil_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        except UnidentifiedImageError:
+            debug["error_code"] = "E_BAD_IMAGE"
+            return None, debug
 
-        # (B) bytes를 받는 경우라면 위 줄 대신:
-        # result_json = run_ocr_pipeline(image_bytes)
+        # ✅ 핵심: PIL -> numpy.ndarray (H,W,3) uint8
+        np_img = np.array(pil_img)
 
-        # (C) numpy array를 받는 경우라면:
-        # import numpy as np
-        # result_json = run_ocr_pipeline(np.array(img))
+        # ✅ vendor가 지원하는 입력 타입으로 호출
+        result_json = run_ocr_pipeline(np_img)
 
         return result_json, debug
 
     except Exception as e:
-        debug["error_code"] = "E_OCR"
         debug["exc"] = repr(e)
         debug["traceback"] = traceback.format_exc()
         raise
 
 
-
 class Command(BaseCommand):
-    help = "Process pending OCR jobs from CUS_OCR_TH and write results to CUS_OCR_NUTR_TS"
+    help = (
+        "Process pending OCR jobs from CUS_OCR_TH and write results to CUS_OCR_NUTR_TS"
+    )
 
     def add_arguments(self, parser):
-        parser.add_argument("--once", action="store_true", help="Process just one job then exit")
+        parser.add_argument(
+            "--once", action="store_true", help="Process just one job then exit"
+        )
         parser.add_argument("--limit", type=int, default=5, help="Max jobs per run")
-        parser.add_argument("--sleep", type=float, default=0.0, help="Sleep seconds between jobs (when not --once)")
+        parser.add_argument(
+            "--sleep",
+            type=float,
+            default=0.0,
+            help="Sleep seconds between jobs (when not --once)",
+        )
 
     def handle(self, *args, **opts):
         once = bool(opts["once"])
@@ -203,7 +202,7 @@ class Command(BaseCommand):
                 self.stdout.write("[OCR_WORKER] no pending jobs")
                 return  # cron 기반이면 종료
 
-            for (cust_id, rgs_dt, seq, ocr_seq, bucket, key) in jobs:
+            for cust_id, rgs_dt, seq, ocr_seq, bucket, key in jobs:
                 job_str = f"{cust_id}:{rgs_dt}:{seq}:{ocr_seq}"
                 self.stdout.write(f"[OCR_WORKER] start job={job_str} s3={bucket}/{key}")
 
@@ -216,7 +215,9 @@ class Command(BaseCommand):
                     # ✅ 1) PIL/vendor 단계에서 "이미지 깨짐" 판정
                     dbg_code = debug.get("error_code")
                     if dbg_code == "E_BAD_IMAGE":
-                        _mark_error(cust_id, rgs_dt, int(seq), int(ocr_seq), "E_BAD_IMAGE")
+                        _mark_error(
+                            cust_id, rgs_dt, int(seq), int(ocr_seq), "E_BAD_IMAGE"
+                        )
                         self.stdout.write("[OCR_WORKER] bad image -> E_BAD_IMAGE")
                         continue
 
@@ -228,15 +229,15 @@ class Command(BaseCommand):
 
                     # ✅ 3) 성공 처리에 필요한 메타 추출(없으면 fallback)
                     chosen_source = (
-                        debug.get("final_source")
-                        or debug.get("chosen_source")
-                        or "R"
+                        debug.get("final_source") or debug.get("chosen_source") or "R"
                     )
                     roi_score = debug.get("roi_score")
                     full_score = debug.get("full_score")
 
                     with transaction.atomic():
-                        _upsert_result_json(cust_id, rgs_dt, int(seq), int(ocr_seq), result_json)
+                        _upsert_result_json(
+                            cust_id, rgs_dt, int(seq), int(ocr_seq), result_json
+                        )
                         _mark_success(
                             cust_id,
                             rgs_dt,
@@ -252,7 +253,9 @@ class Command(BaseCommand):
 
                 except Exception as e:
                     _mark_error(cust_id, rgs_dt, int(seq), int(ocr_seq), "E_OCR")
-                    self.stdout.write(f"[OCR_WORKER] exception -> E_OCR job={job_str} err={repr(e)}")
+                    self.stdout.write(
+                        f"[OCR_WORKER] exception -> E_OCR job={job_str} err={repr(e)}"
+                    )
                     self.stdout.write(traceback.format_exc())
 
                 if once:
