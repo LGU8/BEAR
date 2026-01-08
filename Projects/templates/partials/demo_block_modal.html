@@ -1,0 +1,145 @@
+{# templates/partials/demo_block_modal.html #}
+<div id="demoBlockModal" class="demo-modal" aria-hidden="true">
+  <div class="demo-modal__backdrop" data-demo-close></div>
+
+  <div class="demo-modal__card" role="dialog" aria-modal="true" aria-labelledby="demoModalTitle">
+    <div class="demo-modal__title" id="demoModalTitle">둘러보기 안내</div>
+    <div class="demo-modal__desc" id="demoModalDesc">
+      둘러보기 기능은 해당 페이지를 제공하지 않습니다.
+    </div>
+
+    <div class="demo-modal__btns">
+      <button type="button" class="demo-modal__btn demo-modal__btn--ghost" data-demo-close>
+        닫기
+      </button>
+      <a class="demo-modal__btn demo-modal__btn--primary" href="/home/" id="demoGoHomeBtn">
+        홈으로
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Demo Block Modal (lightweight, EB safe) */
+  .demo-modal { position: fixed; inset: 0; display: none; z-index: 9999; }
+  .demo-modal.is-open { display: block; }
+
+  .demo-modal__backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.35);
+  }
+
+  .demo-modal__card {
+    position: relative;
+    width: min(92vw, 420px);
+    margin: 18vh auto 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 18px 16px 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    box-sizing: border-box;
+  }
+
+  .demo-modal__title {
+    font-weight: 900;
+    font-size: 1.05rem;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+  }
+
+  .demo-modal__desc {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #333;
+    line-height: 1.5;
+    margin-bottom: 14px;
+    word-break: keep-all;
+  }
+
+  .demo-modal__btns {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .demo-modal__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-weight: 900;
+    font-size: 0.95rem;
+    cursor: pointer;
+    text-decoration: none;
+    box-sizing: border-box;
+    border: 0;
+  }
+
+  .demo-modal__btn--ghost {
+    background: #f2f2f2;
+    color: #111;
+  }
+
+  .demo-modal__btn--primary {
+    background: #F38218;
+    color: #fff;
+  }
+
+  @media (max-width: 360px){
+    .demo-modal__card { margin-top: 16vh; }
+    .demo-modal__btn { height: 40px; font-size: 0.92rem; }
+  }
+</style>
+
+<script>
+  (function(){
+    const modal = document.getElementById("demoBlockModal");
+    if (!modal) return;
+
+    function openDemoModal(message){
+      const desc = document.getElementById("demoModalDesc");
+      if (desc && message) desc.textContent = message;
+      modal.classList.add("is-open");
+      modal.setAttribute("aria-hidden", "false");
+      // 스크롤 락(간단)
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeDemoModal(){
+      modal.classList.remove("is-open");
+      modal.setAttribute("aria-hidden", "true");
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+    }
+
+    // close handlers
+    modal.querySelectorAll("[data-demo-close]").forEach(el => {
+      el.addEventListener("click", closeDemoModal);
+    });
+
+    // ESC close
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal.classList.contains("is-open")) closeDemoModal();
+    });
+
+    // ✅ 전역 함수로 노출
+    window.__openDemoBlockModal = openDemoModal;
+
+    // ✅ data-demo-block 링크/버튼 클릭 가로채기
+    document.addEventListener("click", (e) => {
+      const a = e.target.closest("[data-demo-block]");
+      if (!a) return;
+
+      // demo가 아니면 통과
+      const isDemo = (document.documentElement.dataset.isDemo === "1");
+      if (!isDemo) return;
+
+      e.preventDefault();
+      const msg = a.getAttribute("data-demo-msg") || "둘러보기 기능은 해당 페이지를 제공하지 않습니다.";
+      openDemoModal(msg);
+    });
+  })();
+</script>

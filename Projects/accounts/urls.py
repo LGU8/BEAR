@@ -9,6 +9,8 @@ urlpatterns = [
     path("login/", views.user_login, name="user_login"),
     path("logout/", views.user_logout, name="user_logout"),
 
+    path("demo-exit/", views.demo_exit, name="demo_exit"),
+
     # password reset
     path("password-reset/", views.password_reset, name="password_reset"),
     path(

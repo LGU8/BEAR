@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-is-demo="{% if request.session.is_demo %}1{% else %}0{% endif %}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -56,9 +56,18 @@
             </div>
 
             <div class="settings-navbar-group" style="display: flex; align-items: center; gap: 15px;">
-                <a href="/settings">
-                    <img src="{% static 'nav_img/settings.png' %}" alt="settings logo" class="settings-logo">
+                <a href="/settings"
+                   data-demo-block
+                   data-demo-msg="둘러보기 기능은 설정 페이지를 제공하지 않습니다.">
+                  <img src="{% static 'nav_img/settings.png' %}" alt="settings logo" class="settings-logo">
                 </a>
+
+                {% if request.session.is_demo %}
+                  <form method="post" action="{% url 'accounts_app:demo_exit' %}" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-btn">종료</button>
+                  </form>
+                {% endif %}
             </div>
           </div>
         </nav>
@@ -81,7 +90,10 @@
 
             <!-- 기록 -->
             <div class="bear-tab-box {% if active_tab == 'record' %}active{% endif %}">
-              <a class="bear-tab-text" href="{% url 'record_app:record_mood' %}">
+              <a class="bear-tab-text"
+               href="{% url 'record_app:record_mood' %}"
+               data-demo-block
+               data-demo-msg="둘러보기 기능은 기록 페이지를 제공하지 않습니다.">
                 <img
                   class="nav-icon"
                   src="/static/icons_img/{% if active_tab == 'record' %}edit_active{% else %}edit{% endif %}.png"
@@ -129,6 +141,8 @@
           </div>
         </nav>
     {% endif %}
+
+    {% include "partials/demo_block_modal.html" %}
     <!-- 아래 실제 페이지 내용 -->
     <main class="bear-main">
       {% block content %}

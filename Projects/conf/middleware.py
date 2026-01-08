@@ -15,6 +15,7 @@ class DemoModeBlockMiddleware:
         self.get_response = get_response
 
         self.allow_prefixes = (
+            "",
             "/home/",
             "/report/",
             "/timeline/",

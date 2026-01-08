@@ -6,6 +6,8 @@ import logging
 from datetime import date
 from typing import Tuple
 
+from django.views.decorators.http import require_POST
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -116,6 +118,30 @@ def generate_new_cust_id() -> str:
 # =========================
 def user_login(request):
     next_url = request.GET.get("next", "")
+
+    if request.method == "GET":
+        try:
+            # demo 잔상 제거
+            if hasattr(request, "session"):
+                request.session.pop("is_demo", None)
+                request.session.pop("cust_id", None)
+                request.session.pop("demo_choice", None)
+                request.session.pop("current_login_seq", None)
+                request.session.modified = True
+        except Exception:
+            pass
+
+        try:
+            logout(request)  # auth 제거
+        except Exception:
+            pass
+
+        try:
+            request.session.flush()  # 세션 완전 초기화(쿠키 기반 잔상 제거에 가장 강함)
+        except Exception:
+            pass
+
+        return render(request, "accounts/login.html")
 
     if request.method == "POST":
         email = (request.POST.get("email") or "").strip()
@@ -657,8 +683,32 @@ def demo_choose(request):
         "pref_yn": pref_yn,
     }
 
-    return redirect("report_app:report_daily")
+    return redirect("home")
 
+@require_POST
+def demo_exit(request):
+    """
+    demo 둘러보기 종료:
+    - demo flag 제거
+    - 세션 정리
+    - Django auth logout
+    - 로그인 화면으로 이동
+    """
+    try:
+        # demo 플래그 제거
+        if hasattr(request, "session"):
+            request.session.pop("is_demo", None)
+            request.session.pop("cust_id", None)  # demo가 cust_id를 세션에 저장했다면
+            request.session.modified = True
+    except Exception:
+        pass
+
+    try:
+        logout(request)
+    except Exception:
+        pass
+
+    return redirect(reverse("accounts_app:user_login"))
 
 
 

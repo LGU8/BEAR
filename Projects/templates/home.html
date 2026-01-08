@@ -137,7 +137,13 @@
           <!-- 기록 없음: 문구 + 링크만 표시 -->
           <div class="empty-state">
             <p class="empty-text">오늘 감정 기록이 아직 없어요.</p>
-            <a class="empty-link" href="/record">오늘 감정 기록하러 가기</a>
+            <a class="empty-link"
+               href="/record"
+               data-demo-block
+               data-demo-msg="둘러보기에서는 기록 기능을 제공하지 않습니다. 홈으로 돌아가 계속 체험해 주세요.">
+              오늘 감정 기록하러 가기
+            </a>
+
           </div>
         {% endif %}
       </div>
