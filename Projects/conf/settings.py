@@ -200,7 +200,6 @@ SESSION_SAVE_EVERY_REQUEST = True
 CSRF_TRUSTED_ORIGINS = [
     f"http://{EB_DOMAIN}",
     f"https://{EB_DOMAIN}",
-    
 ]
 
 # Reverse proxy 뒤에서 https 인식 보정
