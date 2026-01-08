@@ -243,6 +243,8 @@ def report_daily(request):
 
         can_report = check_generate_daily_report(selected_date, nut_data)
 
+        is_demo = bool(request.session.get("is_demo"))
+
         if not can_report:
             context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
                        "active_tab": "report",
@@ -258,7 +260,10 @@ def report_daily(request):
             if feeling_daily[0][4]:
                 feedback = feeling_daily[0][4]
             else:
-                feedback = daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily)
+                if is_demo:
+                    feedback = "둘러보기 모드에서는 예시 리포트를 제공합니다. 회원가입 후 나만의 리포트를 생성해보세요."
+                else:
+                    feedback = daily_feedback_input(cust_id, selected_date, nut_data, feeling_daily)
 
             context = {"selected_date": selected_date.strftime("%Y-%m-%d"),
                        "active_tab": "report",

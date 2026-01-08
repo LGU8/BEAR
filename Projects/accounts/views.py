@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+
 from datetime import date
 from typing import Tuple
 
@@ -22,6 +23,11 @@ from django.urls import reverse
 
 from .models import Cust, CusProfile, LoginHistory
 from django.http import HttpResponse
+
+from django.shortcuts import redirect
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+
 from django.urls import NoReverseMatch
 logger = logging.getLogger(__name__)
 
@@ -598,6 +604,26 @@ def signup_step4(request):
         logger.warning("[Signup] Final Error: %r", e)
         ctx["error"] = f"가입 처리 중 오류 발생: {e}"
         return render(request, "accounts/signup_step4.html", ctx)
+
+def demo_start_view(request):
+    """
+    둘러보기(Demo): demo 계정으로 자동 로그인 + demo 플래그 세션 저장
+    """
+    demo_email = "test@test"
+    demo_password = "11111111"
+
+    user = authenticate(request, username=demo_email, password=demo_password)
+    if user is None:
+        messages.error(request, "둘러보기 계정이 준비되지 않았습니다. 관리자에게 문의하세요.")
+        return redirect("accounts_app:user_login")
+
+    login(request, user)
+
+    request.session["is_demo"] = True
+    request.session["cust_id"] = str(user.cust_id)  # 너 프로젝트에서 세션 fallback 쓰는 패턴과 일치
+
+    # Demo는 데이터가 바로 보이도록 report로 보내는 걸 추천
+    return redirect("report_app:report_daily")
 
 
 def test_login_view(request):
