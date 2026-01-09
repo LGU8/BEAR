@@ -420,7 +420,7 @@ console.log("[result.js] loaded ✅");
     }
 
     function refreshBtn() {
-      btnSave.disabled = !isValid();
+      btnSave.disabled = false;
     }
 
     [nameEl, kcalEl, carbEl, protEl, fatEl].forEach((el) => {
@@ -516,11 +516,29 @@ console.log("[result.js] loaded ✅");
 
     // 2) 저장
     btnSave.addEventListener("click", async (e) => {
+
+      // ✅ 누락 필드 체크(서버 필수 정책과 동일)
+      const missing = [];
+      const name = (nameEl.value || "").trim();
+
+      const kcal = numOrEmpty(kcalEl.value);
+      const carb = numOrEmpty(carbEl.value);
+      const prot = numOrEmpty(protEl.value);
+      const fat  = numOrEmpty(fatEl.value);
+
+      if (!name) missing.push("제품명");
+      if (kcal === null) missing.push("kcal");
+      if (carb === null) missing.push("carb_g");
+      if (prot === null) missing.push("protein_g");
+      if (fat === null) missing.push("fat_g");
+
+      if (missing.length) {
+        showError(errEl, `다음 항목을 입력해주세요: ${missing.join(", ")}`);
+        return;
+      }
+
       e.preventDefault();
       e.stopPropagation();
-      
-      refreshBtn();
-      if (btnSave.disabled) return;
 
       const csrfToken = getCookie("csrftoken");
       if (!csrfToken) {
@@ -536,9 +554,12 @@ console.log("[result.js] loaded ✅");
         return;
       }
 
+      const ctxTimeSlot = document.getElementById("ctx-time-slot")?.value || "";
+
       const payload = {
         mode: "ocr",
         job_id: jobId,
+        time_slot: ctxTimeSlot,
         name: (nameEl.value || "").trim(),
         kcal: Number(kcalEl.value),
         carb_g: Number(carbEl.value),
@@ -550,29 +571,30 @@ console.log("[result.js] loaded ✅");
       
       clearError(errEl);
 
-      const endpoint =
-        payload.mode === "ocr"
-          ? "/record/api/ocr/commit/manual/"
-          : "/record/api/scan/commit/";
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.ok) {
-        showError(errEl, data?.error || "DB_SAVE_FAILED");
-        return;
-      }
-
-      location.href = data.redirect_url || "/home/";
+      const res = await fetch("/record/api/ocr/commit/manual/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken,
+      },
+      body: JSON.stringify(payload),
     });
-  }
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data?.ok) {
+      // 서버가 detail.missing 내려주면 더 친절히 표시
+      const msg =
+        data?.error === "NUTR_REQUIRED"
+          ? `다음 항목을 입력해주세요: ${(data?.detail?.missing || []).join(", ")}`
+          : (data?.error || "DB_SAVE_FAILED");
+      showError(errEl, msg);
+      return;
+    }
+
+    location.href = data.redirect_url || "/home/";
+  });
+}
 
   // -------------------------
   // 5) Bootstrap
