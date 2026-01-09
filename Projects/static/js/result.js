@@ -432,11 +432,25 @@ console.log("[result.js] loaded ✅");
 
     // 1) 최신 OCR prefill
    
-    try {
-      const url = `/record/api/ocr/latest/?rgs_dt=${encodeURIComponent(ctxRgsDt)}&seq=${encodeURIComponent(ctxSeq)}`;
+        // 1) 최신 OCR prefill + polling
+    const POLL_INTERVAL_MS = 1200;
+    const POLL_MAX_TRIES = 15;
+
+    function buildLatestUrl() {
+      // ✅ ctx 값이 비어있으면 query를 아예 빼서 서버(session fallback)로 맡김
+      const hasCtx = (ctxRgsDt || "").trim() && (ctxSeq || "").trim();
+      if (hasCtx) {
+        return `/record/api/ocr/latest/?rgs_dt=${encodeURIComponent(ctxRgsDt)}&seq=${encodeURIComponent(ctxSeq)}`;
+      }
+      return `/record/api/ocr/latest/`;
+    }
+
+    async function fetchLatestOnce() {
+      const url = buildLatestUrl();
       const res = await fetch(url);
 
-      // ✅ 404는 "OCR 실패"가 아니라 "API 없음"으로 구분
+      // (참고) 이제 백엔드가 404를 거의 안 주게 했으니,
+      // 404면 진짜 URL/라우팅 문제라고 봐도 됨
       if (res.status === 404) {
         showError(errEl, "비어있는 정보는 직접 입력해주세요.");
         refreshBtn();
@@ -444,10 +458,20 @@ console.log("[result.js] loaded ✅");
       }
 
       const latest = await res.json().catch(() => null);
+
       if (!res.ok || !latest?.ok) {
-        throw new Error(latest?.error || `OCR_LOAD_FAILED (${res.status})`);
+        // 400/500 등
+        showError(errEl, latest?.error || `OCR_LOAD_FAILED (${res.status})`);
+        return { done: false, fatal: true };
       }
 
+      // ✅ PENDING 처리
+      if (latest.status === "PENDING") {
+        showError(errEl, latest.message || "OCR 처리 중입니다. 잠시만 기다려 주세요...");
+        return { done: false, fatal: false, latest };
+      }
+
+      // ✅ DONE 처리 (nutrition 채우기)
       const n = latest.nutrition || {};
       if (n.kcal != null) kcalEl.value = String(n.kcal);
       if (n.carb_g != null) carbEl.value = String(n.carb_g);
@@ -460,9 +484,33 @@ console.log("[result.js] loaded ✅");
       } else {
         clearError(errEl);
       }
+
+      return { done: true, fatal: false, latest };
+    }
+
+    try {
+      let tries = 0;
+
+      while (tries < POLL_MAX_TRIES) {
+        tries += 1;
+        const out = await fetchLatestOnce();
+
+        if (out.fatal) break;
+        if (out.done) break;
+
+        // PENDING이면 잠깐 기다렸다가 재시도
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      }
+
+      // max tries 초과 시 안내(사용자가 수동 입력 가능)
+      if (tries >= POLL_MAX_TRIES) {
+        showError(errEl, "OCR 처리가 지연되고 있어요. 값이 비어있다면 직접 입력 후 저장해 주세요.");
+      }
+
     } catch (e) {
       showError(errEl, String(e.message || e));
     }
+
 
     refreshBtn();
 

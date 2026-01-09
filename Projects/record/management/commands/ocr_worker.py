@@ -168,6 +168,7 @@ def _json_sanitize(obj):
 def _now14() -> str:
     # yyyymmddHHMMSS
     from datetime import datetime
+
     return datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
 
@@ -184,6 +185,9 @@ def _fetch_pending_job(limit: int = 1):
             SELECT cust_id, rgs_dt, seq, ocr_seq, image_s3_bucket, image_s3_key
             FROM CUS_OCR_TH
             WHERE success_yn='N' AND (error_code IS NULL OR error_code='')
+            AND cust_id='0000000030'
+            AND rgs_dt='20260108'
+            AND seq=19
             ORDER BY updated_time ASC
             LIMIT %s
             """,
@@ -233,7 +237,9 @@ def _mark_success(
         )
 
 
-def _upsert_result_json(cust_id: str, rgs_dt: str, seq: int, ocr_seq: int, result_json: dict):
+def _upsert_result_json(
+    cust_id: str, rgs_dt: str, seq: int, ocr_seq: int, result_json: dict
+):
     """
     CUS_OCR_NUTR_TS에 최종 JSON 저장.
     INSERT ... ON DUPLICATE KEY UPDATE
@@ -289,6 +295,7 @@ def _run_vendor_ocr(image_bytes: bytes):
     # ✅ Django BASE_DIR (/var/app/current/Projects)
     try:
         from django.conf import settings
+
         base_dir = settings.BASE_DIR
     except Exception:
         base_dir = os.getcwd()
@@ -332,12 +339,18 @@ def _run_vendor_ocr(image_bytes: bytes):
 # Command
 # =========================
 class Command(BaseCommand):
-    help = "Process pending OCR jobs from CUS_OCR_TH and write results to CUS_OCR_NUTR_TS"
+    help = (
+        "Process pending OCR jobs from CUS_OCR_TH and write results to CUS_OCR_NUTR_TS"
+    )
 
     def add_arguments(self, parser):
-        parser.add_argument("--once", action="store_true", help="Process just one job then exit")
+        parser.add_argument(
+            "--once", action="store_true", help="Process just one job then exit"
+        )
         parser.add_argument("--limit", type=int, default=5, help="Max jobs per run")
-        parser.add_argument("--sleep", type=float, default=0.0, help="Sleep seconds between jobs")
+        parser.add_argument(
+            "--sleep", type=float, default=0.0, help="Sleep seconds between jobs"
+        )
 
     def handle(self, *args, **opts):
         once = bool(opts["once"])
@@ -365,7 +378,9 @@ class Command(BaseCommand):
 
                     # 1) 이미지 깨짐
                     if debug.get("error_code") == "E_BAD_IMAGE":
-                        _mark_error(cust_id, rgs_dt, int(seq), int(ocr_seq), "E_BAD_IMAGE")
+                        _mark_error(
+                            cust_id, rgs_dt, int(seq), int(ocr_seq), "E_BAD_IMAGE"
+                        )
                         self.stdout.write("[OCR_WORKER] bad image -> E_BAD_IMAGE")
                         continue
 
@@ -376,12 +391,16 @@ class Command(BaseCommand):
                         continue
 
                     # 3) 메타
-                    chosen_source = debug.get("final_source") or debug.get("chosen_source") or "R"
+                    chosen_source = (
+                        debug.get("final_source") or debug.get("chosen_source") or "R"
+                    )
                     roi_score = debug.get("roi_score")
                     full_score = debug.get("full_score")
 
                     with transaction.atomic():
-                        _upsert_result_json(cust_id, rgs_dt, int(seq), int(ocr_seq), result_json)
+                        _upsert_result_json(
+                            cust_id, rgs_dt, int(seq), int(ocr_seq), result_json
+                        )
                         _mark_success(
                             cust_id,
                             rgs_dt,
@@ -397,7 +416,9 @@ class Command(BaseCommand):
 
                 except Exception as e:
                     _mark_error(cust_id, rgs_dt, int(seq), int(ocr_seq), "E_OCR")
-                    self.stdout.write(f"[OCR_WORKER] exception -> E_OCR job={job_str} err={repr(e)}")
+                    self.stdout.write(
+                        f"[OCR_WORKER] exception -> E_OCR job={job_str} err={repr(e)}"
+                    )
                     self.stdout.write(traceback.format_exc())
 
                 if once:

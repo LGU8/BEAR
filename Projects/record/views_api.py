@@ -2111,36 +2111,186 @@ def api_ocr_commit_manual(request):
         )
 
 
-def _normalize_ocr_nutrition_from_result_json(result_json: dict) -> dict:
+def _to_float(s: str):
+    if s is None:
+        return None
+    s = str(s).strip()
+    if not s:
+        return None
+    # 쉼표 제거, OCR이 'O'를 '0'으로 오인식하는 등은 여기서 과도하게 보정하지 않음
+    s = s.replace(",", "")
+    try:
+        return float(s)
+    except Exception:
+        return None
+
+
+def _normalize_ocr_nutrition_from_result_json(result_json) -> dict:
+    print("[OCRDBG][NORM][ENTER]", type(result_json), flush=True)
+
     """
-    result_json(= 너가 준 result_json 구조와 유사)을 받아
-    parsed_nutrition에서 4대 영양소를 표준화해 반환.
+    vendor OCR 원본(result_json)에서 rec_texts를 이용해
+    4대 영양소를 추출해 반환.
     반환: {"kcal": float|None, "carb_g": float|None, "protein_g": float|None, "fat_g": float|None}
     """
-    pn = (result_json or {}).get("parsed_nutrition") or {}
 
-    def pick(key_kor: str, expected_unit: str):
-        it = pn.get(key_kor) or {}
-        if not it.get("found"):
+    # 0) list([dict]) 대응
+    if isinstance(result_json, list):
+        if len(result_json) == 1 and isinstance(result_json[0], dict):
+            result_json = result_json[0]
+        else:
+            found = None
+            for x in result_json:
+                if isinstance(x, dict):
+                    found = x
+                    break
+            if found is None:
+                return {"kcal": None, "carb_g": None, "protein_g": None, "fat_g": None}
+            result_json = found
+
+    if not isinstance(result_json, dict):
+        return {"kcal": None, "carb_g": None, "protein_g": None, "fat_g": None}
+
+    # 1) rec_texts 추출
+    rec_texts = result_json.get("rec_texts")
+    print(
+        "[OCRDBG][NORM][REC_TEXTS_TYPE]",
+        type(rec_texts),
+        "len=",
+        (len(rec_texts) if isinstance(rec_texts, list) else None),
+        flush=True,
+    )
+    if not isinstance(rec_texts, list) or not rec_texts:
+        return {"kcal": None, "carb_g": None, "protein_g": None, "fat_g": None}
+
+    # 2) 텍스트를 하나로 합치기 (줄바꿈/공백 정규화)
+    lines = [str(t).strip() for t in rec_texts if str(t).strip()]
+    blob = "\n".join(lines)
+
+    # 3) 정규식 준비 (한글/영문/단위 variations 대응)
+    # kcal: "열량 120kcal", "칼로리: 120 kcal", "energy 120kcal"
+    kcal_patterns = [
+        r"(열량|칼로리|에너지|energy)\s*[:：]?\s*([0-9]+(?:\.[0-9]+)?)\s*(kcal|kcalories)?",
+        r"([0-9]+(?:\.[0-9]+)?)\s*(kcal)\b",
+    ]
+
+    # grams: "탄수화물 10g", "탄수화물(g) 10", "carbohydrate 10 g"
+    carb_patterns = [
+        r"(탄수화물|당질|carb|carbohydrate)\s*[:：]?\s*([0-9]+(?:\.[0-9]+)?)\s*(g|그램)?",
+    ]
+    protein_patterns = [
+        # ✅ "단백질 5 g 9%" / "단백질 5g(9%)" → 5만 추출
+        r"(단백질|protein)\s*[:：]?\s*([0-9]+(?:\.[0-9]+)?)\s*(g|그램)\b",
+        # (기존 패턴들...)
+        r"(단백질|protein)\s*[:：]?\s*([0-9]+(?:\.[0-9]+)?)\s*(g|그램)?",
+        r"(단백질|protein)\s*([0-9]+(?:\.[0-9]+)?)\s*(g|그램)?",
+        r"(단백질|protein)\s*[\(\[\{]?\s*(g|그램)?\s*[\)\]\}]?\s*[:：]?\s*([0-9]+(?:\.[0-9]+)?)",
+        r"(단\s*백\s*질|pro\s*tein)\s*[:：]?\s*([0-9]+(?:\.[0-9]+)?)\s*(g|그램)?",
+        r"(단백질|protein)\s*[\n\r]+\s*([0-9]+(?:\.[0-9]+)?)\s*(g|그램)?",
+    ]
+
+    fat_patterns = [
+        r"(지방|fat)\s*[:：]?\s*([0-9]+(?:\.[0-9]+)?)\s*(g|그램)?",
+    ]
+
+    def _find_first(patterns, text):
+        for pat in patterns:
+            m = re.search(pat, text, flags=re.IGNORECASE)
+            if m:
+                # 패턴에 따라 그룹 위치가 다르므로 마지막에서 숫자 그룹을 찾는 방식으로 안전 처리
+                # (가장 먼저 float로 변환 가능한 그룹을 숫자로 채택)
+                for gi in range(1, len(m.groups()) + 1):
+                    val = _to_float(m.group(gi))
+                    if val is not None:
+                        return val
+        return None
+
+    kcal = _find_first(kcal_patterns, blob)
+    carb = _find_first(carb_patterns, blob)
+    protein = _find_first(protein_patterns, blob)
+    fat = _find_first(fat_patterns, blob)
+
+    # ✅ 비정상적으로 큰 단백질 값은 오탐으로 보고 fallback을 타게 만든다
+    if protein is not None and protein > 200:
+        print("[OCRDBG][PROT][DROP_BIG]", protein, flush=True)
+        protein = None
+
+    print(
+        "[OCRDBG][NORM][FOUND]",
+        "kcal=",
+        kcal,
+        "carb=",
+        carb,
+        "protein=",
+        protein,
+        "fat=",
+        fat,
+        flush=True,
+    )
+    if protein is None:
+        prot_keys = [
+            "단백",
+            "단 백",
+            "단백질",
+            "단백 진",
+            "단백질g",
+            "protein",
+            "prote1n",
+            "proteln",
+            "prot",
+            "프로틴",
+        ]
+
+        def _contains_prot_kw(s: str) -> bool:
+            ss = (s or "").lower().replace(" ", "")
+            for k in prot_keys:
+                kk = k.lower().replace(" ", "")
+                if kk and kk in ss:
+                    return True
+            return False
+
+        # ✅ 여기서 한 번만 출력 (재귀 없음)
+        print(
+            "[OCRDBG][PROT][CAND_LINES]",
+            [l for l in lines if _contains_prot_kw(l)][:20],
+            flush=True,
+        )
+
+        def _extract_first_number(s: str):
+            # 1) g/그램만 인정 (정확도 최우선)
+            m = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*(g|그램)\b", s, flags=re.IGNORECASE)
+            if m:
+                return _to_float(m.group(1))
+
+            # 2) g가 없으면 단백질 값으로 인정하지 않음
             return None
-        val = it.get("value")
-        unit = it.get("unit")
 
-        # 단위 가드(단위가 다르면 안전하게 None 처리 -> 사용자 입력 유도)
-        if expected_unit and unit and unit != expected_unit:
-            return None
+        for i, line in enumerate(lines):
+            if _contains_prot_kw(line):
+                v = _extract_first_number(line)
+                if v is not None:
+                    protein = v
+                    break
+                if i + 1 < len(lines):
+                    v2 = _extract_first_number(lines[i + 1])
+                    if v2 is not None:
+                        protein = v2
+                        break
 
-        try:
-            return float(val)
-        except Exception:
-            return None
+    # 4) 보정(선택): kcal가 0~5000 범위 밖이면 OCR 오탐 가능성이 높으니 버림
+    if kcal is not None and (kcal < 0 or kcal > 5000):
+        kcal = None
+    for vname, v in [("carb", carb), ("protein", protein), ("fat", fat)]:
+        if v is not None and (v < 0 or v > 500):
+            # g 단위로 500g 초과는 비현실적 → 버림
+            if vname == "carb":
+                carb = None
+            elif vname == "protein":
+                protein = None
+            else:
+                fat = None
 
-    return {
-        "kcal": pick("열량", "kcal"),
-        "carb_g": pick("탄수화물", "g"),
-        "protein_g": pick("단백질", "g"),
-        "fat_g": pick("지방", "g"),
-    }
+    return {"kcal": kcal, "carb_g": carb, "protein_g": protein, "fat_g": fat}
 
 
 @require_GET
@@ -2151,6 +2301,23 @@ def api_ocr_latest(request):
     - CUS_OCR_NUTR_TS에서 result_json 조회
     - 4대 영양소만 표준화해서 반환
     """
+    print(
+        "[OCRDBG][NORM][FUNC_OBJ]",
+        _normalize_ocr_nutrition_from_result_json,
+        flush=True,
+    )
+    print(
+        "[OCRDBG][NORM][FUNC_FILE]",
+        _normalize_ocr_nutrition_from_result_json.__code__.co_filename,
+        flush=True,
+    )
+    print(
+        "[OCRDBG][NORM][FUNC_LINE]",
+        _normalize_ocr_nutrition_from_result_json.__code__.co_firstlineno,
+        flush=True,
+    )
+    print("[OCRDBG][LATEST][HIT]", request.path, dict(request.GET), flush=True)
+
     cust_id = getattr(request.user, "cust_id", None) or request.session.get("cust_id")
     if not cust_id:
         return JsonResponse({"ok": False, "error": "CUST_ID_REQUIRED"}, status=400)
@@ -2181,13 +2348,14 @@ def api_ocr_latest(request):
         row = cursor.fetchone()
 
     if not row:
-        # success_yn='Y'가 아직 안 찍히는 단계라면 최신 전체로 fallback도 가능
+        # success_yn='Y'가 아직 안 찍히는 단계라면 최신 전체로 fallback
         with connection.cursor() as cursor:
             cursor.execute(
                 """
                 SELECT ocr_seq, chosen_source, roi_score, full_score, image_s3_bucket, image_s3_key
                 FROM CUS_OCR_TH
                 WHERE cust_id=%s AND rgs_dt=%s AND seq=%s
+                AND success_yn='Y'
                 ORDER BY ocr_seq DESC, updated_time DESC
                 LIMIT 1
                 """,
@@ -2196,7 +2364,19 @@ def api_ocr_latest(request):
             row = cursor.fetchone()
 
     if not row:
-        return JsonResponse({"ok": False, "error": "OCR_NOT_FOUND"}, status=404)
+        # ✅ 404 대신 PENDING
+        return JsonResponse(
+            {
+                "ok": True,
+                "found": False,
+                "status": "PENDING",
+                "message": "OCR job/result not found yet",
+                "cust_id": str(cust_id),
+                "rgs_dt": rgs_dt,
+                "seq": seq,
+            },
+            status=200,
+        )
 
     ocr_seq, chosen_source, roi_score, full_score, bkt, key = row
 
@@ -2213,11 +2393,46 @@ def api_ocr_latest(request):
         r2 = cursor.fetchone()
 
     if not r2:
+        # ✅ 404 대신 PENDING
         return JsonResponse(
-            {"ok": False, "error": "비어있는 정보는 직접 입력해주세요."}, status=404
+            {
+                "ok": True,
+                "found": True,  # TH는 찾았음
+                "status": "PENDING",  # TS 결과가 아직 없음
+                "message": "OCR result not saved yet",
+                "cust_id": str(cust_id),
+                "rgs_dt": rgs_dt,
+                "seq": seq,
+                "ocr_seq": int(ocr_seq),
+                "meta": {
+                    "chosen_source": chosen_source,
+                    "roi_score": roi_score,
+                    "full_score": full_score,
+                    "image_s3_bucket": bkt,
+                    "image_s3_key": key,
+                },
+            },
+            status=200,
         )
 
     result_json = r2[0]
+
+    # ✅ (추가) row는 있는데 값이 NULL/빈 값인 경우도 안전 처리
+    if not result_json:
+        return JsonResponse(
+            {
+                "ok": True,
+                "found": True,
+                "status": "PENDING",
+                "message": "OCR result exists but empty yet",
+                "cust_id": str(cust_id),
+                "rgs_dt": rgs_dt,
+                "seq": seq,
+                "ocr_seq": int(ocr_seq),
+            },
+            status=200,
+        )
+
     if isinstance(result_json, str):
         try:
             result_json = json.loads(result_json)
@@ -2232,6 +2447,8 @@ def api_ocr_latest(request):
     return JsonResponse(
         {
             "ok": True,
+            "found": True,
+            "status": "DONE",
             "cust_id": str(cust_id),
             "rgs_dt": rgs_dt,
             "seq": seq,
