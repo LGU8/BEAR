@@ -1,4 +1,6 @@
 // static/js/camera.js
+console.log("[camera.js] LOADED ✅", location.href);
+
 
 function showScanFailUI(msg) {
   const statusEl = document.getElementById("camera-desc");
@@ -76,8 +78,11 @@ console.log("[init] scanMode =", scanMode);
   const params = new URLSearchParams(location.search);
 
   // ✅ 1) 진짜 기준값: rgs_dt(YYYYMMDD), time_slot(M/L/D)
-  const rgsDt = params.get("rgs_dt");
-  const timeSlot = params.get("time_slot");
+  const hiddenRgsDt = document.getElementById("ctx-rgs-dt")?.value || "";
+  const hiddenTimeSlot = document.getElementById("ctx-time-slot")?.value || "";
+
+  const rgsDt = params.get("rgs_dt") || hiddenRgsDt;
+  const timeSlot = params.get("time_slot") || hiddenTimeSlot;
 
   // ✅ 2) 없으면 fallback 금지 → 기록 흐름이 끊긴 것
   if (!rgsDt || !timeSlot) {

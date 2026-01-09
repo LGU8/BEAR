@@ -241,6 +241,7 @@ def record_mood(request):
     return redirect("/record/meal/")
 
 
+@ensure_csrf_cookie
 @login_required
 def record_meal(request):
     try:
