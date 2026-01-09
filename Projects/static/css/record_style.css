@@ -1038,3 +1038,95 @@ a {
   .food-table td:nth-child(2){ width: 46%; }
 }
 
+/* =========================
+   ✅ scan_result.html alignment FORCE FIX
+   - 원인: result-panel이 align-items:center거나
+           label이 text-align:center인 경우를 강제 교정
+   ========================= */
+
+/* 1) 페이지 좌우 기준선: 여기만 믿고 간다 */
+.result-page{
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* 2) result-panel이 flex center면 전부 깨짐 → stretch로 강제 */
+.result-page .result-panel{
+  width: 100%;           /* ✅ flex 자체를 끊어버림(가장 확실) */
+}
+
+/* 만약 result-panel이 꼭 flex여야 한다면(다른 요소 때문에) 아래로 대체:
+.result-page .result-panel{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;     ✅ 핵심
+}
+*/
+
+/* 3) 체크박스 카드/선택영역/폼/버튼: 동일 폭/기준선 */
+.result-page .selected-product,
+.result-page #candidate-list,
+.result-page .nutr-edit,
+.result-page .result-actions{
+  width: 100% !important;
+  max-width: none !important;          /* ✅ 가운데로 모이는 원인 제거 */
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;          /* ✅ result-page padding과 기준선 통일 */
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* 4) nutr-row 기본 정렬 */
+.result-page .nutr-edit .nutr-row{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 6px;
+  margin: 14px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 5) label이 가운데로 가는 걸 강제 차단 */
+.result-page .nutr-edit .nutr-row label{
+  text-align: left !important;         /* ✅ 핵심 */
+  align-self: flex-start !important;   /* ✅ flex 환경에서도 왼쪽 */
+  margin: 0 !important;
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(0,0,0,0.75);
+}
+
+/* 6) input 폭 강제 통일 */
+.result-page .nutr-edit .nutr-row input{
+  width: 100% !important;              /* ✅ 핵심 */
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.12);
+  padding: 0 14px;
+  background: #fff;
+  box-sizing: border-box !important;
+}
+
+/* 7) 저장 버튼 정렬: 체크박스 카드와 같은 기준선 안에서 */
+.result-page .result-actions{
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+/* 모바일: 저장 버튼 full-width (원치 않으면 이 블록 삭제) */
+@media (max-width: 480px){
+  .result-page .result-actions{
+    justify-content: stretch;
+  }
+  .result-page .result-actions .btn-save{
+    width: 100%;
+    height: 44px;
+    border-radius: 14px;
+    font-weight: 900;
+  }
+}

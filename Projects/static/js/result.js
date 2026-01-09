@@ -438,7 +438,7 @@ console.log("[result.js] loaded ✅");
 
       // ✅ 404는 "OCR 실패"가 아니라 "API 없음"으로 구분
       if (res.status === 404) {
-        showError(errEl, "서버에 OCR 결과 조회 API(/record/api/ocr/latest/)가 없습니다. (배포/URL 설정 확인 필요)");
+        showError(errEl, "비어있는 정보는 직접 입력해주세요.");
         refreshBtn();
         return;
       }
