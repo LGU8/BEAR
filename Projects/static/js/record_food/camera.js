@@ -1,12 +1,12 @@
 // static/js/camera.js
 console.log("[camera.js] LOADED ✅", location.href);
 
-
 function showScanFailUI(msg) {
   const statusEl = document.getElementById("camera-desc");
   if (statusEl) {
     statusEl.textContent =
-      msg || "바코드를 인식하지 못했어요. 바코드를 네모칸 안에 맞추고 다시 시도해 주세요.";
+      msg ||
+      "바코드를 인식하지 못했어요. 바코드를 네모칸 안에 맞추고 다시 시도해 주세요.";
   } else {
     alert(msg || "바코드를 인식하지 못했어요. 다시 시도해 주세요.");
   }
@@ -19,20 +19,35 @@ function showScanFailUI(msg) {
   }
 }
 
-// ✅ CSRF 토큰을 cookie에서 읽는 공통 함수 (1단계 A안)
+// ✅ CSRF 토큰을 cookie에서 읽는 함수 (정규식 버전: 안정적)
 function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== "") {
-    const cookies = document.cookie.split(";");
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.startsWith(name + "=")) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
+  const v = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
+  return v ? v.pop() : "";
+}
+
+// ✅ 공통 POST(fetch) 래퍼: 쿠키 포함 + CSRF 헤더 확정
+async function postWithCSRF(url, formData) {
+  const csrftoken = getCookie("csrftoken");
+
+  // “가장 확실”하게: csrftoken 없으면 바로 중단 (원인 추적 쉬움)
+  if (!csrftoken) {
+    console.error("[CSRF] csrftoken not found. document.cookie=", document.cookie);
+    alert(
+      "CSRF 토큰(csrftoken)을 찾지 못했어요.\n" +
+        "페이지를 새로고침한 뒤 다시 시도해 주세요.\n" +
+        "(서버에서 CSRF 쿠키 발급이 안 된 상태일 수 있어요)"
+    );
+    throw new Error("CSRF token missing");
   }
-  return cookieValue;
+
+  return fetch(url, {
+    method: "POST",
+    body: formData,
+    credentials: "same-origin",
+    headers: {
+      "X-CSRFToken": csrftoken,
+    },
+  });
 }
 
 // ===== UI helpers =====
@@ -77,7 +92,7 @@ console.log("[init] scanMode =", scanMode);
 (async function () {
   const params = new URLSearchParams(location.search);
 
-  // ✅ 1) 진짜 기준값: rgs_dt(YYYYMMDD), time_slot(M/L/D)
+  // ✅ 1) 기준값: rgs_dt(YYYYMMDD), time_slot(M/L/D)
   const hiddenRgsDt = document.getElementById("ctx-rgs-dt")?.value || "";
   const hiddenTimeSlot = document.getElementById("ctx-time-slot")?.value || "";
 
@@ -87,15 +102,20 @@ console.log("[init] scanMode =", scanMode);
   // ✅ 2) 없으면 fallback 금지 → 기록 흐름이 끊긴 것
   if (!rgsDt || !timeSlot) {
     console.error("[camera] missing rgs_dt/time_slot. query=", location.search);
-    alert("식단 기록 정보(rgs_dt/time_slot)가 없습니다. 감정 기록부터 다시 진행해주세요.");
+    alert(
+      "식단 기록 정보(rgs_dt/time_slot)가 없습니다. 감정 기록부터 다시 진행해주세요."
+    );
     safeGoBackToMeal(rgsDt, timeSlot);
     return;
   }
 
-  // ✅ 3) UI/기존 API 호환용: date/meal로 변환 (필요할 때만 사용)
+  // ✅ 3) UI/기존 API 호환용: date/meal로 변환
   function rgsDtToDate(yyyymmdd) {
     // "20251224" -> "2025-12-24"
-    return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`;
+    return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(
+      6,
+      8
+    )}`;
   }
   function slotToMeal(slot) {
     if (slot === "M") return "breakfast";
@@ -130,38 +150,34 @@ console.log("[init] scanMode =", scanMode);
   }
 
   // ===== Guard: HTTPS / Secure Context =====
-  // HTTP(insecure)에서는 navigator.mediaDevices 자체가 undefined가 되는 경우가 많음
   if (!window.isSecureContext) {
     console.error("[camera] insecure context. protocol=", location.protocol);
-
-    // 사용자에게 확실히 안내
-    setCameraStatus("카메라는 HTTPS 환경에서만 사용할 수 있어요. 주소를 https로 접속해 주세요.");
-
-    // (선택) 자동 https 리다이렉트: 커스텀 도메인/HTTPS가 붙어있을 때만 의미 있음
-    // if (location.protocol === "http:") {
-    //   const httpsUrl = "https://" + location.host + location.pathname + location.search + location.hash;
-    //   console.log("[camera] redirect to", httpsUrl);
-    //   location.replace(httpsUrl);
-    // }
-
+    setCameraStatus(
+      "카메라는 HTTPS 환경에서만 사용할 수 있어요. 주소를 https로 접속해 주세요."
+    );
     disableShoot(btnShoot);
     return;
   }
 
   // ===== Guard: getUserMedia 지원 여부 =====
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    console.error("[camera] mediaDevices/getUserMedia not available", navigator.mediaDevices);
-    setCameraStatus("이 환경에서는 카메라 기능을 사용할 수 없어요. (브라우저/보안 설정 확인)");
+    console.error(
+      "[camera] mediaDevices/getUserMedia not available",
+      navigator.mediaDevices
+    );
+    setCameraStatus(
+      "이 환경에서는 카메라 기능을 사용할 수 없어요. (브라우저/보안 설정 확인)"
+    );
     disableShoot(btnShoot);
     return;
   }
 
-  // 버튼 활성화는 메타데이터 로드 이후(영상 크기 확보)로 유지
+  // 버튼 활성화는 메타데이터 로드 이후
   video.addEventListener("loadedmetadata", () => {
     enableShoot(btnShoot);
   });
 
-  // 1) 카메라 켜기 (try/catch로 권한/장치 오류 처리)
+  // 1) 카메라 켜기
   let stream = null;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
@@ -189,7 +205,7 @@ console.log("[init] scanMode =", scanMode);
   // 스트림 연결
   video.srcObject = stream;
 
-  // 페이지 이탈/리로드 시 카메라 끄기(리소스 누수 방지)
+  // 페이지 이탈/리로드 시 카메라 끄기
   window.addEventListener("beforeunload", () => stopStream(stream));
 
   // ===== scan mode init =====
@@ -228,7 +244,7 @@ console.log("[init] scanMode =", scanMode);
     console.log("[setScanMode] scanMode =", scanMode);
   }
 
-  // 초기값: HTML의 is-active 기준으로 동기화
+  // 초기값 동기화
   const active = document.querySelector(".scan-toggle-btn.is-active");
   setScanMode(active?.dataset.scanMode || "barcode");
 
@@ -253,7 +269,7 @@ console.log("[init] scanMode =", scanMode);
       return;
     }
 
-    // 1) 캔버스(#cam-canvas)에 현재 프레임 캡처
+    // 1) 캔버스에 현재 프레임 캡처
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
@@ -268,10 +284,11 @@ console.log("[init] scanMode =", scanMode);
         }
 
         const fd = new FormData();
-        const filename = scanMode === "nutrition" ? "nutrition.jpg" : "barcode.jpg";
+        const filename =
+          scanMode === "nutrition" ? "nutrition.jpg" : "barcode.jpg";
         fd.append("image", blob, filename);
 
-        // ✅ 기준값(저장/세션 매칭용)
+        // ✅ 기준값
         fd.append("rgs_dt", rgsDt);
         fd.append("time_slot", timeSlot);
 
@@ -283,26 +300,18 @@ console.log("[init] scanMode =", scanMode);
 
         // ✅ mode에 따라 endpoint 분기
         const endpoint =
-          scanMode === "nutrition" ? "/record/api/ocr/job/create/" : "/record/api/scan/barcode/";
+          scanMode === "nutrition"
+            ? "/record/api/ocr/job/create/"
+            : "/record/api/scan/barcode/";
 
         console.log("[shoot] endpoint =", endpoint);
 
-        // ✅ CSRF token
-        const csrftoken = getCookie("csrftoken");
-
         let res = null;
         try {
-          res = await fetch(endpoint, {
-            method: "POST",
-            body: fd,
-            credentials: "same-origin",
-            headers: {
-              "X-CSRFToken": csrftoken,
-            },
-          });
+          // ✅ 여기서부터 fetch 직접 호출 금지 → postWithCSRF로 통일
+          res = await postWithCSRF(endpoint, fd);
         } catch (e) {
-          console.error("[fetch] failed", e);
-          alert("네트워크 오류로 서버에 요청하지 못했어요. 잠시 후 다시 시도해 주세요.");
+          console.error("[postWithCSRF] failed", e);
           enableShoot(btnShoot);
           return;
         }
@@ -316,7 +325,9 @@ console.log("[init] scanMode =", scanMode);
         try {
           data = JSON.parse(raw);
         } catch (e) {
-          alert("서버 응답이 JSON이 아니에요(500/HTML일 수 있음). 콘솔 raw를 확인해줘.");
+          alert(
+            "서버 응답이 JSON이 아니에요(500/HTML일 수 있음). 콘솔 raw를 확인해줘."
+          );
           enableShoot(btnShoot);
           return;
         }
@@ -353,7 +364,6 @@ console.log("[init] scanMode =", scanMode);
           // 1) 인식 실패 → 카메라에서 재시도
           if (data.reason === "SCAN_FAIL") {
             showScanFailUI(data.message);
-            // showScanFailUI 안에서 버튼을 다시 활성화하도록 되어 있음
             return;
           }
 
@@ -362,7 +372,10 @@ console.log("[init] scanMode =", scanMode);
             data.reason === "NO_MATCH" || data.error === "no candidates found";
 
           if (isNoMatch) {
-            alert(data.message || "해당 바코드로 조회되는 제품이 없습니다. 검색으로 추가해 주세요.");
+            alert(
+              data.message ||
+                "해당 바코드로 조회되는 제품이 없습니다. 검색으로 추가해 주세요."
+            );
             location.href =
               `/record/?date=${encodeURIComponent(date)}` +
               `&meal=${encodeURIComponent(meal)}` +

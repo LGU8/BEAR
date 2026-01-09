@@ -6,7 +6,7 @@ from django.utils import timezone
 import json
 import traceback
 from django.contrib.auth.decorators import login_required
-
+from django.shortcuts import render, redirect
 from conf.views import _safe_get_cust_id
 from django.views.decorators.csrf import ensure_csrf_cookie
 
@@ -295,6 +295,17 @@ def recipe_new(request):
 
 @ensure_csrf_cookie
 def camera(request):
+    rgs_dt = (request.GET.get("rgs_dt") or request.session.get("rgs_dt") or "").strip()
+    time_slot = (
+        request.GET.get("time_slot") or request.session.get("time_slot") or ""
+    ).strip()
+
+    if not rgs_dt or not time_slot:
+        return redirect("/record/meal/")
+
+    request.session["rgs_dt"] = rgs_dt
+    request.session["time_slot"] = time_slot
+
     return render(request, "record/camera.html")
 
 

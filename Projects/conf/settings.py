@@ -202,6 +202,7 @@ CSRF_TRUSTED_ORIGINS = [
     f"http://{EB_DOMAIN}",
     f"https://{EB_DOMAIN}",
     "https://d26gla0lxi34pu.cloudfront.net",
+    "http://d26gla0lxi34pu.cloudfront.net",
 ]
 
 # Reverse proxy 뒤에서 https 인식 보정
