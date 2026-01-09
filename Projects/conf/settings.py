@@ -201,12 +201,15 @@ SESSION_SAVE_EVERY_REQUEST = True
 CSRF_TRUSTED_ORIGINS = [
     f"http://{EB_DOMAIN}",
     f"https://{EB_DOMAIN}",
+    "https://d26gla0lxi34pu.cloudfront.net",
 ]
 
 # Reverse proxy 뒤에서 https 인식 보정
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 
+# 처음엔 루프 방지 위해 False 유지
+SECURE_SSL_REDIRECT = False
 
 # =========================
 # Email (SMTP)
