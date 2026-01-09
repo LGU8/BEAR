@@ -281,6 +281,61 @@
   color: rgba(0,0,0,0.45);
 }
 
+/* =========================
+   S4 저장 영역: 카드 내부 sticky footer (추천)
+   ========================= */
+
+/* 하단 탭바 높이(프로젝트 값에 맞게 조절) */
+:root{
+  --tabbar-h: 80px; /* nav_style.css에서 body padding-bottom과 맞추기 */
+}
+
+/* 카드가 화면 아래까지 내려갈 수 있으니, sticky가 동작하도록 */
+.settings-page.s4 .edit-card{
+  /* fixed 보정용 padding-bottom 제거/축소 */
+  padding-bottom: 18px;
+}
+
+/* sticky footer: 카드 안에서만 하단에 붙음 */
+.settings-page.s4 .edit-card .edit-footer--sticky{
+  position: sticky;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  z-index: 5;
+
+  margin-top: 16px;
+
+  display: flex;
+  justify-content: flex-end;
+
+  /* 아래 컨텐츠가 비치지 않게 */
+  box-shadow: 0 -6px 16px rgba(0,0,0,0.04);
+}
+
+/* 버튼은 이제 fixed가 아니라 footer 안에서 정렬 */
+.settings-page.s4 .edit-card .save-btn{
+  position: static !important; /* ✅ fixed 제거 */
+  width: 40px;
+  height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--orange-1);
+  color: #fff;
+
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.settings-page.s4 .edit-card .save-btn:disabled{
+  background: rgba(244,121,0,0.35);
+  cursor: not-allowed;
+}
+
+
 /* 모바일 */
 @media (max-width: 420px) {
   .settings-page.s4 .edit-card .select-item {
