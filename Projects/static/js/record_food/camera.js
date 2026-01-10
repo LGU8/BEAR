@@ -344,6 +344,10 @@ console.log("[init] scanMode =", scanMode);
         console.log("[scan] endpoint", endpoint);
         console.log("[scan] status", res.status);
         console.log("[scan] raw", raw.slice(0, 600));
+        console.log("[scan] status", res.status);
+        console.log("[scan] content-type", res.headers.get("content-type"));
+        console.log("[scan] raw(head)", raw.slice(0, 400));
+        console.log("[scan] raw(tail)", raw.slice(-400));
 
         let data = null;
         try {
