@@ -281,6 +281,7 @@ console.log("[init] scanMode =", scanMode);
 
   // ===== shoot =====
   btnShoot.addEventListener("click", async () => {
+    alert("CLICK OK");
     console.log("[CAMERA] REAL CLICK ✅", {
       disabled: btnShoot.disabled,
       readyState: video.readyState,
