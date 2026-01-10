@@ -17,14 +17,56 @@
 * **UI/UX 구현 및 테스트/배포**: 12월 중순 \~ 1월 초
 * **최종 발표 및 보고서 작성**: 1월 초 \~ 1월 9일
 
-### 3. 팀 구성
-
-| 이름  | 역할             | 주요 업무                              |
-| --- | -------------- | ---------------------------------- |
-| 김민정 | 프로젝트 총괄/PM/ML(LLM)   | 데이터 수집 및 전처리, Front/Back, 감정 데이터 분석/추천 모델 설계      |
-| 김남기 | Front/Back/ML | 데이터 수집 및 전처리, 메뉴 추천 설계, AWS 구축 |
-| 유 정 | ML/AWS  | 데이터 수집 및 전처리, 바코드 관련 API 매핑 파이프라인 설계, 서비스 배포 및 운영            |
-| 장형준 | Front/Back/ML | 데이터 수집 및 전처리, 이미지/OCR 데이터 처리, AWS RDS 구축 |
+## 😎 팀원 소개
+<table style="width:100%; text-align:center; table-layout:fixed; border-collapse:collapse;">
+  <colgroup>
+    <!-- 전체 5열이므로 20%씩 -->
+    <col style="width:20%;">
+    <col style="width:20%;">
+    <col style="width:20%;">
+    <col style="width:20%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>김민정</th>
+      <th>김남기</th>
+      <th>유 정</th>
+      <th>장형준</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><img src="Projects/static/readme/Profile_Img_김민정.jpg" style="width:150px; height:auto;"></td>
+      <td><img src="Projects/static/readme/Profile_Img_김남기.jpg" style="width:150px; height:auto;"></td>
+      <td><img src="Projects/static/readme/Profile_Img_유정.jpg" style="width:150px; height:auto;"></td>
+      <td><img src="Projects/static/readme/Profile_Img_장형준.jpg" style="width:150px; height:auto;"></td>/
+    </tr>
+    <tr>
+      <td>PM<br>ML<br>LLM<br>Front/Back</td>
+      <td>ML<br>Front/Back<br>AWS</td>
+      <td>ML<br>Front/Back<<br>AWS</td>
+      <td>ML<br>Front/Back<br>RDS</td>
+    </tr>
+    <!-- <tr>
+      <td><a href="https://github.com/qkrcool" target="_blank">
+          <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
+        </a></td>
+      <td><a href="https://github.com/strangem1n" target="_blank">
+          <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
+        </a></td>
+      <td><a href="https://github.com/jisunclaralee" target="_blank">
+          <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
+        </a></td>
+      <td><a href="https://github.com/saeyeonIm" target="_blank">
+          <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
+        </a></td>
+      <td><a href="https://github.com/tjdud1199" target="_blank">
+          <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
+        </a></td>
+    </tr> -->
+  </tbody>
+</table>
+<br>
 
 ---
 
