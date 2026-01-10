@@ -1,4 +1,5 @@
 // static/js/camera.js
+
 console.log("[camera.js] LOADED ✅", location.href);
 
 function showScanFailUI(msg) {
@@ -29,7 +30,6 @@ function getCookie(name) {
 async function postWithCSRF(url, formData) {
   const csrftoken = getCookie("csrftoken");
 
-  // “가장 확실”하게: csrftoken 없으면 바로 중단 (원인 추적 쉬움)
   if (!csrftoken) {
     console.error("[CSRF] csrftoken not found. document.cookie=", document.cookie);
     alert(
@@ -72,8 +72,6 @@ function disableShoot(btn) {
 }
 
 function safeGoBackToMeal(rgsDt, timeSlot) {
-  // 필요하면 rgs_dt/time_slot 유지해서 돌아가도록 확장 가능
-  // location.href = `/record/meal/?rgs_dt=${encodeURIComponent(rgsDt)}&time_slot=${encodeURIComponent(timeSlot)}`;
   location.href = "/record/meal/";
 }
 
@@ -86,7 +84,7 @@ function stopStream(stream) {
   }
 }
 
-let scanMode = "barcode"; // 기본값
+let scanMode = "barcode";
 console.log("[init] scanMode =", scanMode);
 
 (async function () {
@@ -99,23 +97,15 @@ console.log("[init] scanMode =", scanMode);
   const rgsDt = params.get("rgs_dt") || hiddenRgsDt;
   const timeSlot = params.get("time_slot") || hiddenTimeSlot;
 
-  // ✅ 2) 없으면 fallback 금지 → 기록 흐름이 끊긴 것
   if (!rgsDt || !timeSlot) {
     console.error("[camera] missing rgs_dt/time_slot. query=", location.search);
-    alert(
-      "식단 기록 정보(rgs_dt/time_slot)가 없습니다. 감정 기록부터 다시 진행해주세요."
-    );
+    alert("식단 기록 정보(rgs_dt/time_slot)가 없습니다. 감정 기록부터 다시 진행해주세요.");
     safeGoBackToMeal(rgsDt, timeSlot);
     return;
   }
 
-  // ✅ 3) UI/기존 API 호환용: date/meal로 변환
   function rgsDtToDate(yyyymmdd) {
-    // "20251224" -> "2025-12-24"
-    return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(
-      6,
-      8
-    )}`;
+    return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`;
   }
   function slotToMeal(slot) {
     if (slot === "M") return "breakfast";
@@ -149,33 +139,48 @@ console.log("[init] scanMode =", scanMode);
     return;
   }
 
+  // ✅ iOS Safari 안정화를 위한 속성(HTML에 있어도 한 번 더 세팅)
+  // - playsinline: 전체화면 전환/재생 정책 이슈 감소
+  // - muted: autoplay/play 허용 가능성 증가
+  // - autoplay: 일부 브라우저에서 play 트리거 보조
+  video.setAttribute("playsinline", "");
+  video.setAttribute("webkit-playsinline", "");
+  video.muted = true;
+  video.autoplay = true;
+
   // ===== Guard: HTTPS / Secure Context =====
   if (!window.isSecureContext) {
     console.error("[camera] insecure context. protocol=", location.protocol);
-    setCameraStatus(
-      "카메라는 HTTPS 환경에서만 사용할 수 있어요. 주소를 https로 접속해 주세요."
-    );
+    setCameraStatus("카메라는 HTTPS 환경에서만 사용할 수 있어요. 주소를 https로 접속해 주세요.");
     disableShoot(btnShoot);
     return;
   }
 
   // ===== Guard: getUserMedia 지원 여부 =====
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    console.error(
-      "[camera] mediaDevices/getUserMedia not available",
-      navigator.mediaDevices
-    );
-    setCameraStatus(
-      "이 환경에서는 카메라 기능을 사용할 수 없어요. (브라우저/보안 설정 확인)"
-    );
+    console.error("[camera] mediaDevices/getUserMedia not available", navigator.mediaDevices);
+    setCameraStatus("이 환경에서는 카메라 기능을 사용할 수 없어요. (브라우저/보안 설정 확인)");
     disableShoot(btnShoot);
     return;
   }
 
-  // 버튼 활성화는 메타데이터 로드 이후
-  video.addEventListener("loadedmetadata", () => {
+  // ✅ 버튼 활성화 트리거를 다양화(loadedmetadata만 믿지 않기)
+  const tryEnable = (tag) => {
+    console.log(`[camera] enable trigger: ${tag}`, {
+      readyState: video.readyState,
+      paused: video.paused,
+      w: video.videoWidth,
+      h: video.videoHeight,
+    });
+
+    // videoWidth가 0이어도, "일단 버튼은 켜서 사용자가 눌러볼 수 있게" 만드는 전략
+    // (클릭 시 videoWidth 0이면 안내 후 다시 활성화하므로 안전)
     enableShoot(btnShoot);
-  });
+  };
+
+  video.addEventListener("loadedmetadata", () => tryEnable("loadedmetadata"));
+  video.addEventListener("loadeddata", () => tryEnable("loadeddata"));
+  video.addEventListener("canplay", () => tryEnable("canplay"));
 
   // 1) 카메라 켜기
   let stream = null;
@@ -205,7 +210,28 @@ console.log("[init] scanMode =", scanMode);
   // 스트림 연결
   video.srcObject = stream;
 
-  // 페이지 이탈/리로드 시 카메라 끄기
+  // ✅ iOS/모바일에서 srcObject만으로는 재생이 시작 안 되는 케이스가 많아서 play() 시도
+  try {
+    const p = video.play();
+    if (p && typeof p.then === "function") {
+      await p;
+    }
+    console.log("[camera] video.play() OK");
+  } catch (e) {
+    // play()가 막혀도 스트림은 붙어있을 수 있음. 대신 버튼을 켜서 사용자가 재시도하게 함.
+    console.warn("[camera] video.play() blocked or failed:", e);
+    setCameraStatus("카메라가 자동 재생되지 않을 수 있어요. 버튼을 눌러 캡처를 시도해 주세요.");
+  }
+
+  // ✅ play 성공/실패와 관계없이, 최소한 버튼은 켜는 fallback
+  // (이게 없으면 loadedmetadata 미발생 시 버튼 영원히 disabled로 남을 수 있음)
+  setTimeout(() => {
+    if (btnShoot.disabled) {
+      console.warn("[camera] fallback enableShoot after timeout");
+      enableShoot(btnShoot);
+    }
+  }, 700);
+
   window.addEventListener("beforeunload", () => stopStream(stream));
 
   // ===== scan mode init =====
@@ -220,14 +246,12 @@ console.log("[init] scanMode =", scanMode);
   function setScanMode(nextMode) {
     scanMode = nextMode === "nutrition" ? "nutrition" : "barcode";
 
-    // 1) 토글 버튼 UI 동기화
     document.querySelectorAll(".scan-toggle-btn").forEach((b) => {
       const on = b.dataset.scanMode === scanMode;
       b.classList.toggle("is-active", on);
       b.setAttribute("aria-selected", on ? "true" : "false");
     });
 
-    // 2) 안내 문구 변경
     if (descEl) {
       descEl.textContent =
         scanMode === "barcode"
@@ -235,7 +259,6 @@ console.log("[init] scanMode =", scanMode);
           : "네모칸 안에 영양성분을 스캔해주세요";
     }
 
-    // 3) 가이드 박스 모드 class 변경
     if (stageEl) {
       stageEl.classList.toggle("is-barcode", scanMode === "barcode");
       stageEl.classList.toggle("is-nutrition", scanMode === "nutrition");
@@ -244,11 +267,9 @@ console.log("[init] scanMode =", scanMode);
     console.log("[setScanMode] scanMode =", scanMode);
   }
 
-  // 초기값 동기화
   const active = document.querySelector(".scan-toggle-btn.is-active");
   setScanMode(active?.dataset.scanMode || "barcode");
 
-  // 클릭 이벤트
   document.querySelectorAll(".scan-toggle-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -260,6 +281,15 @@ console.log("[init] scanMode =", scanMode);
 
   // ===== shoot =====
   btnShoot.addEventListener("click", async () => {
+    console.log("[CAMERA] REAL CLICK ✅", {
+      disabled: btnShoot.disabled,
+      readyState: video.readyState,
+      paused: video.paused,
+      w: video.videoWidth,
+      h: video.videoHeight,
+      mode: scanMode,
+    });
+
     disableShoot(btnShoot);
 
     // video 준비 확인
@@ -269,12 +299,10 @@ console.log("[init] scanMode =", scanMode);
       return;
     }
 
-    // 1) 캔버스에 현재 프레임 캡처
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
 
-    // 2) Blob으로 변환 → 서버로 업로드
     canvas.toBlob(
       async (blob) => {
         if (!blob) {
@@ -284,21 +312,17 @@ console.log("[init] scanMode =", scanMode);
         }
 
         const fd = new FormData();
-        const filename =
-          scanMode === "nutrition" ? "nutrition.jpg" : "barcode.jpg";
+        const filename = scanMode === "nutrition" ? "nutrition.jpg" : "barcode.jpg";
         fd.append("image", blob, filename);
 
-        // ✅ 기준값
         fd.append("rgs_dt", rgsDt);
         fd.append("time_slot", timeSlot);
 
-        // ✅ 호환/표시용
         fd.append("date", date);
         fd.append("meal", meal);
 
         fd.append("mode", scanMode);
 
-        // ✅ mode에 따라 endpoint 분기
         const endpoint =
           scanMode === "nutrition"
             ? "/record/api/ocr/job/create/"
@@ -308,7 +332,6 @@ console.log("[init] scanMode =", scanMode);
 
         let res = null;
         try {
-          // ✅ 여기서부터 fetch 직접 호출 금지 → postWithCSRF로 통일
           res = await postWithCSRF(endpoint, fd);
         } catch (e) {
           console.error("[postWithCSRF] failed", e);
@@ -325,9 +348,7 @@ console.log("[init] scanMode =", scanMode);
         try {
           data = JSON.parse(raw);
         } catch (e) {
-          alert(
-            "서버 응답이 JSON이 아니에요(500/HTML일 수 있음). 콘솔 raw를 확인해줘."
-          );
+          alert("서버 응답이 JSON이 아니에요(500/HTML일 수 있음). 콘솔 raw를 확인해줘.");
           enableShoot(btnShoot);
           return;
         }
@@ -341,7 +362,6 @@ console.log("[init] scanMode =", scanMode);
 
         console.log("[scan] json", data);
 
-        // ✅ nutrition 모드: job_id 받고 result로 이동
         if (scanMode === "nutrition") {
           if (!data.ok) {
             alert(data.message || data.error || "OCR 작업 생성 중 오류가 발생했어요.");
@@ -361,13 +381,12 @@ console.log("[init] scanMode =", scanMode);
 
         // ✅ barcode 모드
         if (!data.ok) {
-          // 1) 인식 실패 → 카메라에서 재시도
           if (data.reason === "SCAN_FAIL") {
             showScanFailUI(data.message);
+            // showScanFailUI 내부에서 버튼 다시 활성화함
             return;
           }
 
-          // 2) 후보 없음 → record 페이지 이동 + 검색창 포커스
           const isNoMatch =
             data.reason === "NO_MATCH" || data.error === "no candidates found";
 
@@ -383,13 +402,12 @@ console.log("[init] scanMode =", scanMode);
             return;
           }
 
-          // 3) 그 외 에러
           alert(data.message || data.error || "바코드 처리 중 오류가 발생했어요.");
           enableShoot(btnShoot);
           return;
         }
 
-        // ✅ barcode 성공: draft_id로 result 페이지 이동
+        // ✅ barcode 성공
         location.href =
           `/record/scan/result/?rgs_dt=${encodeURIComponent(rgsDt)}` +
           `&time_slot=${encodeURIComponent(timeSlot)}` +
