@@ -36,10 +36,10 @@
   </thead>
   <tbody>
     <tr>
-      <td><img src="Projects/static/readme/Profile_Img_김민정.jpg" style="width:150px; height:auto;" alt="민정"></td>
-      <td><img src="Projects/static/readme/Profile_Img_김남기.jpg" style="width:150px; height:auto;" alt="남기"></td>
-      <td><img src="Projects/static/readme/Profile_Img_유정.jpg" style="width:150px; height:auto;" alt="정"></td>
-      <td><img src="Projects/static/readme/Profile_Img_장형준.jpg" style="width:150px; height:auto;" alt="형준"></td>
+      <td><img src="Projects/static/readme/Profile_Img_김민정.jpg" style="width:150px; height:auto;"></td>
+      <td><img src="Projects/static/readme/Profile_Img_김남기.jpg" style="width:150px; height:auto;"></td>
+      <td><img src="Projects/static/readme/Profile_Img_유정.jpg" style="width:150px; height:auto;"></td>
+      <td><img src="Projects/static/readme/Profile_Img_장형준.jpg" style="width:150px; height:auto;"></td>
     </tr>
     <tr>
       <td>PM<br>ML<br>LLM<br>Front/Back</td>
