@@ -17,6 +17,8 @@
 * **UI/UX 구현 및 테스트/배포**: 12월 중순 \~ 1월 초
 * **최종 발표 및 보고서 작성**: 1월 초 \~ 1월 9일
 
+---
+
 ## 😎 팀원 소개
 <table style="width:100%; text-align:center; table-layout:fixed; border-collapse:collapse;">
   <colgroup>
@@ -42,10 +44,10 @@
       <td><img src="Projects/static/readme/Profile_Img_장형준.jpg" style="width:150px; height:auto;"></td>
     </tr>
     <tr>
-      <td>PM<br>ML<br>LLM<br>Front/Back</td>
-      <td>ML<br>Front/Back<br>AWS</td>
-      <td>ML<br>Front/Back<br>AWS</td>
-      <td>ML<br>Front/Back<br>RDS</td>
+      <td align="center" valign="middle">PM<br>ML/LLM<br>Front/Back</td>
+      <td align="center" valign="middle">ML<br>Front/Back<br>AWS</td>
+      <td align="center" valign="middle">ML<br>Front/Back<br>AWS</td>
+      <td align="center" valign="middle">ML<br>Front/Back<br>RDS</td>
     </tr>
     <!-- <tr>
       <td><a href="https://github.com/qkrcool" target="_blank">
@@ -66,8 +68,27 @@
     </tr> -->
   </tbody>
 </table>
-<br>
 
 ---
 
-## 📄 요구사항 정의서
+## 🛠️ 기술 스택
+### - Languages
+<img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white" /> <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black" />
+<img src="https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white" /> <img src="https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white" />
+### - Framework
+<img src="https://img.shields.io/badge/Django-092E20?style=flat&logo=django&logoColor=white" />
+
+### - ML/LLM
+<img src="https://img.shields.io/badge/LangChain-1C3C3C?style=flat" /> <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&logo=pytorch&logoColor=white" /> <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=flat&logo=scikit-learn&logoColor=white" /> <img src="https://img.shields.io/badge/pandas-150458?style=flat&logo=pandas&logoColor=white" />
+### - Infrastructure
+<img src="https://img.shields.io/badge/AWS-232F3E?style=flat&logo=Amazon%20AWS&logoColor=white" /> (  <img src="https://img.shields.io/badge/EC2-FF9900?style=flat&logo=Amazon%20EC2&logoColor=white" />   <img src="https://img.shields.io/badge/S3-569A31?style=flat&logo=Amazon%20S3&logoColor=white" />  <img src="https://img.shields.io/badge/CloudFront-A374DB?style=flat&logo=Amazon%20AWS&logoColor=white" />  <img src="https://img.shields.io/badge/Elastic%20Beanstalk-FF9900?style=flat&logo=Amazon%20AWS&logoColor=white" />)
+### - Database
+<img src="https://img.shields.io/badge/Amazon%20RDS-527FFF?style=flat&logo=Amazon%20RDS&logoColor=white" /> <img src="https://img.shields.io/badge/MySQL-4479A1?style=flat&logo=mysql&logoColor=white" />
+### - API
+<img src="https://img.shields.io/badge/FatSecret%20API-4CAF50?style=flat" /> <img src="https://img.shields.io/badge/OpenAI%20API-412991?style=flat&logo=openai&logoColor=white" /> <img src="https://img.shields.io/badge/식품의약품안전처%20API-005BAC?style=flat" /> <img src="https://img.shields.io/badge/공공데이터포털-003964?style=flat" />
+### - Collaboration
+<img src="https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white" /> <img src="https://img.shields.io/badge/Notion-000000?style=flat&logo=notion&logoColor=white" /> <img src="https://img.shields.io/badge/SourceTree-0052CC?style=flat&logo=sourcetree&logoColor=white" /> <img src="https://img.shields.io/badge/Canva-00C4CC?style=flat&logo=canva&logoColor=white" />
+
+---
+## 📄 최종 보고서
+- [최종 보고서 (발표 PDF)](./쨔잔_최종보고서.pdf)
